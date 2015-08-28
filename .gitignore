@@ -1,0 +1,7 @@
+*target*
+*~
+#*
+*.log
+*.dump
+/logs
+
