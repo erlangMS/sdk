@@ -13,13 +13,20 @@ import br.erlangms.EmsRequest;
 @LocalBean
 @Startup
 public class ContadorService extends EmsServiceFacade {
+	private static int contador = 0;
 
 	public ContadorService() throws Exception {
 		super();
 	}
 
 	static public Integer count(EmsRequest request) {
-		return 10;
+		return contador++;
+	}
+
+	static public Integer incrementBy(EmsRequest request) {
+		int step = Integer.parseInt(request.getParam("id"));
+		contador = contador + step;
+		return contador;
 	}
 
 }
