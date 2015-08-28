@@ -11,11 +11,10 @@
         </sealing>
     </manifest>
     <selectedElements exportClassFiles="true" exportJavaFiles="true" exportOutputFolder="false">
-        <folder path="/ems_java/target"/>
         <file path="/ems_java/pom.xml"/>
-        <folder path="/ems_java/bin"/>
-        <folder path="/ems_java/lib"/>
+        <folder path="/ems_java/target"/>
         <javaElement handleIdentifier="=ems_java/src"/>
+        <folder path="/ems_java/lib"/>
         <file path="/ems_java/.classpath"/>
         <file path="/ems_java/.project"/>
     </selectedElements>

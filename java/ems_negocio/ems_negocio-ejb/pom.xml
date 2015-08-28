@@ -34,25 +34,4 @@
       </plugin>
     </plugins>
   </build>
-
-	<dependencies>
-		
-		<dependency>
-	        <groupId>br.erlangms</groupId>
-	        <artifactId>ems_java-1.0.0</artifactId>
-	        <version>1.0.0</version>
-	        <scope>system</scope>
-	        <systemPath>${project.basedir}/lib/ems_java-1.0.0.jar</systemPath>
-	    </dependency>	
-	
-		<dependency>
-	        <groupId>OtpErlang</groupId>
-	        <artifactId>OtpErlang</artifactId>
-	        <version>1.6.0</version>
-	        <scope>system</scope>
-	        <systemPath>${project.basedir}/lib/OtpErlang.jar</systemPath>
-	    </dependency>	
-	
-	</dependencies>
-  
 </project>

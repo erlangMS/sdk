@@ -16,7 +16,7 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
-public class EmsRequest {
+public class EmsRequest implements IEmsRequest {
 	private OtpErlangTuple otp_request;
 	private static OtpErlangAtom undefined = new OtpErlangAtom("undefined");
 
@@ -24,18 +24,34 @@ public class EmsRequest {
 		this.otp_request = otp_request;
 	}
 	
+	/* (non-Javadoc)
+	 * @see br.erlangms.IEmsRequest#getRID()
+	 */
+	@Override
 	public long getRID(){
 		return ((OtpErlangLong)otp_request.elementAt(0)).longValue();
 	}
 
+	/* (non-Javadoc)
+	 * @see br.erlangms.IEmsRequest#getUrl()
+	 */
+	@Override
 	public String getUrl(){
 		return ((OtpErlangString)otp_request.elementAt(1)).stringValue();
 	}
 	
+	/* (non-Javadoc)
+	 * @see br.erlangms.IEmsRequest#getMetodo()
+	 */
+	@Override
 	public String getMetodo(){
 		return ((OtpErlangString)otp_request.elementAt(2)).stringValue();
 	}
 
+	/* (non-Javadoc)
+	 * @see br.erlangms.IEmsRequest#getParamsCount()
+	 */
+	@Override
 	public int getParamsCount(){
 		OtpErlangObject Params = otp_request.elementAt(3);
 		if (!Params.equals(undefined)){
@@ -45,6 +61,10 @@ public class EmsRequest {
 		}
 	}
 	
+	/* (non-Javadoc)
+	 * @see br.erlangms.IEmsRequest#getParam(java.lang.String)
+	 */
+	@Override
 	public String getParam(final String NomeParam) {
 		if (getParamsCount() > 0){
 			OtpErlangMap params = ((OtpErlangMap) otp_request.elementAt(3));
@@ -61,6 +81,10 @@ public class EmsRequest {
 		}
 	}
 	
+	/* (non-Javadoc)
+	 * @see br.erlangms.IEmsRequest#getQueryCount()
+	 */
+	@Override
 	public int getQueryCount(){
 		OtpErlangObject Querystring = otp_request.elementAt(4);
 		if (!Querystring.equals(undefined)){
@@ -70,6 +94,10 @@ public class EmsRequest {
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see br.erlangms.IEmsRequest#getQuery(java.lang.String)
+	 */
+	@Override
 	public String getQuery(final String Nome) {
 		if (getQueryCount() > 0){
 			OtpErlangMap Queries = ((OtpErlangMap) otp_request.elementAt(4));
@@ -86,14 +114,26 @@ public class EmsRequest {
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see br.erlangms.IEmsRequest#getModulo()
+	 */
+	@Override
 	public String getModulo(){
 		return ((OtpErlangString)otp_request.elementAt(5)).stringValue();
 	}
 
+	/* (non-Javadoc)
+	 * @see br.erlangms.IEmsRequest#getFunction()
+	 */
+	@Override
 	public String getFunction(){
 		return ((OtpErlangString)otp_request.elementAt(6)).stringValue();
 	}
 
+	/* (non-Javadoc)
+	 * @see br.erlangms.IEmsRequest#getOtpRequest()
+	 */
+	@Override
 	public OtpErlangObject getOtpRequest(){
 		return this.otp_request;
 	}

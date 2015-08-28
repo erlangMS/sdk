@@ -6,7 +6,7 @@ import javax.ejb.Startup;
 import javax.ejb.TransactionManagement;
 import javax.ejb.TransactionManagementType;
 
-import br.erlangms.EmsRequest;
+import br.erlangms.IEmsRequest;
 
 @Singleton
 @TransactionManagement(TransactionManagementType.BEAN)
@@ -19,11 +19,17 @@ public class ContadorService extends EmsServiceFacade {
 		super();
 	}
 
-	static public Integer count(EmsRequest request) {
+	static public Integer count(IEmsRequest request) {
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+		}
 		return contador++;
 	}
 
-	static public Integer incrementBy(EmsRequest request) {
+	static public Integer incrementBy(IEmsRequest request) {
 		int step = Integer.parseInt(request.getParam("id"));
 		contador = contador + step;
 		return contador;

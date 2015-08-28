@@ -6,7 +6,7 @@ import javax.ejb.Startup;
 import javax.ejb.TransactionManagement;
 import javax.ejb.TransactionManagementType;
 
-import br.erlangms.EmsRequest;
+import br.erlangms.IEmsRequest;
 
 @Singleton
 @TransactionManagement(TransactionManagementType.BEAN)
@@ -18,7 +18,7 @@ public class HelloWorldService extends EmsServiceFacade {
 		super();
 	}
 
-	static public String helloWorld(EmsRequest request) {
+	static public String helloWorld(IEmsRequest request) {
 		return "Hello World !!!";
 	}
 
