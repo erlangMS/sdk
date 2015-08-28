@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<jardesc>
+    <jar path="ems_java/ems_java-1.0.0.jar"/>
+    <options buildIfNeeded="true" compress="false" descriptionLocation="/ems_java/ems_java.jardesc" exportErrors="true" exportWarnings="true" includeDirectoryEntries="false" overwrite="false" saveDescription="true" storeRefactorings="false" useSourceFolders="false"/>
+    <storedRefactorings deprecationInfo="true" structuralOnly="false"/>
+    <selectedProjects/>
+    <manifest generateManifest="false" manifestLocation="/ems_java/src/META-INF/MANIFEST.MF" manifestVersion="1.0" reuseManifest="false" saveManifest="false" usesManifest="true">
+        <sealing sealJar="false">
+            <packagesToSeal/>
+            <packagesToUnSeal/>
+        </sealing>
+    </manifest>
+    <selectedElements exportClassFiles="true" exportJavaFiles="true" exportOutputFolder="false">
+        <folder path="/ems_java/target"/>
+        <file path="/ems_java/pom.xml"/>
+        <folder path="/ems_java/bin"/>
+        <folder path="/ems_java/lib"/>
+        <javaElement handleIdentifier="=ems_java/src"/>
+        <file path="/ems_java/.classpath"/>
+        <file path="/ems_java/.project"/>
+    </selectedElements>
+</jardesc>
