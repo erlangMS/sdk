@@ -48,11 +48,6 @@ public class EmsAgent
 	public EmsAgent(){
 	}
 	
-	public void finalize(){
-		close();
-		print_log("EmsAgent para " + getAgentName() + " finalizado.");
-	}
-	
 	public void start() throws Exception {
 		   // Se existir conexão previa, finaliza primeiro
 		   if (myNode != null){
@@ -88,12 +83,18 @@ public class EmsAgent
 	
 	public void close(){
 		if (myNode != null){
-			myNode.close();
-			myNode = null;
+			try{
+				myNode.close();
+			}catch (Exception e){
+				// não faz nada
+			}finally{
+				print_log("EmsAgent para " + getAgentName() + " finalizado.");
+				myNode = null;
+			}
 		}
 	}
 	
-	static public String toJson(Object object){
+	static public String toJson(final Object object){
 		Gson gson = new Gson();
 		String result = gson.toJson(object);
 		return result;
@@ -158,6 +159,8 @@ public class EmsAgent
             	reply[1] = new OtpErlangInt((Integer) ret);
             }else if (ret.getClass().getName().equals(String.class.getName())){
             	reply[1] = new OtpErlangString((String) ret);
+            }else if (ret instanceof Object){
+            	reply[1] = new OtpErlangString((String) toJson(ret));
             }else if (ret.getClass().getName().equals(ArrayList.class.getName())){
             	List<?> lista = (List<?>) ret;
             	OtpErlangObject[] otp_items = new OtpErlangObject[lista.size()];
