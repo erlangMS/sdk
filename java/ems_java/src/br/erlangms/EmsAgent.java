@@ -28,7 +28,8 @@ import com.google.gson.Gson;
 
 public class EmsAgent
 {
-	
+	private String nomeAgente = null;
+	private String nomeService = null;
     private OtpNode myNode = null;
     private final OtpErlangAtom ok = new OtpErlangAtom("ok");
     private final OtpErlangAtom service_not_implemented = new OtpErlangAtom("service_not_implemented");
@@ -38,29 +39,31 @@ public class EmsAgent
     private final OtpErlangAtom servico = new OtpErlangAtom("servico");
     
 	public static void main(String[] args) throws Exception {
-		new EmsAgent().start();
+		new EmsAgent("MainAgenteTest", "br.erlangMS.MainAgentTest").start();
 	}
 	
-	public String getAgentName(){
-		return getClass().getSimpleName();
+	public EmsAgent(final String nomeAgente, final String nomeService){
+		this.nomeAgente = nomeAgente;
+		this.nomeService = nomeService;
 	}
 	
-	public EmsAgent(){
+	public String getNomeAgente(){
+		return nomeAgente;
 	}
 	
 	public void start() throws Exception {
 		   // Se existir conexão previa, finaliza primeiro
 		   if (myNode != null){
-			   print_log("Já existe EmsAgent para "+ getAgentName() + ", finalizando primeiro...");
+			   print_log("Já existe EmsAgent para "+ nomeAgente + ", finalizando primeiro...");
 			   close(); 
 		   }
-		   print_log("EmsAgent para " + getAgentName() + " iniciado.");
-	       myNode = new OtpNode(getAgentName());
+		   print_log("EmsAgent para " + nomeAgente + " iniciado.");
+	       myNode = new OtpNode(nomeAgente);
 	       print_log("host   -> "+ myNode.host());
 	       print_log("node   -> "+ myNode.node());
 	       print_log("port   -> "+ myNode.port());
 	       print_log("cookie -> "+ myNode.cookie());
-	       OtpMbox myMbox = myNode.createMbox(getClass().getName());
+	       OtpMbox myMbox = myNode.createMbox(nomeService);
 	       OtpErlangObject myObject;
            OtpErlangTuple myMsg;
            OtpErlangPid from;
@@ -86,9 +89,10 @@ public class EmsAgent
 			try{
 				myNode.close();
 			}catch (Exception e){
-				// não faz nada
+				print_log("Ocorreu o seguinte erro ao finalizar: ");
+				e.printStackTrace();
 			}finally{
-				print_log("EmsAgent para " + getAgentName() + " finalizado.");
+				print_log("EmsAgent para " + nomeAgente + " finalizado.");
 				myNode = null;
 			}
 		}
@@ -132,7 +136,7 @@ public class EmsAgent
 	}  	
 	
 	public void print_log(final String message){
-		System.out.println(getAgentName() + ": " + message);
+		System.out.println(nomeAgente + ": " + message);
 	}
 
 	private class Task extends Thread{

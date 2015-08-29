@@ -17,25 +17,30 @@ import br.erlangms.EmsAgent;
 /**
  * Classe base para serviços ErlangMS
  */
-public abstract class EmsServiceFacade extends EmsAgent {
+public abstract class EmsServiceFacade {
+	private EmsAgent agent = null;
+	private AgentThread agentThread = null;
 	public enum States {BEFORESTARTED, STARTED, PAUSED, SHUTTINGDOWN};
     private States state;
        	
     @PostConstruct
-    public void initialize() throws Exception {
+    public void initialize() {
         state = States.BEFORESTARTED;
-        print_log("Carregando...");
-        start();
+        Class<? extends EmsServiceFacade> cls = getClass();
+        agent = new EmsAgent(cls.getSimpleName(), cls.getName());
+        agentThread = new AgentThread(agent);
+        agentThread.start();
         state = States.STARTED;
-        print_log("Carregado!");
     }
     
-    @PreDestroy
+    @SuppressWarnings("deprecation")
+	@PreDestroy
     public void terminate() {
         state = States.SHUTTINGDOWN;
-        print_log("Finalizando...");
-        close();
-        print_log("Finalizado.");
+        agentThread.stop();
+        agent.close();
+        agent = null;
+        
     }
 
     public States getState() {
@@ -45,4 +50,24 @@ public abstract class EmsServiceFacade extends EmsAgent {
     public void setState(States state) {
         this.state = state;
     }    
+    
+	private class AgentThread extends Thread{
+		private EmsAgent agent;
+		
+		public AgentThread(final EmsAgent agent){
+			super();
+			this.agent = agent;
+		}
+		
+        @Override  
+        public void run() {
+        	try {
+				agent.start();
+			} catch (Exception e) {
+				agent.print_log("Ocorreu o seguinte erro ao iniciar "+ agent.getNomeAgente() + ":");
+				e.printStackTrace();
+			}
+        }  
+	}
+    
 }
