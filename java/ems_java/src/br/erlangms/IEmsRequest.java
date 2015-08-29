@@ -8,6 +8,9 @@
   
 package br.erlangms;
 
+import java.text.ParseException;
+import java.util.Date;
+
 import com.ericsson.otp.erlang.OtpErlangObject;
 
 public interface IEmsRequest {
@@ -31,5 +34,11 @@ public interface IEmsRequest {
 	public abstract String getFunction();
 
 	public abstract OtpErlangObject getOtpRequest();
+
+	public int getParamAsInt(String NomeParam);
+
+	public Double getParamAsDouble(String NomeParam);
+
+	public Date getParamAsDate(String NomeParam) throws ParseException;
 
 }

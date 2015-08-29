@@ -4,7 +4,4 @@
   <module>
     <ejb>ems_negocio-ejb.jar</ejb>
   </module>
-  <module>
-    <java>ems_java-1.0.0.jar</java>
-  </module>
 </application>

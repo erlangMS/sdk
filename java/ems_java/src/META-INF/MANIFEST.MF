@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Main-Class: br.erlangms.EmsAgent
+Main-Class: 
 Class-Path: lib/OtpErlang.jar
 
 

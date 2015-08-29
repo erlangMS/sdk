@@ -8,6 +8,10 @@
 
 package br.erlangms;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
 import com.ericsson.otp.erlang.OtpErlangLong;
@@ -80,7 +84,22 @@ public class EmsRequest implements IEmsRequest {
 			return null;
 		}
 	}
+
+	@Override
+	public int getParamAsInt(final String NomeParam) {
+		return Integer.parseInt(getParam(NomeParam));
+	}
 	
+	@Override
+	public Double getParamAsDouble(final String NomeParam) {
+		return Double.parseDouble(getParam(NomeParam)); 
+	}
+
+	@Override
+	public Date getParamAsDate(final String NomeParam) throws ParseException {
+		return new SimpleDateFormat("dd/mm/yyyy").parse(getParam(NomeParam));
+	}
+
 	/* (non-Javadoc)
 	 * @see br.erlangms.IEmsRequest#getQueryCount()
 	 */

@@ -24,12 +24,10 @@ import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.ericsson.otp.erlang.OtpMbox;
 import com.ericsson.otp.erlang.OtpNode;
+import com.google.gson.Gson;
 
 public class EmsAgent
 {
-	static{
-		System.out.println("Teste");
-	}
 	
     private OtpNode myNode = null;
     private final OtpErlangAtom ok = new OtpErlangAtom("ok");
@@ -53,6 +51,87 @@ public class EmsAgent
 	public void finalize(){
 		close();
 		print_log("EmsAgent para " + getAgentName() + " finalizado.");
+	}
+	
+	public void start() throws Exception {
+		   // Se existir conexão previa, finaliza primeiro
+		   if (myNode != null){
+			   print_log("Já existe EmsAgent para "+ getAgentName() + ", finalizando primeiro...");
+			   close(); 
+		   }
+		   print_log("EmsAgent para " + getAgentName() + " iniciado.");
+	       myNode = new OtpNode(getAgentName());
+	       print_log("host   -> "+ myNode.host());
+	       print_log("node   -> "+ myNode.node());
+	       print_log("port   -> "+ myNode.port());
+	       print_log("cookie -> "+ myNode.cookie());
+	       OtpMbox myMbox = myNode.createMbox(getClass().getName());
+	       OtpErlangObject myObject;
+           OtpErlangTuple myMsg;
+           OtpErlangPid from;
+           OtpErlangTuple otp_request;
+           IEmsRequest request;
+           print_log("EmsAgent [OK]");
+           while(true) 
+	    	   try {
+                    myObject = myMbox.receive();
+                    myMsg = (OtpErlangTuple) myObject;
+                    otp_request = (OtpErlangTuple) myMsg.elementAt(0);
+                    request = new EmsRequest(otp_request);
+                    from = (OtpErlangPid) myMsg.elementAt(1);
+                    print_log(request.getMetodo() + " request " + request.getRID() + " para " + request.getModulo() + "." + request.getFunction() +  "(EmsRequest) [URL: " + request.getUrl()+ "]");
+                    new Task(from, request, myMbox).start();  
+			} catch(OtpErlangExit e) {
+				break;
+	        }
+        }
+	
+	public void close(){
+		if (myNode != null){
+			myNode.close();
+			myNode = null;
+		}
+	}
+	
+	static public String toJson(Object object){
+		Gson gson = new Gson();
+		String result = gson.toJson(object);
+		return result;
+	}
+	
+	private Object chamaMetodo(final String modulo, final String metodo, final IEmsRequest request)  {  
+	    try {  
+	    	Class<?> Classe = Class.forName(modulo);
+	    	Method m = Classe.getDeclaredMethod(metodo, IEmsRequest.class);   
+	        m.setAccessible(true);  
+		    Object result = m.invoke(null, request);          
+	        return result;  
+	    } catch (NoSuchMethodException e) {  
+	        // Essa exceção ocorre se o getMethod() não encontrar o método que  
+	        // você especificou 
+	    	print_log("Método não encontrado: " + metodo + ".");
+	    	return metodo_not_implemented;
+	    } catch (IllegalAccessException e) {  
+	        // Pode ocorrer se o método que você está invocando não for  
+	        // acessível. Você pode forçar que um método (mesmo privado!) seja  
+	        // acessível fazendo:  
+	        // antes do seu invoke.
+	    	print_log("O método "+ modulo + "." + metodo + " não está acessível.");
+	    	return metodo_not_visible;
+	    } catch (InvocationTargetException e) {  
+	        // Essa exceção acontece se o método chamado gerar uma exceção.  
+	        // Use e.getCause() para descobrir qual exceção foi gerada no método  
+	        // chamado e trata-la adequadamente.
+	    	print_log("O método "+ modulo + "." + metodo + " gerou a exception: " + e.getCause() + ".");
+	    	return negocio_exception;
+	    } catch (ClassNotFoundException e) {
+			print_log("EmsAgent: Módulo não encontrado: " + modulo + ".");
+			return service_not_implemented;
+		}
+	}  	
+	
+	public void print_log(final String message){
+		System.out.println(getAgentName() + ": " + message);
 	}
 
 	private class Task extends Thread{
@@ -98,81 +177,6 @@ public class EmsAgent
             
             myMbox.send(from, myTuple);
         }  
-	}
-	
-	public void start() throws Exception {
-		   // Se existir conexão previa, finaliza primeiro
-		   if (myNode != null){
-			   print_log("Já existe EmsAgent para "+ getAgentName() + ", finalizando primeiro...");
-			   close(); 
-		   }
-		   print_log("EmsAgent para " + getAgentName() + " iniciado.");
-	       myNode = new OtpNode(getAgentName());
-	       print_log("host   -> "+ myNode.host());
-	       print_log("node   -> "+ myNode.node());
-	       print_log("port   -> "+ myNode.port());
-	       print_log("cookie -> "+ myNode.cookie());
-	       OtpMbox myMbox = myNode.createMbox(getClass().getName());
-	       OtpErlangObject myObject;
-           OtpErlangTuple myMsg;
-           OtpErlangPid from;
-           OtpErlangTuple otp_request;
-           IEmsRequest request;
-           print_log("EmsAgent [OK]");
-           while(true) 
-	    	   try {
-                    myObject = myMbox.receive();
-                    myMsg = (OtpErlangTuple) myObject;
-                    otp_request = (OtpErlangTuple) myMsg.elementAt(0);
-                    request = new EmsRequest(otp_request);
-                    from = (OtpErlangPid) myMsg.elementAt(1);
-                    print_log(request.getMetodo() + " request " + request.getRID() + " para " + request.getModulo() + "." + request.getFunction() +  "(EmsRequest) [URL: " + request.getUrl()+ "]");
-                    new Task(from, request, myMbox).start();  
-			} catch(OtpErlangExit e) {
-				break;
-	        }
-        }
-	
-	public void close(){
-		if (myNode != null){
-			myNode.close();
-			myNode = null;
-		}
-	}
-	
-	private Object chamaMetodo(final String modulo, final String metodo, final IEmsRequest request)  {  
-	    try {  
-	    	Class<?> Classe = Class.forName(modulo);
-	    	Method m = Classe.getDeclaredMethod(metodo, IEmsRequest.class);   
-	        m.setAccessible(true);  
-		    Object result = m.invoke(null, request);          
-	        return result;  
-	    } catch (NoSuchMethodException e) {  
-	        // Essa exceção ocorre se o getMethod() não encontrar o método que  
-	        // você especificou 
-	    	print_log("Método não encontrado: " + metodo + ".");
-	    	return metodo_not_implemented;
-	    } catch (IllegalAccessException e) {  
-	        // Pode ocorrer se o método que você está invocando não for  
-	        // acessível. Você pode forçar que um método (mesmo privado!) seja  
-	        // acessível fazendo:  
-	        // antes do seu invoke.
-	    	print_log("O método "+ modulo + "." + metodo + " não está acessível.");
-	    	return metodo_not_visible;
-	    } catch (InvocationTargetException e) {  
-	        // Essa exceção acontece se o método chamado gerar uma exceção.  
-	        // Use e.getCause() para descobrir qual exceção foi gerada no método  
-	        // chamado e trata-la adequadamente.
-	    	print_log("O método "+ modulo + "." + metodo + " gerou a exception: " + e.getCause() + ".");
-	    	return negocio_exception;
-	    } catch (ClassNotFoundException e) {
-			print_log("EmsAgent: Módulo não encontrado: " + modulo + ".");
-			return service_not_implemented;
-		}
-	}  	
-	
-	public void print_log(final String message){
-		System.out.println(getAgentName() + ": " + message);
 	}
 	
 }

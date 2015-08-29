@@ -22,10 +22,6 @@ import br.erlangms.EmsAgent;
 /**
  * Session Bean implementation class EmsServiceFacade
  */
-@Singleton
-@TransactionManagement(TransactionManagementType.BEAN)
-@LocalBean
-@Startup
 public abstract class EmsServiceFacade extends EmsAgent {
 	public enum States {BEFORESTARTED, STARTED, PAUSED, SHUTTINGDOWN};
     private States state;
@@ -33,10 +29,6 @@ public abstract class EmsServiceFacade extends EmsAgent {
     public EmsServiceFacade() throws Exception {
     	super();
     }
-
-    public void finalize(){
-    }
-    
     
     @PostConstruct
     public void initialize() throws Exception {
