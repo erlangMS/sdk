@@ -12,12 +12,13 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import br.erlangms.EmsAgent;
+import br.erlangms.IEmsServiceFacade;
 
 
 /**
  * Classe base para serviços ErlangMS
  */
-public abstract class EmsServiceFacade {
+public abstract class EmsServiceFacade implements IEmsServiceFacade {
 	private EmsAgent agent = null;
 	private AgentThread agentThread = null;
 	public enum States {BEFORESTARTED, STARTED, PAUSED, SHUTTINGDOWN};
@@ -27,7 +28,7 @@ public abstract class EmsServiceFacade {
     public void initialize() {
         state = States.BEFORESTARTED;
         Class<? extends EmsServiceFacade> cls = getClass();
-        agent = new EmsAgent(cls.getSimpleName(), cls.getName());
+        agent = new EmsAgent(cls.getSimpleName(), cls.getName(), this);
         agentThread = new AgentThread(agent);
         agentThread.start();
         state = States.STARTED;
