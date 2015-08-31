@@ -28,6 +28,7 @@ import com.google.gson.Gson;
 
 public class EmsAgent
 {
+	private IEmsServiceFacade facade = null;
 	private String nomeAgente = null;
 	private String nomeService = null;
     private OtpNode myNode = null;
@@ -38,13 +39,10 @@ public class EmsAgent
     private final OtpErlangAtom negocio_exception = new OtpErlangAtom("negocio_exception");
     private final OtpErlangAtom servico = new OtpErlangAtom("servico");
     
-	public static void main(String[] args) throws Exception {
-		new EmsAgent("MainAgenteTest", "br.erlangMS.MainAgentTest").start();
-	}
-	
-	public EmsAgent(final String nomeAgente, final String nomeService){
+	public EmsAgent(final String nomeAgente, final String nomeService, IEmsServiceFacade facade){
 		this.nomeAgente = nomeAgente;
 		this.nomeService = nomeService;
+		this.facade = facade;
 	}
 	
 	public String getNomeAgente(){
@@ -59,6 +57,7 @@ public class EmsAgent
 		   }
 		   print_log("EmsAgent para " + nomeAgente + " iniciado.");
 	       myNode = new OtpNode(nomeAgente);
+	       myNode.setCookie("erlangms");
 	       print_log("host   -> "+ myNode.host());
 	       print_log("node   -> "+ myNode.node());
 	       print_log("port   -> "+ myNode.port());
@@ -104,12 +103,12 @@ public class EmsAgent
 		return result;
 	}
 	
-	private Object chamaMetodo(final String modulo, final String metodo, final IEmsRequest request)  {  
+	private Object chamaMetodo(final String modulo, final String metodo, final IEmsRequest request)  {
 	    try {  
-	    	Class<?> Classe = Class.forName(modulo);
+	    	Class<?> Classe = facade.getClass();
 	    	Method m = Classe.getDeclaredMethod(metodo, IEmsRequest.class);   
 	        m.setAccessible(true);  
-		    Object result = m.invoke(null, request);          
+		    Object result = m.invoke(facade, request);          
 	        return result;  
 	    } catch (NoSuchMethodException e) {  
 	        // Essa exceção ocorre se o getMethod() não encontrar o método que  
@@ -129,10 +128,7 @@ public class EmsAgent
 	        // chamado e trata-la adequadamente.
 	    	print_log("O método "+ modulo + "." + metodo + " gerou a exception: " + e.getCause() + ".");
 	    	return negocio_exception;
-	    } catch (ClassNotFoundException e) {
-			print_log("EmsAgent: Módulo não encontrado: " + modulo + ".");
-			return service_not_implemented;
-		}
+	    }
 	}  	
 	
 	public void print_log(final String message){

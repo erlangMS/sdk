@@ -15,12 +15,6 @@ public class ContadorService extends EmsServiceFacade {
 	}
 
 	static public Integer count(IEmsRequest request) {
-		try {
-			Thread.sleep(5000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
-		}
 		return contador++;
 	}
 
