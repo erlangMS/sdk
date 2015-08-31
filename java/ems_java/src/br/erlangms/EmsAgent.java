@@ -59,6 +59,7 @@ public class EmsAgent
 		   }
 		   print_log("EmsAgent para " + nomeAgente + " iniciado.");
 	       myNode = new OtpNode(nomeAgente);
+	       myNode.setCookie("erlangms");
 	       print_log("host   -> "+ myNode.host());
 	       print_log("node   -> "+ myNode.node());
 	       print_log("port   -> "+ myNode.port());
