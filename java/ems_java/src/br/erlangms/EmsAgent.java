@@ -13,7 +13,10 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.persistence.OneToMany;
+
 import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangBinary;
 import com.ericsson.otp.erlang.OtpErlangExit;
 import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -24,7 +27,10 @@ import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.ericsson.otp.erlang.OtpMbox;
 import com.ericsson.otp.erlang.OtpNode;
+import com.google.gson.ExclusionStrategy;
+import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 public class EmsAgent
 {
@@ -33,7 +39,6 @@ public class EmsAgent
 	private String nomeService = null;
     private OtpNode myNode = null;
     private final OtpErlangAtom ok = new OtpErlangAtom("ok");
-    private final OtpErlangAtom service_not_implemented = new OtpErlangAtom("service_not_implemented");
     private final OtpErlangAtom metodo_not_implemented = new OtpErlangAtom("metodo_not_implemented");
     private final OtpErlangAtom metodo_not_visible = new OtpErlangAtom("metodo_not_visible");
     private final OtpErlangAtom negocio_exception = new OtpErlangAtom("negocio_exception");
@@ -97,8 +102,26 @@ public class EmsAgent
 		}
 	}
 	
-	static public String toJson(final Object object){
-		Gson gson = new Gson();
+	
+	private class TestExclStrat implements ExclusionStrategy {
+
+        public boolean shouldSkipClass(Class<?> arg0) {
+            return false;
+        }
+
+        public boolean shouldSkipField(FieldAttributes f) {
+        	return (f.getAnnotation(OneToMany.class) != null);
+            //return (f.getDeclaringClass() == Student.class && f.getName().equals("firstName"))||
+            //(f.getDeclaringClass() == Country.class && f.getName().equals("name"));
+        }
+    }
+	
+	public String toJson(final Object object){
+		Gson gson = new GsonBuilder()
+        	.setExclusionStrategies(new TestExclStrat())
+        //.serializeNulls() <-- uncomment to serialize NULL fields as well
+        	.create();		
+		//Gson gson = new Gson();
 		String result = gson.toJson(object);
 		return result;
 	}
@@ -106,9 +129,17 @@ public class EmsAgent
 	private Object chamaMetodo(final String modulo, final String metodo, final IEmsRequest request)  {
 	    try {  
 	    	Class<?> Classe = facade.getClass();
-	    	Method m = Classe.getDeclaredMethod(metodo, IEmsRequest.class);   
-	        m.setAccessible(true);  
-		    Object result = m.invoke(facade, request);          
+	    	Method m = null;
+	    	Object result = null;
+	    	try{
+	    		m = Classe.getDeclaredMethod(metodo, IEmsRequest.class);   
+		    	m.setAccessible(true);  
+			    result = m.invoke(facade, request);          
+	    	} catch (NoSuchMethodException e) {
+		    	m = Classe.getDeclaredMethod(metodo);
+		    	m.setAccessible(true);  
+			    result = m.invoke(facade);          
+	    	}
 	        return result;  
 	    } catch (NoSuchMethodException e) {  
 	        // Essa exceção ocorre se o getMethod() não encontrar o método que  
@@ -157,10 +188,12 @@ public class EmsAgent
             
             if (ret.getClass().getName().equals(Integer.class.getName())){
             	reply[1] = new OtpErlangInt((Integer) ret);
-            }else if (ret.getClass().getName().equals(String.class.getName())){
-            	reply[1] = new OtpErlangString((String) ret);
+            }else if (ret instanceof String){
+            	reply[1] = new OtpErlangBinary(((String) ret).getBytes());
+            	//reply[1] = new OtpErlangString((String) ret);
             }else if (ret instanceof Object){
-            	reply[1] = new OtpErlangString((String) toJson(ret));
+            	reply[1] = new OtpErlangBinary(toJson(ret).getBytes());
+            	//reply[1] = new OtpErlangString((String) toJson(ret));
             }else if (ret.getClass().getName().equals(ArrayList.class.getName())){
             	List<?> lista = (List<?>) ret;
             	OtpErlangObject[] otp_items = new OtpErlangObject[lista.size()];
