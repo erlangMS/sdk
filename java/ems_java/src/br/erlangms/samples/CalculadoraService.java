@@ -1,13 +1,15 @@
-package br.erlangms.service;
+package br.erlangms.samples;
 
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 
+import br.erlangms.EmsServiceFacade;
 import br.erlangms.IEmsRequest;
+import br.erlangms.IEmsServiceFacade;
 
 @Singleton
 @Startup
-public class CalculadoraService extends EmsServiceFacade {
+public class CalculadoraService extends EmsServiceFacade implements IEmsServiceFacade {
 
 	public CalculadoraService() throws Exception {
 		super();

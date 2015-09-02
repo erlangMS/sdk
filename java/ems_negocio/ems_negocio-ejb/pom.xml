@@ -6,6 +6,24 @@
   <packaging>ejb</packaging>
   <name>ems_negocio</name>
   <description>ems_negocio</description>
+  
+<dependencies>  
+    <dependency>
+		<groupId>javax</groupId>
+		<artifactId>javaee-api</artifactId>
+		<version>6.0</version>
+		<scope>provided</scope>
+	</dependency>
+
+	<dependency>
+		<groupId>log4j</groupId>
+		<artifactId>log4j</artifactId>
+		<version>1.2.16</version>
+		<scope>provided</scope>
+	</dependency>
+  
+ </dependencies>
+ 
   <build>
     <sourceDirectory>ejbModule</sourceDirectory>
     <resources>

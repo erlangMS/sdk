@@ -5,6 +5,7 @@ import java.util.List;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 
+import br.erlangms.EmsServiceFacade;
 import br.erlangms.IEmsRequest;
 import br.erlangms.negocio.PessoaNegocio;
 import br.erlangms.pojo.Pessoa;

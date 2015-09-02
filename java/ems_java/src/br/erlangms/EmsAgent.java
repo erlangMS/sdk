@@ -13,8 +13,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.OneToMany;
-
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
 import com.ericsson.otp.erlang.OtpErlangExit;
@@ -27,22 +25,19 @@ import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.ericsson.otp.erlang.OtpMbox;
 import com.ericsson.otp.erlang.OtpNode;
-import com.google.gson.ExclusionStrategy;
-import com.google.gson.FieldAttributes;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 public class EmsAgent
 {
+    private final OtpErlangAtom ok = new OtpErlangAtom("ok");
+    private final OtpErlangAtom metodo_not_implemented_atom = new OtpErlangAtom("metodo_not_implemented");
+    private final OtpErlangAtom metodo_not_visible_atom = new OtpErlangAtom("metodo_not_visible");
+    private final OtpErlangAtom negocio_exception_atom = new OtpErlangAtom("negocio_exception");
+    private final OtpErlangAtom servico_atom = new OtpErlangAtom("servico");
+    private final OtpErlangAtom null_atom = new OtpErlangAtom("null");
 	private IEmsServiceFacade facade = null;
 	private String nomeAgente = null;
 	private String nomeService = null;
     private OtpNode myNode = null;
-    private final OtpErlangAtom ok = new OtpErlangAtom("ok");
-    private final OtpErlangAtom metodo_not_implemented = new OtpErlangAtom("metodo_not_implemented");
-    private final OtpErlangAtom metodo_not_visible = new OtpErlangAtom("metodo_not_visible");
-    private final OtpErlangAtom negocio_exception = new OtpErlangAtom("negocio_exception");
-    private final OtpErlangAtom servico = new OtpErlangAtom("servico");
     
 	public EmsAgent(final String nomeAgente, final String nomeService, IEmsServiceFacade facade){
 		this.nomeAgente = nomeAgente;
@@ -102,30 +97,6 @@ public class EmsAgent
 		}
 	}
 	
-	
-	private class TestExclStrat implements ExclusionStrategy {
-
-        public boolean shouldSkipClass(Class<?> arg0) {
-            return false;
-        }
-
-        public boolean shouldSkipField(FieldAttributes f) {
-        	return (f.getAnnotation(OneToMany.class) != null);
-            //return (f.getDeclaringClass() == Student.class && f.getName().equals("firstName"))||
-            //(f.getDeclaringClass() == Country.class && f.getName().equals("name"));
-        }
-    }
-	
-	public String toJson(final Object object){
-		Gson gson = new GsonBuilder()
-        	.setExclusionStrategies(new TestExclStrat())
-        //.serializeNulls() <-- uncomment to serialize NULL fields as well
-        	.create();		
-		//Gson gson = new Gson();
-		String result = gson.toJson(object);
-		return result;
-	}
-	
 	private Object chamaMetodo(final String modulo, final String metodo, final IEmsRequest request)  {
 	    try {  
 	    	Class<?> Classe = facade.getClass();
@@ -142,23 +113,22 @@ public class EmsAgent
 	    	}
 	        return result;  
 	    } catch (NoSuchMethodException e) {  
-	        // Essa exceção ocorre se o getMethod() não encontrar o método que  
-	        // você especificou 
+	        // Essa exceção ocorre se o getMethod() não encontrar o método
 	    	print_log("Método não encontrado: " + metodo + ".");
-	    	return metodo_not_implemented;
+	    	return metodo_not_implemented_atom;
 	    } catch (IllegalAccessException e) {  
 	        // Pode ocorrer se o método que você está invocando não for  
 	        // acessível. Você pode forçar que um método (mesmo privado!) seja  
 	        // acessível fazendo:  
 	        // antes do seu invoke.
 	    	print_log("O método "+ modulo + "." + metodo + " não está acessível.");
-	    	return metodo_not_visible;
+	    	return metodo_not_visible_atom;
 	    } catch (InvocationTargetException e) {  
 	        // Essa exceção acontece se o método chamado gerar uma exceção.  
 	        // Use e.getCause() para descobrir qual exceção foi gerada no método  
 	        // chamado e trata-la adequadamente.
 	    	print_log("O método "+ modulo + "." + metodo + " gerou a exception: " + e.getCause() + ".");
-	    	return negocio_exception;
+	    	return negocio_exception_atom;
 	    }
 	}  	
 	
@@ -166,6 +136,10 @@ public class EmsAgent
 		System.out.println(nomeAgente + ": " + message);
 	}
 
+	public String toJson(final Object object){
+		return EmsUtil.toJson(object);
+	}
+	
 	private class Task extends Thread{
 		private OtpErlangPid from;
 		private IEmsRequest request;
@@ -186,27 +160,29 @@ public class EmsAgent
             OtpErlangObject[] reply = new OtpErlangObject[2];
             reply[0] = ok;
             
-            if (ret.getClass().getName().equals(Integer.class.getName())){
-            	reply[1] = new OtpErlangInt((Integer) ret);
-            }else if (ret instanceof String){
-            	reply[1] = new OtpErlangBinary(((String) ret).getBytes());
-            	//reply[1] = new OtpErlangString((String) ret);
-            }else if (ret instanceof Object){
-            	reply[1] = new OtpErlangBinary(toJson(ret).getBytes());
-            	//reply[1] = new OtpErlangString((String) toJson(ret));
-            }else if (ret.getClass().getName().equals(ArrayList.class.getName())){
-            	List<?> lista = (List<?>) ret;
-            	OtpErlangObject[] otp_items = new OtpErlangObject[lista.size()];
-            	for(int i = 0; i < lista.size(); i++){
-            		otp_items[i] = new OtpErlangString((String) lista.get(i));
-            	}
-            	OtpErlangList otp_list = new OtpErlangList(otp_items);
-            	reply[1] = otp_list;
-            }else if (ret instanceof OtpErlangAtom){
-            	reply[1] = (OtpErlangObject) ret;
+            if (ret != null){
+	            if (ret.getClass().getName().equals(Integer.class.getName())){
+	            	reply[1] = new OtpErlangInt((Integer) ret);
+	            }else if (ret instanceof String){
+	            	reply[1] = new OtpErlangBinary(((String) ret).getBytes());
+	            }else if (ret instanceof Object){
+	            	reply[1] = new OtpErlangBinary(toJson(ret).getBytes());
+	            }else if (ret.getClass().getName().equals(ArrayList.class.getName())){
+	            	List<?> lista = (List<?>) ret;
+	            	OtpErlangObject[] otp_items = new OtpErlangObject[lista.size()];
+	            	for(int i = 0; i < lista.size(); i++){
+	            		otp_items[i] = new OtpErlangString((String) lista.get(i));
+	            	}
+	            	OtpErlangList otp_list = new OtpErlangList(otp_items);
+	            	reply[1] = otp_list;
+	            }else if (ret instanceof OtpErlangAtom){
+	            	reply[1] = (OtpErlangObject) ret;
+	            }
+            }else{
+            	reply[1] = (OtpErlangObject) null_atom;
             }
             
-            otp_result[0] = servico;
+            otp_result[0] = servico_atom;
             otp_result[1] = new OtpErlangLong(request.getRID());
             otp_result[2] = new OtpErlangTuple(reply);
             OtpErlangTuple myTuple = new OtpErlangTuple(otp_result);

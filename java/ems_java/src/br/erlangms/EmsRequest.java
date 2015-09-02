@@ -28,33 +28,21 @@ public class EmsRequest implements IEmsRequest {
 		this.otp_request = otp_request;
 	}
 	
-	/* (non-Javadoc)
-	 * @see br.erlangms.IEmsRequest#getRID()
-	 */
 	@Override
 	public long getRID(){
 		return ((OtpErlangLong)otp_request.elementAt(0)).longValue();
 	}
 
-	/* (non-Javadoc)
-	 * @see br.erlangms.IEmsRequest#getUrl()
-	 */
 	@Override
 	public String getUrl(){
 		return ((OtpErlangString)otp_request.elementAt(1)).stringValue();
 	}
 	
-	/* (non-Javadoc)
-	 * @see br.erlangms.IEmsRequest#getMetodo()
-	 */
 	@Override
 	public String getMetodo(){
 		return ((OtpErlangString)otp_request.elementAt(2)).stringValue();
 	}
 
-	/* (non-Javadoc)
-	 * @see br.erlangms.IEmsRequest#getParamsCount()
-	 */
 	@Override
 	public int getParamsCount(){
 		OtpErlangObject Params = otp_request.elementAt(3);
@@ -65,9 +53,6 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 	
-	/* (non-Javadoc)
-	 * @see br.erlangms.IEmsRequest#getParam(java.lang.String)
-	 */
 	@Override
 	public String getParam(final String NomeParam) {
 		if (getParamsCount() > 0){
@@ -100,9 +85,6 @@ public class EmsRequest implements IEmsRequest {
 		return new SimpleDateFormat("dd/mm/yyyy").parse(getParam(NomeParam));
 	}
 
-	/* (non-Javadoc)
-	 * @see br.erlangms.IEmsRequest#getQueryCount()
-	 */
 	@Override
 	public int getQueryCount(){
 		OtpErlangObject Querystring = otp_request.elementAt(4);
@@ -113,9 +95,6 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see br.erlangms.IEmsRequest#getQuery(java.lang.String)
-	 */
 	@Override
 	public String getQuery(final String Nome) {
 		if (getQueryCount() > 0){
@@ -133,25 +112,16 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see br.erlangms.IEmsRequest#getModulo()
-	 */
 	@Override
 	public String getModulo(){
 		return ((OtpErlangString)otp_request.elementAt(5)).stringValue();
 	}
 
-	/* (non-Javadoc)
-	 * @see br.erlangms.IEmsRequest#getFunction()
-	 */
 	@Override
 	public String getFunction(){
 		return ((OtpErlangString)otp_request.elementAt(6)).stringValue();
 	}
 
-	/* (non-Javadoc)
-	 * @see br.erlangms.IEmsRequest#getOtpRequest()
-	 */
 	@Override
 	public OtpErlangObject getOtpRequest(){
 		return this.otp_request;
