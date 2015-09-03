@@ -1,11 +1,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>br.erlangms</groupId>
-  <artifactId>ems_negocio</artifactId>
+  <artifactId>ems_negocio-ejb</artifactId>
   <version>1.0.0</version>
-  <packaging>ejb</packaging>
-  <name>ems_negocio</name>
-  <description>ems_negocio</description>
+  <name>ems_negocio-ejb</name>
+  <description>ems_negocio-ejb</description>
+  
+<properties>
+	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	<project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
+	<maven.build.timestamp.format>yyyy-MM-dd-HHmm</maven.build.timestamp.format>
+	<project.buildNumber>${maven.build.timestamp}</project.buildNumber>
+</properties>
   
 <dependencies>  
     <dependency>
@@ -22,6 +28,26 @@
 		<scope>provided</scope>
 	</dependency>
   
+	<dependency>
+        <groupId>br.erlangms</groupId>
+        <artifactId>OtpErlang</artifactId>
+        <version>1.6.0</version>
+    </dependency>	
+    
+	<dependency>
+		<groupId>br.erlangms</groupId>
+		<artifactId>ems_java</artifactId>
+		<version>1.0.0</version>
+		<type>jar</type>
+	</dependency>
+
+  	<dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.3.1</version>
+      <scope>compile</scope>
+    </dependency>  
+
  </dependencies>
  
   <build>
@@ -50,22 +76,8 @@
           <target>1.8</target>
         </configuration>
       </plugin>
-	    <plugin>
-	        <artifactId>maven-deploy-plugin</artifactId>
-	        <version>2.8.1</version>
-	        <configuration>
-	            <altDeploymentRepository>internal.repo::default::file://${project.build.directory}/mvn-repo</altDeploymentRepository>
-	        </configuration>
-	    </plugin>
     </plugins>
   </build>
-
-	<distributionManagement>
-	    <repository>
-	        <id>internal.repo</id>
-	        <name>Temporary Staging Repository</name>
-	        <url>file://${project.build.directory}/mvn-repo</url>
-	    </repository>
-	</distributionManagement>
 	
+  <packaging>ejb</packaging>
 </project>

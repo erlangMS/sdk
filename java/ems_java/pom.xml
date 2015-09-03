@@ -4,15 +4,20 @@
   <artifactId>ems_java</artifactId>
   <version>1.0.0</version>
   <name>ems_java</name>
-  <description>ems_java</description>
+  <description>Agentes para serviços ErlangMS</description>
 
+<properties>
+	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	<project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
+	<maven.build.timestamp.format>yyyy-MM-dd-HHmm</maven.build.timestamp.format>
+	<project.buildNumber>${maven.build.timestamp}</project.buildNumber>
+</properties>
+	
 <dependencies>
 	<dependency>
-        <groupId>OtpErlang</groupId>
+        <groupId>br.erlangms</groupId>
         <artifactId>OtpErlang</artifactId>
         <version>1.6.0</version>
-        <scope>system</scope>
-        <systemPath>${project.basedir}/lib/OtpErlang.jar</systemPath>
     </dependency>	
     
     <dependency>
@@ -51,4 +56,8 @@
     </plugins>
   </build>
   <url>https://github.com/erlangMS/agens/java/ems_java</url>
+  <organization>
+  	<name>ErlangMS</name>
+  	<url>https://github.com/erlangMS</url>
+  </organization>
 </project>
