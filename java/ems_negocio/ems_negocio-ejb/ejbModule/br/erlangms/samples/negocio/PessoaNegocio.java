@@ -1,9 +1,9 @@
-package br.erlangms.negocio;
+package br.erlangms.samples.negocio;
 
 import java.util.List;
 
-import br.erlangms.dao.PessoaDao;
-import br.erlangms.pojo.Pessoa;
+import br.erlangms.samples.dao.PessoaDao;
+import br.erlangms.samples.pojo.Pessoa;
 
 public class PessoaNegocio {
 	public List<Pessoa> getLista(){

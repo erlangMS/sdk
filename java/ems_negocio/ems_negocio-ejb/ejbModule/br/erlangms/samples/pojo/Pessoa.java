@@ -1,4 +1,4 @@
-package br.erlangms.pojo;
+package br.erlangms.samples.pojo;
 
 import java.util.Date;
 

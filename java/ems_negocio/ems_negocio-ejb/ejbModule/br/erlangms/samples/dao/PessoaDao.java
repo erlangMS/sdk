@@ -1,10 +1,10 @@
-package br.erlangms.dao;
+package br.erlangms.samples.dao;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
-import br.erlangms.pojo.Pessoa;
+import br.erlangms.samples.pojo.Pessoa;
 
 public class PessoaDao {
 	public List<Pessoa> getLista(){

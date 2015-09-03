@@ -1,4 +1,4 @@
-package br.erlangms.service;
+package br.erlangms.samples.service;
 
 import java.util.List;
 
@@ -7,8 +7,8 @@ import javax.ejb.Startup;
 
 import br.erlangms.EmsServiceFacade;
 import br.erlangms.IEmsRequest;
-import br.erlangms.negocio.PessoaNegocio;
-import br.erlangms.pojo.Pessoa;
+import br.erlangms.samples.negocio.PessoaNegocio;
+import br.erlangms.samples.pojo.Pessoa;
 
 @Singleton
 @Startup
@@ -18,13 +18,13 @@ public class PessoaService extends EmsServiceFacade {
 		super();
 	}
 
-	static public List<Pessoa> getLista(IEmsRequest request){
+	public List<Pessoa> lista(IEmsRequest request){
 		PessoaNegocio negocio = new PessoaNegocio();
 		List<Pessoa> lista = negocio.getLista();
 		return lista;
 	}
 	
-	static public Pessoa findById(IEmsRequest request){
+	public Pessoa findById(IEmsRequest request){
 		PessoaNegocio negocio = new PessoaNegocio();
 		return negocio.findById(request.getParamAsInt("id"));
 	}

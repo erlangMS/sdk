@@ -52,10 +52,10 @@ public class EmsAgent
 	public void start() throws Exception {
 		   // Se existir conexão previa, finaliza primeiro
 		   if (myNode != null){
-			   print_log("Já existe EmsAgent para "+ nomeAgente + ", finalizando primeiro...");
+			   print_log("Já existe EmsAgent para "+ nomeService + ", finalizando primeiro...");
 			   close(); 
 		   }
-		   print_log("EmsAgent para " + nomeAgente + " iniciado.");
+		   print_log("EmsAgent para " + nomeService + " iniciado.");
 	       myNode = new OtpNode(nomeAgente);
 	       myNode.setCookie("erlangms");
 	       print_log("host   -> "+ myNode.host());
