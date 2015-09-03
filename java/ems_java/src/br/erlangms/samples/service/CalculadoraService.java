@@ -1,4 +1,4 @@
-package br.erlangms.samples;
+package br.erlangms.samples.service;
 
 import javax.ejb.Singleton;
 import javax.ejb.Startup;

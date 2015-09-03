@@ -29,4 +29,10 @@ public final class EmsUtil {
 		return result;
 	}
 
+	public static <clazz> Object fromJson(final String jsonString, Class<?> clazz) {
+		Gson gson = new Gson();
+	    clazz obj = gson.fromJson(jsonString, clazz);
+	    return obj;
+	}
+
 }

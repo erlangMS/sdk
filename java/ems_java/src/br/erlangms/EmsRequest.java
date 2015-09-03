@@ -113,13 +113,27 @@ public class EmsRequest implements IEmsRequest {
 	}
 
 	@Override
-	public String getModulo(){
+	public String getPayload(){
 		return ((OtpErlangString)otp_request.elementAt(5)).stringValue();
+	}
+
+	public Object getObject(Class<?> clazz){
+		return EmsUtil.fromJson(getPayload(), clazz);
+	}
+	
+	@Override
+	public String getContentType(){
+		return ((OtpErlangString)otp_request.elementAt(6)).stringValue();
+	}
+
+	@Override
+	public String getModulo(){
+		return ((OtpErlangString)otp_request.elementAt(7)).stringValue();
 	}
 
 	@Override
 	public String getFunction(){
-		return ((OtpErlangString)otp_request.elementAt(6)).stringValue();
+		return ((OtpErlangString)otp_request.elementAt(8)).stringValue();
 	}
 
 	@Override

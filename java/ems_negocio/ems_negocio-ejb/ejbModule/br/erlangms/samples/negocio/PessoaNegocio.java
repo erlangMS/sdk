@@ -15,4 +15,14 @@ public class PessoaNegocio {
 		PessoaDao dao = new PessoaDao();
 		return dao.findById(id);
 	}
+
+	public void update(Pessoa pessoa) {
+		PessoaDao dao = new PessoaDao();
+		dao.update(pessoa);
+	}
+
+	public void insert(Pessoa pessoa) {
+		PessoaDao dao = new PessoaDao();
+		dao.insert(pessoa);
+	}
 }

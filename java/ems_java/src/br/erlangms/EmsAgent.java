@@ -91,7 +91,7 @@ public class EmsAgent
 				print_log("Ocorreu o seguinte erro ao finalizar: ");
 				e.printStackTrace();
 			}finally{
-				print_log("EmsAgent para " + nomeAgente + " finalizado.");
+				print_log("EmsAgent para " + nomeService + " finalizado.");
 				myNode = null;
 			}
 		}
@@ -136,10 +136,6 @@ public class EmsAgent
 		System.out.println(nomeAgente + ": " + message);
 	}
 
-	public String toJson(final Object object){
-		return EmsUtil.toJson(object);
-	}
-	
 	private class Task extends Thread{
 		private OtpErlangPid from;
 		private IEmsRequest request;
@@ -166,7 +162,7 @@ public class EmsAgent
 	            }else if (ret instanceof String){
 	            	reply[1] = new OtpErlangBinary(((String) ret).getBytes());
 	            }else if (ret instanceof Object){
-	            	reply[1] = new OtpErlangBinary(toJson(ret).getBytes());
+	            	reply[1] = new OtpErlangBinary(EmsUtil.toJson(ret).getBytes());
 	            }else if (ret.getClass().getName().equals(ArrayList.class.getName())){
 	            	List<?> lista = (List<?>) ret;
 	            	OtpErlangObject[] otp_items = new OtpErlangObject[lista.size()];

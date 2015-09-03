@@ -15,30 +15,36 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 
 public interface IEmsRequest {
 
-	public abstract long getRID();
+	public long getRID();
 
-	public abstract String getUrl();
+	public String getUrl();
 
-	public abstract String getMetodo();
+	public String getMetodo();
 
-	public abstract int getParamsCount();
+	public int getParamsCount();
 
-	public abstract String getParam(String NomeParam);
+	public String getParam(final String NomeParam);
 
-	public abstract int getQueryCount();
+	public int getQueryCount();
 
-	public abstract String getQuery(String Nome);
+	public String getQuery(final String Nome);
 
-	public abstract String getModulo();
+	public String getModulo();
 
-	public abstract String getFunction();
+	public String getFunction();
 
-	public abstract OtpErlangObject getOtpRequest();
+	public OtpErlangObject getOtpRequest();
 
-	public int getParamAsInt(String NomeParam);
+	public int getParamAsInt(final String NomeParam);
 
-	public Double getParamAsDouble(String NomeParam);
+	public Double getParamAsDouble(final String NomeParam);
 
-	public Date getParamAsDate(String NomeParam) throws ParseException;
+	public Date getParamAsDate(final String NomeParam) throws ParseException;
+
+	public String getPayload();
+	
+	public Object getObject(Class<?> clazz);
+
+	public String getContentType();
 
 }

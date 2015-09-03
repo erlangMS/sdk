@@ -3,19 +3,29 @@ package br.erlangms.samples.pojo;
 import java.util.Date;
 
 public class Pessoa {
+	private int id;
 	private String nome;
 	private int idade;
 	private String cpf;
 	private String cidade;
 	private Date dataNascimento;
-
-	public Pessoa(String nome, int idade, String cpf, String cidade, Date dataNascimento){
+ 
+	public Pessoa(int id, String nome, int idade, String cpf, String cidade, Date dataNascimento){
+		this.id = id;
 		this.nome = nome;
 		this.idade = idade;
 		this.cpf = cidade;
 		this.dataNascimento = dataNascimento;
 	}
 	
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
 	public String getNome() {
 		return nome;
 	}

@@ -29,4 +29,17 @@ public class PessoaService extends EmsServiceFacade {
 		return negocio.findById(request.getParamAsInt("id"));
 	}
 	
+	public void atualiza(IEmsRequest request){
+		PessoaNegocio negocio = new PessoaNegocio();
+		int id = request.getParamAsInt("id");
+		Pessoa pessoa = (Pessoa) request.getObject(Pessoa.class);
+		pessoa.setIdade(id);
+		negocio.update(pessoa);
+	}
+	
+	public void insert(IEmsRequest request){
+		PessoaNegocio negocio = new PessoaNegocio();
+		Pessoa pessoa = (Pessoa) request.getObject(Pessoa.class);
+		negocio.insert(pessoa);
+	}	
 }

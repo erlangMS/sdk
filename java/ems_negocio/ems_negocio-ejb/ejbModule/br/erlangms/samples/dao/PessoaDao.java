@@ -7,14 +7,29 @@ import java.util.List;
 import br.erlangms.samples.pojo.Pessoa;
 
 public class PessoaDao {
+	private static List<Pessoa> list = new ArrayList<Pessoa>();
+	private static int sequence = 0;
+	
+	static{
+		list.add(new Pessoa(++sequence, "Everton de Vargas Agilar", 32, "00167743023", "Brasília", Calendar.getInstance().getTime()));
+		list.add(new Pessoa(++sequence, "Rafael Stefanello Agilar", 2, "", "Brasília", Calendar.getInstance().getTime()));
+	}
+	
 	public List<Pessoa> getLista(){
-		List<Pessoa> list = new ArrayList<Pessoa>();
-		list.add(new Pessoa("Everton de Vargas Agilar", 32, "00167743023", "Brasília", Calendar.getInstance().getTime()));
-		list.add(new Pessoa("Rafael Stefanello Agilar", 2, "", "Brasília", Calendar.getInstance().getTime()));
 		return list;
 	}
 
 	public Pessoa findById(int id) {
 		return getLista().get(id);
+	}
+
+	public void update(Pessoa pessoa) {
+		
+				
+	}
+
+	public void insert(Pessoa pessoa) {
+		pessoa.setId(++sequence);
+		list.add(pessoa);
 	}
 }
