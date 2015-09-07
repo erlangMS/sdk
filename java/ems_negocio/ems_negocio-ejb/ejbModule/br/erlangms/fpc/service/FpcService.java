@@ -64,8 +64,8 @@ public class FpcService extends EmsServiceFacade {
 	public String save(IEmsRequest request){
 		final String db_table = request.getQuery("db_table");
 		final String pk = request.getQuery("pk");
-		final String update_fields = request.getQuery("update_fields");
-		return "true";
+		final String update_fields = request.getPayload();
+		return "ok";
 	}
 	
 }
