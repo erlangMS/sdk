@@ -1,3 +1,3 @@
 Manifest-Version: 1.0
-Main-Class: br.erlangms.service.Teste
+Class-Path: ems_java-1.0.0.jar
 
