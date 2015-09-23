@@ -31,7 +31,7 @@ public final class EmsUtil {
 
 	public static <clazz> Object fromJson(final String jsonString, Class<?> clazz) {
 		Gson gson = new Gson();
-	    clazz obj = gson.fromJson(jsonString, clazz);
+	    clazz obj = (clazz) gson.fromJson(jsonString, clazz);
 	    return obj;
 	}
 

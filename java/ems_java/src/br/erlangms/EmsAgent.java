@@ -13,6 +13,9 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Logger;
+
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
 import com.ericsson.otp.erlang.OtpErlangExit;
@@ -38,8 +41,10 @@ public class EmsAgent
 	private String nomeAgente = null;
 	private String nomeService = null;
     private OtpNode myNode = null;
+    private static Logger logger = Logger.getLogger(EmsAgent.class);
     
 	public EmsAgent(final String nomeAgente, final String nomeService, IEmsServiceFacade facade){
+		BasicConfigurator.configure();
 		this.nomeAgente = nomeAgente;
 		this.nomeService = nomeService;
 		this.facade = facade;
@@ -133,7 +138,7 @@ public class EmsAgent
 	}  	
 	
 	public void print_log(final String message){
-		System.out.println(nomeAgente + ": " + message);
+		logger.info(nomeAgente + ": " + message);
 	}
 
 	private class Task extends Thread{
