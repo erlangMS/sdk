@@ -132,8 +132,9 @@ public class EmsAgent
 	        // Essa exceção acontece se o método chamado gerar uma exceção.  
 	        // Use e.getCause() para descobrir qual exceção foi gerada no método  
 	        // chamado e trata-la adequadamente.
-	    	print_log("O método "+ modulo + "." + metodo + " gerou a exception: " + e.getCause() + ".");
-	    	return negocio_exception_atom;
+	    	String erro = "O método "+ modulo + "." + metodo + " gerou a exception: " + e.getCause() + "."; 
+	    	print_log(erro);
+	    	return "{\"erro\":\"service_exception\", \"message\" : \"" + erro + "\"}";
 	    }
 	}  	
 	
