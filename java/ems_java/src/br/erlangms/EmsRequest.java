@@ -76,7 +76,7 @@ public class EmsRequest implements IEmsRequest {
 	}
 	
 	@Override
-	public Double getParamAsDouble(final String NomeParam) {
+	public double getParamAsDouble(final String NomeParam) {
 		return Double.parseDouble(getParam(NomeParam)); 
 	}
 
@@ -139,6 +139,16 @@ public class EmsRequest implements IEmsRequest {
 	@Override
 	public OtpErlangObject getOtpRequest(){
 		return this.otp_request;
+	}
+
+	@Override
+	public int getQueryAsInt(String Nome) {
+		return Integer.parseInt(getQuery(Nome));
+	}
+
+	@Override
+	public double getQueryAsDouble(String Nome) {
+		return Double.parseDouble(getQuery(Nome));
 	}
 	
 }

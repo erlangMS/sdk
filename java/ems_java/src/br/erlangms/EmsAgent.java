@@ -32,9 +32,6 @@ import com.ericsson.otp.erlang.OtpNode;
 public class EmsAgent
 {
     private final OtpErlangAtom ok = new OtpErlangAtom("ok");
-    private final OtpErlangAtom metodo_not_implemented_atom = new OtpErlangAtom("metodo_not_implemented");
-    private final OtpErlangAtom metodo_not_visible_atom = new OtpErlangAtom("metodo_not_visible");
-    private final OtpErlangAtom negocio_exception_atom = new OtpErlangAtom("negocio_exception");
     private final OtpErlangAtom servico_atom = new OtpErlangAtom("servico");
     private final OtpErlangAtom null_atom = new OtpErlangAtom("null");
 	private IEmsServiceFacade facade = null;
@@ -108,31 +105,33 @@ public class EmsAgent
 	    	Method m = null;
 	    	Object result = null;
 	    	try{
-	    		m = Classe.getDeclaredMethod(metodo, IEmsRequest.class);   
+	    		m = Classe.getMethod(metodo, IEmsRequest.class);   
 		    	m.setAccessible(true);  
 			    result = m.invoke(facade, request);          
 	    	} catch (NoSuchMethodException e) {
-		    	m = Classe.getDeclaredMethod(metodo);
+		    	m = Classe.getMethod(metodo);
 		    	m.setAccessible(true);  
 			    result = m.invoke(facade);          
 	    	}
 	        return result;  
 	    } catch (NoSuchMethodException e) {  
 	        // Essa exceção ocorre se o getMethod() não encontrar o método
-	    	print_log("Método não encontrado: " + metodo + ".");
-	    	return metodo_not_implemented_atom;
+	    	String erro = "Método de negócio não encontrado: " + metodo + ".";
+	    	print_log(erro);
+	    	return "{\"erro\":\"service_exception\", \"message\" : \"" + erro + "\"}";
 	    } catch (IllegalAccessException e) {  
 	        // Pode ocorrer se o método que você está invocando não for  
 	        // acessível. Você pode forçar que um método (mesmo privado!) seja  
 	        // acessível fazendo:  
 	        // antes do seu invoke.
-	    	print_log("O método "+ modulo + "." + metodo + " não está acessível.");
-	    	return metodo_not_visible_atom;
+	    	String erro = "Acesso ilegal ao método de negócio: " + metodo + ".";
+	    	print_log(erro);
+	    	return "{\"erro\":\"service_exception\", \"message\" : \"" + erro + "\"}";
 	    } catch (InvocationTargetException e) {  
 	        // Essa exceção acontece se o método chamado gerar uma exceção.  
 	        // Use e.getCause() para descobrir qual exceção foi gerada no método  
 	        // chamado e trata-la adequadamente.
-	    	String erro = "O método "+ modulo + "." + metodo + " gerou a exception: " + e.getCause() + "."; 
+	    	String erro = "O método "+ modulo + "." + metodo + " gerou uma excessão: " + e.getCause() + "."; 
 	    	print_log(erro);
 	    	return "{\"erro\":\"service_exception\", \"message\" : \"" + erro + "\"}";
 	    }
@@ -142,7 +141,7 @@ public class EmsAgent
 		logger.info(nomeAgente + ": " + message);
 	}
 
-	private class Task extends Thread{
+	private final class Task extends Thread{
 		private OtpErlangPid from;
 		private IEmsRequest request;
 		private OtpMbox myMbox;
