@@ -23,6 +23,7 @@ public final class EmsUtil {
 	public static String toJson(final Object object){
 		Gson gson = new GsonBuilder()
         	.setExclusionStrategies(new SerializeStrategy())
+        	.setDateFormat("dd/MM/yyyy")
         	//.serializeNulls() <-- uncomment to serialize NULL fields as well
         	.create();		
 		String result = gson.toJson(object);
