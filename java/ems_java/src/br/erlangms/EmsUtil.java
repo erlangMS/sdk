@@ -8,6 +8,7 @@
  
 package br.erlangms;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -17,6 +18,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import javax.persistence.OneToMany;
+import javax.persistence.Query;
 
 import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
@@ -84,6 +86,74 @@ public final class EmsUtil {
 	    return obj;
 	}
 
+	public static void setQueryParameterFromMap(Query query, Map<String, Object> values){
+		int p = 1;
+		for (String field : values.keySet()){
+			try{
+				Object value_field = values.get(field);
+				Class<?> paramType = query.getParameter(p).getParameterType();
+				if (paramType == Integer.class){
+					if (value_field instanceof String){
+						query.setParameter(p++, Integer.parseInt((String) value_field));
+					}else if (value_field instanceof Double){
+						query.setParameter(p++, ((Double)value_field).intValue() );
+					}else{
+						query.setParameter(p++, value_field);
+					}
+				}else if (paramType == String.class){
+					if (value_field instanceof String){
+						query.setParameter(p++, value_field);
+					}else if (value_field instanceof Double){
+						// Parece um inteiro? (termina com .0)
+						if (value_field.toString().endsWith(".0")){
+							query.setParameter(p++, Integer.toString(((Double)value_field).intValue()));
+						}else{
+							query.setParameter(p++, value_field.toString());	
+						}
+					}else{
+						query.setParameter(p++, value_field.toString());
+					}
+				}else if (paramType == Boolean.class){
+					if (value_field instanceof String){
+						if (((String) value_field).equalsIgnoreCase("true")){
+							query.setParameter(p++, true);	
+						}else if  (((String) value_field).equalsIgnoreCase("false")){
+							query.setParameter(p++, false);
+						}else if  (((String) value_field).equalsIgnoreCase("1")){
+							query.setParameter(p++, true);
+						}else if  (((String) value_field).equalsIgnoreCase("0")){
+							query.setParameter(p++, false);
+						}else if  (((String) value_field).equalsIgnoreCase("sim")){
+							query.setParameter(p++, true);
+						}else{
+							query.setParameter(p++, false);
+						}
+					}else if (value_field instanceof Double){
+						if (value_field.toString().equals("1.0")){
+							query.setParameter(p++, true);
+						}else{
+							query.setParameter(p++, false);
+						}
+					}else if (value_field instanceof Boolean){
+						query.setParameter(p++, value_field);
+					}else{
+						query.setParameter(p++, false);
+					}
+				}else if (paramType == java.util.Date.class){
+					if (value_field instanceof String && ((String)value_field).length() == 10){
+						query.setParameter(p++, new SimpleDateFormat("dd/MM/yyyy").parse((String) value_field));
+					}else{
+						throw new IllegalArgumentException("Não é uma data válida");
+					}
+				}else{
+					throw new IllegalArgumentException("Não suporta o tipo de dado para pesquisa.");
+				}
+			}catch (Exception e){
+				throw new IllegalArgumentException("Erro ao setar parâmetros da query. Erro interno: "+ e.getMessage());
+			}
+		}
+	}
+	
 	public static void setValuesFromJson(Object obj, Map<String, Object> update_values){
 		Class<? extends Object> class_obj = obj.getClass();
 		for (String field_name : update_values.keySet()){
@@ -159,5 +229,26 @@ public final class EmsUtil {
 			}
 		}
 	}
+	
+	/**
+	 * Retorna o primeiro campo que encontrar a anotação passada como argumento.
+	 * Obs: Desenvolvido para suporte ao ErlangMS
+	 * @param classs Classe pojo. Ex.: OrgaoInterno.class
+	 * @param ann	anotação que será pesquisada. Ex.: Id.class
+	 * @return campo
+	 * @author Everton de Vargas Agilar
+	 */
+	public static Field findFieldByAnnotation(Class<?> classs, Class<? extends Annotation> ann) {
+	    Class<?> c = classs;
+	    while (c != null) {
+	        for (Field field : c.getDeclaredFields()) {
+	            if (field.isAnnotationPresent(ann)) {
+	                return field;
+	            }
+	        }
+	        c = c.getSuperclass();
+	    }
+	    return null;
+	}	
 	
 }
