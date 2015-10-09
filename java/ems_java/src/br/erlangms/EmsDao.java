@@ -173,7 +173,7 @@ public abstract class EmsDao<T> {
 	 * @return objeto/recurso
 	 * @author Everton de Vargas Agilar
 	 */
-	public T update(T obj, Map<String, Object> update_values){
+	public T update(T obj){
 		getEntityManager().merge(obj);
 		getEntityManager().flush();
 		return obj;

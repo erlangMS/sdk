@@ -100,6 +100,12 @@ public final class EmsUtil {
 					}else{
 						query.setParameter(p++, value_field);
 					}
+				}else if (paramType == BigDecimal.class){
+					if (value_field instanceof String){
+						query.setParameter(p++, BigDecimal.valueOf(Double.parseDouble((String) value_field)));
+					}else{
+						query.setParameter(p++,  BigDecimal.valueOf((double) value_field));
+					}
 				}else if (paramType == String.class){
 					if (value_field instanceof String){
 						query.setParameter(p++, value_field);
@@ -154,7 +160,7 @@ public final class EmsUtil {
 		}
 	}
 	
-	public static void setValuesFromJson(Object obj, Map<String, Object> update_values){
+	public static void setValuesFromMap(Object obj, Map<String, Object> update_values){
 		Class<? extends Object> class_obj = obj.getClass();
 		for (String field_name : update_values.keySet()){
 			try{

@@ -10,7 +10,6 @@ package br.erlangms;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
 
 public abstract class EmsNegocio<T extends Serializable> {
 	
@@ -28,11 +27,19 @@ public abstract class EmsNegocio<T extends Serializable> {
 		return getDao().findById(id);
 	}
 	
-	public T update(T obj, Map<String, Object> update_values){
-		valida_objeto(obj);
-		return getDao().update(obj, update_values);
+	public List<String> update(T obj){
+		List<String> validations = valida_objeto(obj);
+		if (validations == null){
+			getDao().update(obj);
+		}
+		return validations;
 	}
 
-	public void valida_objeto(T obj) {
+	/*
+	 * Valida o objeto
+	 * @return retorna a lista de validações ou null se estiver tudo ok 
+	 */
+	public List<String> valida_objeto(T obj) {
+		return null;
 	}
 }
