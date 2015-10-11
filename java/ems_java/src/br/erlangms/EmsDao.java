@@ -166,19 +166,30 @@ public abstract class EmsDao<T> {
 	}
 
 	/**
-	 * Persiste as modificações de um objeto/recurso
+	 * Persiste as modificações de um objeto/recurso no banco
 	 * Obs: Desenvolvido para suporte ao ErlangMS
 	 * @param obj objeto/recurso
 	 * @param update_values Map com os dados modificados
 	 * @return objeto/recurso
 	 * @author Everton de Vargas Agilar
 	 */
-	public T update(T obj){
+	public void update(T obj){
 		getEntityManager().merge(obj);
 		getEntityManager().flush();
-		return obj;
 	}
 
+	/**
+	 * Insere um novo objeto/recurso no banco
+	 * Obs: Desenvolvido para suporte ao ErlangMS
+	 * @param obj objeto/recurso
+	 * @param update_values Map com os dados modificados
+	 * @return objeto/recurso
+	 * @author Everton de Vargas Agilar
+	 */
+	public void insert(T obj){
+		getEntityManager().persist(obj);
+		getEntityManager().flush();
+	}
 
 		
 }
