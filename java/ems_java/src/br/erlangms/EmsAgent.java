@@ -143,9 +143,26 @@ public class EmsAgent
 	        // Essa exceção acontece se o método chamado gerar uma exceção.  
 	        // Use e.getCause() para descobrir qual exceção foi gerada no método  
 	        // chamado e trata-la adequadamente.
-	    	String erro = "O método "+ modulo + "." + metodo + " gerou uma excessão: " + e.getCause() + "."; 
-	    	print_log(erro);
-	    	return "{\"erro\":\"service_exception\", \"message\" : \"" + erro + "\"}";
+	    	Throwable cause = e.getCause();
+	    	if (cause instanceof EmsValidation){
+	    		List<String> errors = ((EmsValidation)cause).getErrors();
+	    		String msg = null;
+	    		String msg_json = null;
+		    	if (errors.size() > 1){
+		    		msg = EmsUtil.toJson(errors);
+		    		msg_json = "{\"erro\":\"validation\", \"message\" : " + msg + "}";
+		    	}else if (errors.size() == 1){
+		    		msg = errors.get(0);
+		    		msg_json = "{\"erro\":\"validation\", \"message\" : \"" + msg + "\"}";
+		    	}else{
+		    		msg_json = "{\"erro\":\"validation\", \"message\" : \"\"}";
+		    	}
+		    	return msg_json;
+	    	}else{
+		    	String erro = "O método "+ modulo + "." + metodo + " gerou uma excessão: " + e.getCause() + "."; 
+		    	print_log(erro);
+		    	return "{\"erro\":\"service_exception\", \"message\" : \"" + erro + "\"}";
+	    	}
 	    }
 	}  	
 	

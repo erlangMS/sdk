@@ -3,6 +3,9 @@ package br.erlangms;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.ejb.ApplicationException;
+
+@ApplicationException(rollback = false)
 public class EmsValidation extends RuntimeException {
 	private static final long serialVersionUID = -8316509235178192483L;
 	private List<String> errors;
