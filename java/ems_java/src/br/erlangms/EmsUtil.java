@@ -227,6 +227,13 @@ public final class EmsUtil {
 					}else{
 						throw new IllegalArgumentException("Não é uma data válida");
 					}
+				}else if (tipo_field == java.sql.Timestamp.class){
+					if (new_value instanceof String && ((String)new_value).length() == 10){
+						java.sql.Timestamp new_time = new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy").parse((String) new_value).getTime());
+						field.set(obj, new_time);
+					}else{
+						throw new IllegalArgumentException("Não é uma data válida");
+					}
 				}else{
 					throw new IllegalArgumentException("Não suporta o tipo de dado para pesquisa.");
 				}

@@ -37,10 +37,11 @@ public class EmsAgent
 	private IEmsServiceFacade facade = null;
 	private String nomeAgente = null;
 	private String nomeService = null;
+	private final String result_ok = "{\"ok\":\"ok\"}";
     private OtpNode myNode = null;
     private static Logger logger = Logger.getLogger(EmsAgent.class);
     
-	public EmsAgent(final String nomeAgente, final String nomeService, IEmsServiceFacade facade){
+	public EmsAgent(final String nomeAgente, final String nomeService, final IEmsServiceFacade facade){
 		BasicConfigurator.configure();
 		this.nomeAgente = nomeAgente;
 		this.nomeService = nomeService;
@@ -107,13 +108,24 @@ public class EmsAgent
 	    	try{
 	    		m = Classe.getMethod(metodo, IEmsRequest.class);   
 		    	m.setAccessible(true);  
-			    result = m.invoke(facade, request);          
+			    if (m.getReturnType().getName().equals("void")){
+			    	m.invoke(facade, request);
+			    	return result_ok;
+			    }else{
+			    	result = m.invoke(facade, request);
+			    	return result;
+			    }
 	    	} catch (NoSuchMethodException e) {
-		    	m = Classe.getMethod(metodo);
+	    		m = Classe.getMethod(metodo);
 		    	m.setAccessible(true);  
-			    result = m.invoke(facade);          
+			    if (m.getReturnType().getName().equals("void")){
+			    	m.invoke(facade, request);
+			    	return result_ok;
+			    }else{
+			    	result = m.invoke(facade, request);
+			    	return result;
+			    }
 	    	}
-	        return result;  
 	    } catch (NoSuchMethodException e) {  
 	        // Essa exceção ocorre se o getMethod() não encontrar o método
 	    	String erro = "Método de negócio não encontrado: " + metodo + ".";
@@ -146,7 +158,7 @@ public class EmsAgent
 		private IEmsRequest request;
 		private OtpMbox myMbox;
 		
-		public Task(final OtpErlangPid from, IEmsRequest request, OtpMbox myMbox){
+		public Task(final OtpErlangPid from, final IEmsRequest request, final OtpMbox myMbox){
 			super();
 			this.from = from;
 			this.request = request;
@@ -157,12 +169,12 @@ public class EmsAgent
         public void run() {  
             OtpErlangObject[] otp_result = new OtpErlangObject[3];
         	Object ret = chamaMetodo(request.getModulo(), request.getFunction(), request);
-            
             OtpErlangObject[] reply = new OtpErlangObject[2];
             reply[0] = ok;
-            
             if (ret != null){
-	            if (ret.getClass().getName().equals(Integer.class.getName())){
+            	if (ret instanceof OtpErlangAtom){
+            		reply[1] = (OtpErlangObject) ret;
+            	}else if (ret instanceof Integer){
 	            	reply[1] = new OtpErlangInt((Integer) ret);
 	            }else if (ret instanceof String){
 	            	reply[1] = new OtpErlangBinary(((String) ret).getBytes());
@@ -176,18 +188,14 @@ public class EmsAgent
 	            	}
 	            	OtpErlangList otp_list = new OtpErlangList(otp_items);
 	            	reply[1] = otp_list;
-	            }else if (ret instanceof OtpErlangAtom){
-	            	reply[1] = (OtpErlangObject) ret;
 	            }
             }else{
             	reply[1] = (OtpErlangObject) null_atom;
             }
-            
             otp_result[0] = servico_atom;
             otp_result[1] = new OtpErlangLong(request.getRID());
             otp_result[2] = new OtpErlangTuple(reply);
             OtpErlangTuple myTuple = new OtpErlangTuple(otp_result);
-            
             myMbox.send(from, myTuple);
         }  
 	}

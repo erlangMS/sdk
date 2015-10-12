@@ -173,9 +173,10 @@ public abstract class EmsDao<T> {
 	 * @return objeto/recurso
 	 * @author Everton de Vargas Agilar
 	 */
-	public void update(T obj){
+	public T update(T obj){
 		getEntityManager().merge(obj);
 		getEntityManager().flush();
+		return obj;
 	}
 
 	/**
@@ -186,9 +187,10 @@ public abstract class EmsDao<T> {
 	 * @return objeto/recurso
 	 * @author Everton de Vargas Agilar
 	 */
-	public void insert(T obj){
+	public T insert(T obj){
 		getEntityManager().persist(obj);
 		getEntityManager().flush();
+		return obj;
 	}
 
 		
