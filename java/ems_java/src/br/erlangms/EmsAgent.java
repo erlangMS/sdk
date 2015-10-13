@@ -101,10 +101,11 @@ public class EmsAgent
 	}
 	
 	private Object chamaMetodo(final String modulo, final String metodo, final IEmsRequest request)  {
-	    try {  
+    	Method m = null;
+    	Object result = null;
+		String msg_json = null;
+		try {  
 	    	Class<?> Classe = facade.getClass();
-	    	Method m = null;
-	    	Object result = null;
 	    	try{
 	    		m = Classe.getMethod(metodo, IEmsRequest.class);   
 		    	m.setAccessible(true);  
@@ -147,21 +148,38 @@ public class EmsAgent
 	    	if (cause instanceof EmsValidation){
 	    		List<String> errors = ((EmsValidation)cause).getErrors();
 	    		String msg = null;
-	    		String msg_json = null;
 		    	if (errors.size() > 1){
 		    		msg = EmsUtil.toJson(errors);
 		    		msg_json = "{\"erro\":\"validation\", \"message\" : " + msg + "}";
 		    	}else if (errors.size() == 1){
-		    		msg = errors.get(0);
-		    		msg_json = "{\"erro\":\"validation\", \"message\" : \"" + msg + "\"}";
+		    		msg = EmsUtil.toJson(errors.get(0));
+		    		msg_json = "{\"erro\":\"validation\", \"message\" : " + msg + "}";
 		    	}else{
 		    		msg_json = "{\"erro\":\"validation\", \"message\" : \"\"}";
 		    	}
 		    	return msg_json;
+	    	}else if (cause instanceof javax.ejb.EJBTransactionRolledbackException){
+	    		try{
+		    		Exception causeEx = ((javax.ejb.EJBTransactionRolledbackException) cause).getCausedByException();
+		    		cause = causeEx.getCause().getCause();
+		    		String motivo = null;
+		    		int posMsgSql = cause.getMessage().indexOf("; SQL statement:");
+		    		if (posMsgSql > 0){
+		    			motivo = cause.getMessage().substring(0, posMsgSql-1);
+		    		}else{
+		    			motivo = cause.getMessage();
+		    		}
+		    		msg_json = "{\"erro\":\"ejb\", \"message\" : " + EmsUtil.toJson(motivo) + "}";
+		    		return msg_json;
+	    		}catch (Exception ex){
+			    	String erro = "O método "+ modulo + "." + metodo + " gerou uma excessão: " + e.getCause() + "."; 
+			    	print_log(erro);
+			    	return "{\"erro\":\"service_exception\", \"message\" : \"" + erro + "\"}";
+	    		}
 	    	}else{
 		    	String erro = "O método "+ modulo + "." + metodo + " gerou uma excessão: " + e.getCause() + "."; 
 		    	print_log(erro);
-		    	return "{\"erro\":\"service_exception\", \"message\" : \"" + erro + "\"}";
+		    	return "{\"erro\":\"service_exception\", \"message\" : " + EmsUtil.toJson(erro) + "}";
 	    	}
 	    }
 	}  	
