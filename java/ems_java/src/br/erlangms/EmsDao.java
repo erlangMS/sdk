@@ -34,7 +34,7 @@ public abstract class EmsDao<T> {
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
-	public List<T> pesquisar(String filtro, String fields, int limit_ini, int limit_fim, String sort){
+	public List<T> find(String filtro, String fields, int limit_ini, int limit_fim, String sort){
 		Query query = null;
 		StringBuilder field_smnt = null;
 		StringBuilder where = null;
@@ -144,25 +144,31 @@ public abstract class EmsDao<T> {
 			query.setFirstResult(limit_ini);
 			query.setMaxResults(limit_fim-limit_ini+1);
 		}else{
-			throw new IllegalArgumentException("Limite final para pesquisa deve ser maior que limite inicial");
+			throw new IllegalArgumentException("Limite final para pesquisa deve ser maior que limite inicial.");
 		}
 		
 		List<T> result = query.getResultList();
 		return result;
-		
-		
 	}
 
 	/**
 	 * Recuperar um objeto/recurso pelo seu id
 	 * Obs: Desenvolvido para suporte ao ErlangMS
 	 * @param id identificador do objeto/recurso
-	 * @return objeto/recurso
+	 * @return objeto/recurso ou EmsNotFoundException se não existe o id
 	 * @author Everton de Vargas Agilar
 	 */
 	public T findById(Serializable id){
-		T obj = getEntityManager().find(getClassOfPojo(), id);
-		return obj;
+		if (id != null){
+			Class<T> classOfPojo = getClassOfPojo();
+			T obj = getEntityManager().find(getClassOfPojo(), id);
+			if (obj == null){
+				throw new EmsNotFoundException("Id "+ id.toString() + " para "+ classOfPojo.getName() + " não encontrado.");
+			}
+			return obj;
+		}else{
+			throw new IllegalArgumentException("Argumento obj inválido para findById.");
+		}
 	}
 
 	/**
@@ -174,23 +180,30 @@ public abstract class EmsDao<T> {
 	 * @author Everton de Vargas Agilar
 	 */
 	public T update(T obj){
-		getEntityManager().merge(obj);
-		getEntityManager().flush();
-		return obj;
+		if (obj != null){
+			getEntityManager().merge(obj);
+			getEntityManager().flush();
+			return obj;
+		}else{
+			throw new IllegalArgumentException("Argumento obj inválido para update.");
+		}
 	}
 
 	/**
 	 * Insere um novo objeto/recurso no banco
-	 * Obs: Desenvolvido para suporte ao ErlangMS
 	 * @param obj objeto/recurso
 	 * @param update_values Map com os dados modificados
 	 * @return objeto/recurso
 	 * @author Everton de Vargas Agilar
 	 */
 	public T insert(T obj){
-		getEntityManager().persist(obj);
-		getEntityManager().flush();
-		return obj;
+		if (obj != null){
+			getEntityManager().persist(obj);
+			getEntityManager().flush();
+			return obj;
+		}else{
+			throw new IllegalArgumentException("Argumento obj inválido para insert.");
+		}
 	}
 
 		

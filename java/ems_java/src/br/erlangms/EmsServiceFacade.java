@@ -48,10 +48,6 @@ public abstract class EmsServiceFacade implements IEmsServiceFacade {
         return state;
     }
     
-    public void setState(States state) {
-        this.state = state;
-    }    
-    
 	private class AgentThread extends Thread{
 		private EmsAgent agent;
 		

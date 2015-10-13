@@ -145,8 +145,8 @@ public class EmsAgent
 	        // Use e.getCause() para descobrir qual exceção foi gerada no método  
 	        // chamado e trata-la adequadamente.
 	    	Throwable cause = e.getCause();
-	    	if (cause instanceof EmsValidation){
-	    		List<String> errors = ((EmsValidation)cause).getErrors();
+	    	if (cause instanceof EmsValidationException){
+	    		List<String> errors = ((EmsValidationException)cause).getErrors();
 	    		String msg = null;
 		    	if (errors.size() > 1){
 		    		msg = EmsUtil.toJson(errors);
@@ -158,6 +158,12 @@ public class EmsAgent
 		    		msg_json = "{\"erro\":\"validation\", \"message\" : \"\"}";
 		    	}
 		    	return msg_json;
+	    	}else if (cause instanceof EmsRequestException){
+	    		msg_json = "{\"erro\":\"request\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
+	    		return msg_json;
+	    	}else if (cause instanceof EmsNotFoundException){
+	    		msg_json = "{\"erro\":\"notfound\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
+	    		return msg_json;
 	    	}else if (cause instanceof javax.ejb.EJBTransactionRolledbackException){
 	    		try{
 		    		Exception causeEx = ((javax.ejb.EJBTransactionRolledbackException) cause).getCausedByException();

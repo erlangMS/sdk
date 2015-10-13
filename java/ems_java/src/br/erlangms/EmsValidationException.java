@@ -6,21 +6,21 @@ import java.util.List;
 import javax.ejb.ApplicationException;
 
 @ApplicationException(rollback = false)
-public class EmsValidation extends RuntimeException {
+public class EmsValidationException extends RuntimeException {
 	private static final long serialVersionUID = -8316509235178192483L;
 	private List<String> errors;
 	
-	public EmsValidation () {
+	public EmsValidationException () {
 		errors = new ArrayList<>();
 	}
 	
-	public EmsValidation (String e) {
+	public EmsValidationException (String e) {
 		this ();
 		errors.add(e);
 	}
 	
 	
-	public EmsValidation (List <String> l) {
+	public EmsValidationException (List <String> l) {
 		errors = l;
 	}
 	

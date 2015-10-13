@@ -10,6 +10,7 @@ package br.erlangms;
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.Map;
 
 import com.ericsson.otp.erlang.OtpErlangObject;
 
@@ -31,6 +32,7 @@ public interface IEmsRequest {
 	public Date getParamAsDate(final String NomeParam) throws ParseException;
 	public String getPayload();
 	public Object getObject(Class<?> clazz);
+	public Map<String, Object> getPayloadAsMap();
 	public String getContentType();
 
 }
