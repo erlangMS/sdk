@@ -4,9 +4,9 @@ SDK para integrar a linguagem de programação com o barramento ErlangMS, indepe
 
 **Atualmente o SDK está implementado somente na linguagem Java.**
 
-####Exemplo de Web Service ErlangMS
+###Exemplo de Web Service ErlangMS
 
-A classe Java a seguir, implementa um Web Service na plataforma ErlangMS. Qualquer classe Java que herde da classe base EmsServiceFacade é um Web Service. Estas classes são vistas pelo barramento como agents.
+A classe Java a seguir, implementa um Web Service na plataforma ErlangMS. Qualquer classe Java que herde da classe base EmsServiceFacade é um Web Service. Estas classes são vistas pelo barramento como agentes.
 
 
 
@@ -34,7 +34,7 @@ public class ValorAlimentacaoService extends EmsServiceFacade {
 	}
 
 	public ValorAlimentacao insert(IEmsRequest request){
-		final ValorAlimentacao obj = (ValorAlimentacao) request.getObject(ValorAlimentacao.class);
+		ValorAlimentacao obj = (ValorAlimentacao) request.getObject(ValorAlimentacao.class);
 		return negocio.insert(obj);
 	}
 	
@@ -51,12 +51,12 @@ public class ValorAlimentacaoService extends EmsServiceFacade {
 
 
 
-####Registro no catálogo de serviço ErlangMS
+###Registro no catálogo de serviço ErlangMS
 
 É preciso fazer o registro das operações que serão expostas como serviço no catálogo de 
 serviço do barramento ErlangMS. O catálogo de serviços está localizado na pasta priv/conf/catalogo e segue um layout JSON.
 
-O exemplo a seguir demonstra o contrato dos serviços para a classe java ValorAlimentacaoService:
+O exemplo a seguir demonstra o contrato dos serviços para a classe java ValorAlimentacaoService. Lembre-se, que a classe Web Service deve implementar o contrato de serviço.
 
 
 ```json
@@ -157,10 +157,14 @@ O exemplo a seguir demonstra o contrato dos serviços para a classe java ValorAl
 ```
 
 
+===
 
-####Invocando os serviços no barramento ErlangMS
+###Invocando os serviços no barramento ErlangMS
 
-#####Cadastrar um novo registro no recurso valoralimentacao por meio de uma requisição POST:
+
+Os exemplos a seguir, demonstram como consumir os serviços oferecidos pelo barramento ErlangMS, que estão registrados no catálogo de serviços. Foi utilizado o utilitário de linha de comando ***curl*** para fazer as requisições HTTP/REST.
+
+####Cadastrar um novo registro no recurso valoralimentacao por meio de uma requisição POST:
 
 ##### Comando curl da requisição
 ```sh
@@ -187,7 +191,7 @@ CAST br.unb.service.sae.ValorAlimentacaoService:insert em ValorAlimentacaoServic
 
 ```
 
-#####Listar todos os registros do recurso valoralimentacao por meio de uma requisição GET:
+####Listar todos os registros do recurso valoralimentacao por meio de uma requisição GET:
 ```sh
 curl -X GET localhost:2301/sae/valoralimentacao
 
@@ -215,7 +219,7 @@ GET /sae/valoralimentacao HTTP/1.1 {
 
 ```
 
-#####Modifica um registro do recurso valoralimentacao por meio de uma requisição PUT:
+####Modifica um registro do recurso valoralimentacao por meio de uma requisição PUT:
 ```sh
 curl -X PUT localhost:2301/sae/valoralimentacao/1 -d"{\"campus\":4}"
 
