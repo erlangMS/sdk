@@ -49,7 +49,7 @@ public class ValorAlimentacaoService extends EmsServiceFacade {
 
 ```
 
-
+===
 
 ###Registro no catálogo de serviço ErlangMS
 
@@ -162,11 +162,13 @@ O exemplo a seguir demonstra o contrato dos serviços para a classe java ValorAl
 ###Invocando os serviços no barramento ErlangMS
 
 
-Os exemplos a seguir, demonstram como consumir os serviços oferecidos pelo barramento ErlangMS, que estão registrados no catálogo de serviços. Foi utilizado o utilitário de linha de comando ***curl*** para fazer as requisições HTTP/REST.
+Os exemplos a seguir, demonstram como consumir os serviços registrados no catálogo de serviços do barramento ErlangMS. 
 
-####Cadastrar um novo registro no recurso valoralimentacao por meio de uma requisição POST:
+Foi utilizado o utilitário de linha de comando ***curl*** para fazer as requisições HTTP/REST.
 
-##### Comando curl da requisição
+####a) Cadastrar um novo registro no recurso valoralimentacao por meio de uma requisição POST
+
+Comando curl da requisição:
 ```sh
 curl -X POST localhost:2301/sae/valoralimentacao \   -d"{\"campus\":1,\"pagaBeneficio\":\"true\",\"valorBeneficio\":\"500\",\"inicioVigencia\":\"30/12/2015\"}"
 
@@ -174,7 +176,7 @@ curl -X POST localhost:2301/sae/valoralimentacao \   -d"{\"campus\":1,\"pagaBene
 
 ```
 
-##### Log do barramento ErlangMS
+Log do barramento ErlangMS:
 ```sh
 POST /sae/valoralimentacao HTTP/1.1 {
         RID: 1445814176848195406
@@ -191,7 +193,9 @@ CAST br.unb.service.sae.ValorAlimentacaoService:insert em ValorAlimentacaoServic
 
 ```
 
-####Listar todos os registros do recurso valoralimentacao por meio de uma requisição GET:
+####b) Listar todos os registros do recurso valoralimentacao por meio de uma requisição GET
+
+Comando curl da requisição:
 ```sh
 curl -X GET localhost:2301/sae/valoralimentacao
 
@@ -204,7 +208,7 @@ curl -X GET localhost:2301/sae/valoralimentacao
 
 ```
 
-##### Log do barramento ErlangMS
+Log do barramento ErlangMS:
 ```sh
 CAST br.unb.service.sae.ValorAlimentacaoService:find em ValorAlimentacaoService@puebla {RID: 1445815782848467549, URI: /sae/valoralimentacao}.
 GET /sae/valoralimentacao HTTP/1.1 {
@@ -219,14 +223,16 @@ GET /sae/valoralimentacao HTTP/1.1 {
 
 ```
 
-####Modifica um registro do recurso valoralimentacao por meio de uma requisição PUT:
+####c) Modifica um registro do recurso valoralimentacao por meio de uma requisição PUT
+
+Comando curl da requisição:
 ```sh
 curl -X PUT localhost:2301/sae/valoralimentacao/1 -d"{\"campus\":4}"
 
 {"id":1,"campus":4,"inicioVigencia":"10/12/2015","pagaBeneficio":true,"valorBeneficio":"120.00"}
 ```
 
-##### Log do barramento ErlangMS
+Log do barramento ErlangMS
 ```sh
 PUT /sae/valoralimentacao/1 HTTP/1.1 {
         RID: 1445815941960292134
