@@ -151,7 +151,7 @@ public class EmsRequest implements IEmsRequest {
 		try{
 			return EmsUtil.fromJson(getPayload(), clazz);
 		}catch (Exception e){
-			throw new EmsRequestException("Não foi possível serializar o objeto a partir do payload.");
+			throw new EmsRequestException("Não foi possível serializar o objeto a partir do payload. Erro interno: "+ e.getMessage());
 		}
 	}
 	
@@ -160,7 +160,7 @@ public class EmsRequest implements IEmsRequest {
 		try{
 			return (Map<String, Object>) EmsUtil.fromJson(getPayload(), HashMap.class);
 		}catch (Exception e){
-			throw new EmsRequestException("Não foi possível converter o payload em map do request.");
+			throw new EmsRequestException("Não foi possível converter o payload do request em map. Erro interno: "+ e.getMessage());
 		}
 	}
 

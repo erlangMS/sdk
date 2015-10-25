@@ -13,7 +13,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 
@@ -24,7 +26,10 @@ import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
@@ -64,6 +69,39 @@ public final class EmsUtil {
 			    public JsonElement serialize(Float value, Type typeOfSrc, JsonSerializationContext context) {
 			        return new JsonPrimitive(value);
 			    }})
+			.registerTypeAdapter(Date.class, new JsonSerializer<Date>() {   
+			    @SuppressWarnings("deprecation")
+				@Override
+			    public JsonElement serialize(Date value, Type typeOfSrc, JsonSerializationContext context) {
+			    	if (value.getHours() == 0 && value.getMinutes() == 0){
+			            return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy").format(value));
+			        }else{
+			        	if (value.getSeconds() == 0){
+			        		return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy hh:mm").format(value));
+			        	}else{
+			        		return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy hh:mm:ss").format(value));
+			        	}
+			        }
+			    }})					
+		    .registerTypeAdapter(Date.class, new JsonDeserializer<Date>() {
+                            public Date deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+                            	String value = json.getAsString();                            	//if (value.length().length() == 12){
+    							final String m_erro = "Não é uma data válida";
+                            	try {
+	                            	if (value.length() == 10){
+										return new SimpleDateFormat("dd/MM/yyyy").parse(value);
+	        						}else if (value.length() == 16){
+	        							return new SimpleDateFormat("dd/MM/yyyy hh:mm").parse(value);
+	        						}else if (value.length() == 19){
+	        							return new SimpleDateFormat("dd/MM/yyyy hh:mm:ss").parse(value);
+	        						}else{
+	        							throw new IllegalArgumentException(m_erro);
+	        						}
+								} catch (ParseException e) {
+        							throw new IllegalArgumentException(m_erro);
+								}
+   							}
+                        })    
 		    .create();		
 	}
 	
@@ -173,10 +211,24 @@ public final class EmsUtil {
 							query.setParameter(p++, false);
 						}
 					}else if (paramType == java.util.Date.class){
-						if (value_field instanceof String && ((String)value_field).length() == 10){
-							query.setParameter(p++, new SimpleDateFormat("dd/MM/yyyy").parse((String) value_field));
+						final String m_erro = "Não é uma data válida";
+						if (value_field instanceof String){
+							int len_value = ((String) value_field).length();
+							try {
+	                        	if (len_value == 10){
+	                        		query.setParameter(p++, new SimpleDateFormat("dd/MM/yyyy").parse((String) value_field));
+	    						}else if (len_value == 16){
+	    							query.setParameter(p++, new SimpleDateFormat("dd/MM/yyyy hh:mm").parse((String) value_field));
+	    						}else if (len_value == 19){
+	    							query.setParameter(p++, new SimpleDateFormat("dd/MM/yyyy hh:mm:ss").parse((String) value_field));	    							
+	    						}else{
+	    							throw new IllegalArgumentException(m_erro);
+	    						}
+							} catch (ParseException e) {
+								throw new IllegalArgumentException(m_erro);
+							}
 						}else{
-							throw new IllegalArgumentException("Não é uma data válida.");
+							throw new IllegalArgumentException(m_erro);
 						}
 					}else{
 						throw new IllegalArgumentException("Não suporta o tipo de dado para pesquisa.");
@@ -257,17 +309,46 @@ public final class EmsUtil {
 							field.set(obj, false);
 						}
 					}else if (tipo_field == java.util.Date.class){
-						if (new_value instanceof String && ((String)new_value).length() == 10){
-							field.set(obj, new SimpleDateFormat("dd/MM/yyyy").parse((String) new_value));
+						final String m_erro = "Não é uma data válida";
+						if (new_value instanceof String){
+							int len_value = ((String) new_value).length();
+							try {
+	                        	if (len_value == 10){
+	                        		field.set(obj, new SimpleDateFormat("dd/MM/yyyy").parse((String) new_value));
+	    						}else if (len_value == 16){
+	                        		field.set(obj, new SimpleDateFormat("dd/MM/yyyy hh:mm").parse((String) new_value));
+	    						}else if (len_value == 19){
+	    							field.set(obj, new SimpleDateFormat("dd/MM/yyyy hh:mm:ss").parse((String) new_value));
+	    						}else{
+	    							throw new IllegalArgumentException(m_erro);
+	    						}
+							} catch (ParseException e) {
+								throw new IllegalArgumentException(m_erro);
+							}
 						}else{
-							throw new IllegalArgumentException("Não é uma data válida");
+							throw new IllegalArgumentException(m_erro);
 						}
 					}else if (tipo_field == java.sql.Timestamp.class){
-						if (new_value instanceof String && ((String)new_value).length() == 10){
-							java.sql.Timestamp new_time = new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy").parse((String) new_value).getTime());
+						final String m_erro = "Não é uma data válida";
+						java.sql.Timestamp new_time = null;
+						if (new_value instanceof String){
+							int len_value = ((String) new_value).length();
+							try {
+	                        	if (len_value == 10){
+	    							new_time = new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy").parse((String) new_value).getTime());
+	    						}else if (len_value == 16){
+	    							new_time = new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy hh:mm").parse((String) new_value).getTime());
+	    						}else if (len_value == 19){
+	    							new_time = new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy hh:mm:ss").parse((String) new_value).getTime());
+	    						}else{
+	    							throw new IllegalArgumentException(m_erro);
+	    						}
+							} catch (ParseException e) {
+								throw new IllegalArgumentException(m_erro);
+							}
 							field.set(obj, new_time);
 						}else{
-							throw new IllegalArgumentException("Não é uma data válida.");
+							throw new IllegalArgumentException(m_erro);
 						}
 					}else{
 						throw new IllegalArgumentException("Não suporta o tipo de dado para pesquisa.");
