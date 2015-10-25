@@ -30,21 +30,41 @@ public class EmsRequest implements IEmsRequest {
 		this.otp_request = otp_request;
 	}
 	
+	/**
+	 * Retorna o Request Identifier (RID) do request.
+	 * @return Request Identifier (RID) do request.
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public long getRID(){
 		return ((OtpErlangLong)otp_request.elementAt(0)).longValue();
 	}
 
+	/**
+	 * Retorna a url do request.
+	 * @return url do request.
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public String getUrl(){
 		return ((OtpErlangString)otp_request.elementAt(1)).stringValue();
 	}
 	
+	/**
+	 * Retorna o método do request (GET, POST, PUT, DELETE)
+	 * @return String GET, POST, PUT, DELETE
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public String getMetodo(){
 		return ((OtpErlangString)otp_request.elementAt(2)).stringValue();
 	}
 
+	/**
+	 * Retorna a quantidade de parâmetros do request.
+	 * @return a quantidade de parâmetros do request
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public int getParamsCount(){
 		try{
@@ -58,7 +78,13 @@ public class EmsRequest implements IEmsRequest {
 			throw new EmsRequestException("Não foi possível obter a quantidade de parâmetros do request.");
 		}
 	}
-	
+
+	/**
+	 * Retorna um parâmetro do request pelo nome.
+	 * @param nome do parâmetro
+	 * @return valor da querystring como texto
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public String getParam(final String nome) {
 		try{
@@ -107,6 +133,11 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 
+	/**
+	 * Retorna a quantidade de querystrings do request.
+	 * @return quantidade de querystrings do request.
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public int getQueryCount(){
 		try{
@@ -121,6 +152,12 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 
+	/**
+	 * Retorna uma querystring pelo nome.
+	 * @param nome da querystring
+	 * @return valor da querystring como texto
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public String getQuery(final String nome) {
 		try{
@@ -142,11 +179,23 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 
+	/**
+	 * Retorna o payload do request como texto. Geralmente será a string JSON.
+	 * @return String do payload
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public String getPayload(){
 		return ((OtpErlangString)otp_request.elementAt(5)).stringValue();
 	}
 
+	/**
+	 * Retorna o payload do request serializado como objeto. Um erro será gerado se não for possível ler o objeto JSON.
+	 * Útil para converter o objeto JSON do request no objeto que será trabalhado na camada de negócio
+	 * @param clazz classe do objeto que será serializado. Exemplo: Municipio.class
+	 * @return Object
+	 * @author Everton de Vargas Agilar
+	 */
 	public Object getObject(Class<?> clazz){
 		try{
 			return EmsUtil.fromJson(getPayload(), clazz);
@@ -155,6 +204,11 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 	
+	/**
+	 * Retorna o payload do request como map. Um erro será gerado se não for possível ler o objeto JSON.
+	 * @return Map<String, Object>
+	 * @author Everton de Vargas Agilar
+	 */
 	@SuppressWarnings("unchecked")
 	public Map<String, Object> getPayloadAsMap(){
 		try{
@@ -164,26 +218,52 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 
+	/**
+	 * Retorna o ContentType do request.
+	 * @return ContentType do request
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public String getContentType(){
 		return ((OtpErlangString)otp_request.elementAt(6)).stringValue();
 	}
 
+	/**
+	 * Retorna o nome do módulo do contrato de serviço.
+	 * @return nome do módulo do contrato de serviço
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public String getModulo(){
 		return ((OtpErlangString)otp_request.elementAt(7)).stringValue();
 	}
 
+	/**
+	 * Retorna o nome da função do contrato de serviço.
+	 * @return nome da função do contrato de serviço
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public String getFunction(){
 		return ((OtpErlangString)otp_request.elementAt(8)).stringValue();
 	}
 
+	/**
+	 * Retorna a estrutura interna do request. Não recomendado utilizar.
+	 * @return OtpErlangObject
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public OtpErlangObject getOtpRequest(){
 		return this.otp_request;
 	}
 
+	/**
+	 * Retorna uma querystring do request como int. Um erro será gerado se não for possível retornar um int.
+	 * @param nome nome da querystring
+	 * @return valor int
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public int getQueryAsInt(String nome) {
 		try{
@@ -193,6 +273,12 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 
+	/**
+	 * Retorna uma querystring do request como Double. Um erro será gerado se não for possível retornar um double.
+	 * @param nome nome da querystring
+	 * @return valor double
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public double getQueryAsDouble(String nome) {
 		try{
@@ -202,6 +288,13 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 
+	/**
+	 * Realiza o merge dos atributos do objeto com o objeto JSON do request
+	 * Útil para métodos que fazem o update dos dados no banco de dados
+	 * @param obj Objeto para fazer merge com o payload
+	 * @return objeto após merge
+	 * @author Everton de Vargas Agilar
+	 */
 	@SuppressWarnings("unchecked")
 	@Override
 	public Object mergeObjectFromPayload(Object obj) {
