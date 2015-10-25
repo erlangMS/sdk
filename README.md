@@ -1,10 +1,10 @@
 # Módulo: agents
 
-SDK para integrar a linguagem de programação com o barramento ErlangMS.
+SDK para integrar a linguagem de programação com o barramento ErlangMS. A idéia dos agentes é permitir a implementação dos serviços (Web Services) independente da linguagem de programação ou plataforma, visando integração de sistemas.
 
 Atualmente o SDK está implementado somente na linguagem Java.
 
-####Exemplo de Web Service
+####Exemplo de Web Service ErlangMS
 
 A classe Java a seguir, implementa um Web Service na plataforma ErlangMS. Qualquer classe Java que herde da classe base EmsServiceFacade é um Web Service. Estas classes são vistas pelo barramento como agents.
 
@@ -49,9 +49,13 @@ public class ValorAlimentacaoService extends EmsServiceFacade {
 
 ```
 
-####Registro no catálogo de serviço
+####Registro no catálogo de serviço ErlangMS
 
-É preciso fazer o registro das operações que serão expostas como serviço no catálogo de serviço do barramento ErlangMS. O exemplo a seguir demonstra o contrato dos serviços da classe ValorAlimentacaoService:
+É preciso fazer o registro das operações que serão expostas como serviço no catálogo de serviço do barramento ErlangMS. 
+
+O catálogo de serviços está localizado na pasta priv/conf/catalogo do barramento ErlangMS. O layout do catálogo segue o padrão JSON.
+
+O exemplo a seguir demonstra o contrato dos serviços para a classe java ValorAlimentacaoService:
 
 
 ```json
@@ -151,5 +155,9 @@ public class ValorAlimentacaoService extends EmsServiceFacade {
 
 ```
 
+####Invocando os serviços no barramento ErlangMS
 
+```bash
+curl -X POST localhost:2301/sae/valoralimentacao -d"{\"campus\":1,\"pagaBeneficio\":\"true\",\"valorBeneficio\":\"500\",\"inicioVigencia\":\"30/12/2015\"}"
 
+```
