@@ -49,7 +49,7 @@ public class ValorAlimentacaoService extends EmsServiceFacade {
 
 ```
 
-***
+
 
 ####Registro no catálogo de serviço ErlangMS
 
@@ -156,14 +156,13 @@ O exemplo a seguir demonstra o contrato dos serviços para a classe java ValorAl
 
 ```
 
-***
+
 
 ####Invocando os serviços no barramento ErlangMS
-=====
 
 #####Cadastrar um novo registro no recurso valoralimentacao por meio de uma requisição POST:
 
-###### Comando curl da requisição
+##### Comando curl da requisição
 ```sh
 curl -X POST localhost:2301/sae/valoralimentacao \   -d"{\"campus\":1,\"pagaBeneficio\":\"true\",\"valorBeneficio\":\"500\",\"inicioVigencia\":\"30/12/2015\"}"
 
@@ -171,7 +170,7 @@ curl -X POST localhost:2301/sae/valoralimentacao \   -d"{\"campus\":1,\"pagaBene
 
 ```
 
-##### Log ErlangMS
+##### Log do barramento ErlangMS
 ```sh
 POST /sae/valoralimentacao HTTP/1.1 {
         RID: 1445814176848195406
@@ -199,5 +198,43 @@ curl -X GET localhost:2301/sae/valoralimentacao
  {"id":5,"campus":5,"inicioVigencia":"10/05/2015","pagaBeneficio":false,"valorBeneficio":"600.00"}
 ]
 
+```
+
+##### Log do barramento ErlangMS
+```sh
+CAST br.unb.service.sae.ValorAlimentacaoService:find em ValorAlimentacaoService@puebla {RID: 1445815782848467549, URI: /sae/valoralimentacao}.
+GET /sae/valoralimentacao HTTP/1.1 {
+        RID: 1445815782848467549
+        Accept: */*:
+        User-Agent: curl/7.38.0
+        Service: br.unb.service.sae.ValorAlimentacaoService:find em ValorAlimentacaoService@puebla
+        Query: []
+        Status: 200 <<ok>> (3ms)
+        Send: ok
+}
+
+```
+
+#####Modifica um registro do recurso valoralimentacao por meio de uma requisição PUT:
+```sh
+curl -X PUT localhost:2301/sae/valoralimentacao/1 -d"{\"campus\":4}"
+
+{"id":1,"campus":4,"inicioVigencia":"10/12/2015","pagaBeneficio":true,"valorBeneficio":"120.00"}
+```
+
+##### Log do barramento ErlangMS
+```sh
+PUT /sae/valoralimentacao/1 HTTP/1.1 {
+        RID: 1445815941960292134
+        Accept: */*:
+        User-Agent: curl/7.38.0
+        Content-Type: application/x-www-form-urlencoded
+        Payload: {"campus":4}
+        Service: br.unb.service.sae.ValorAlimentacaoService:update em ValorAlimentacaoService@puebla
+        Query: []
+        Status: 200 <<ok>> (5ms)
+        Send: ok
+}
+CAST br.unb.service.sae.ValorAlimentacaoService:update em ValorAlimentacaoService@puebla {RID: 1445815941960292134, URI: /sae/valoralimentacao/1}.
 ```
 
