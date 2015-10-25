@@ -4,7 +4,7 @@ SDK para integrar a linguagem de programação com o barramento ErlangMS.
 
 Atualmente o SDK está implementado somente na linguagem Java.
 
-Exemplo de uma classe Java exposta como um serviço para o barramento. Qualquer classe Java que herde da classe base EmsServiceFacade é um Web Service. Estas classes são vistas pelo barramento como agents.
+A classe Java a seguir implementa um Web Service na plataforma ErlangMS. Qualquer classe Java que herde da classe base EmsServiceFacade é um Web Service. Estas classes são vistas pelo barramento como agents.
 
 
 
