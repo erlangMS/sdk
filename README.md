@@ -156,9 +156,10 @@ O exemplo a seguir demonstra o contrato dos serviços para a classe java ValorAl
 
 ####Invocando os serviços no barramento ErlangMS
 
+1. Cadastrar um novo registro para valor alimentação por meio de uma requisição POST:
 ```sh
-curl -X POST localhost:2301/sae/valoralimentacao
+curl -X POST localhost:2301/sae/valoralimentacao -d"{\"campus\":1,\"pagaBeneficio\":\"true\",\"valorBeneficio\":\"500\",\"inicioVigencia\":\"30/12/2015\"}"
 
--d"{\"campus\":1,\"pagaBeneficio\":\"true\",\"valorBeneficio\":\"500\",\"inicioVigencia\":\"30/12/2015\"}"
+{"id":5,"campus":1,"inicioVigencia":"30/12/2015","pagaBeneficio":true,"valorBeneficio":"500.00"}
 
 ```
