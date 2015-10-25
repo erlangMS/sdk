@@ -49,6 +49,8 @@ public class ValorAlimentacaoService extends EmsServiceFacade {
 
 ```
 
+***
+
 ####Registro no catálogo de serviço ErlangMS
 
 É preciso fazer o registro das operações que serão expostas como serviço no catálogo de 
@@ -154,9 +156,14 @@ O exemplo a seguir demonstra o contrato dos serviços para a classe java ValorAl
 
 ```
 
-####Invocando os serviços no barramento ErlangMS
+***
 
-1. Cadastrar um novo registro no recurso valoralimentacao por meio de uma requisição POST:
+####Invocando os serviços no barramento ErlangMS
+=====
+
+#####Cadastrar um novo registro no recurso valoralimentacao por meio de uma requisição POST:
+
+###### Comando curl da requisição
 ```sh
 curl -X POST localhost:2301/sae/valoralimentacao \   -d"{\"campus\":1,\"pagaBeneficio\":\"true\",\"valorBeneficio\":\"500\",\"inicioVigencia\":\"30/12/2015\"}"
 
@@ -164,7 +171,24 @@ curl -X POST localhost:2301/sae/valoralimentacao \   -d"{\"campus\":1,\"pagaBene
 
 ```
 
-2. Listar todos os registros do recurso valoralimentacao por meio de uma requisição GET:
+##### Log ErlangMS
+```sh
+POST /sae/valoralimentacao HTTP/1.1 {
+        RID: 1445814176848195406
+        Accept: */*:
+        User-Agent: curl/7.38.0
+        Content-Type: application/x-www-form-urlencoded
+        Payload: {"campus":1,"pagaBeneficio":"true","valorBeneficio":"500","inicioVigencia":"30/12/2015"}
+        Service: br.unb.service.sae.ValorAlimentacaoService:insert em ValorAlimentacaoService@puebla
+        Query: []
+        Status: 200 <<ok>> (4ms)
+        Send: ok
+}
+CAST br.unb.service.sae.ValorAlimentacaoService:insert em ValorAlimentacaoService@puebla {RID: 1445814344754159263, URI: /sae/valoralimentacao}.
+
+```
+
+#####Listar todos os registros do recurso valoralimentacao por meio de uma requisição GET:
 ```sh
 curl -X GET localhost:2301/sae/valoralimentacao
 
