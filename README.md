@@ -51,7 +51,7 @@ public class ValorAlimentacaoService extends EmsServiceFacade {
 
 ####Registro no catálogo de serviço
 
-É preciso fazer o registro das operações que serão expostas como serviço no catálogo de serviço do barramento. O exemplo a seguir demonstra o contrato dos serviços da classe ValorAlimentacaoService:
+É preciso fazer o registro das operações que serão expostas como serviço no catálogo de serviço do barramento ErlangMS. O exemplo a seguir demonstra o contrato dos serviços da classe ValorAlimentacaoService:
 
 
 ```json
