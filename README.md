@@ -156,10 +156,24 @@ O exemplo a seguir demonstra o contrato dos serviços para a classe java ValorAl
 
 ####Invocando os serviços no barramento ErlangMS
 
-1. Cadastrar um novo registro para valor alimentação por meio de uma requisição POST:
+1. Cadastrar um novo registro no recurso valoralimentacao por meio de uma requisição POST:
 ```sh
-curl -X POST localhost:2301/sae/valoralimentacao -d"{\"campus\":1,\"pagaBeneficio\":\"true\",\"valorBeneficio\":\"500\",\"inicioVigencia\":\"30/12/2015\"}"
+curl -X POST localhost:2301/sae/valoralimentacao \   -d"{\"campus\":1,\"pagaBeneficio\":\"true\",\"valorBeneficio\":\"500\",\"inicioVigencia\":\"30/12/2015\"}"
 
 {"id":5,"campus":1,"inicioVigencia":"30/12/2015","pagaBeneficio":true,"valorBeneficio":"500.00"}
 
 ```
+
+2. Listar todos os registros do recurso valoralimentacao por meio de uma requisição GET:
+```sh
+curl -X GET localhost:2301/sae/valoralimentacao
+
+[{"id":1,"campus":1,"inicioVigencia":"10/12/2015","pagaBeneficio":true,"valorBeneficio":"120.00"},
+ {"id":2,"campus":2,"inicioVigencia":"30/12/2015","pagaBeneficio":true,"valorBeneficio":"500.00"},
+ {"id":3,"campus":3,"inicioVigencia":"13/11/2016","pagaBeneficio":false,"valorBeneficio":"250.00"},
+ {"id":4,"campus":4,"inicioVigencia":"01/01/2018","pagaBeneficio":true,"valorBeneficio":"800.00"},
+ {"id":5,"campus":5,"inicioVigencia":"10/05/2015","pagaBeneficio":false,"valorBeneficio":"600.00"}
+]
+
+```
+
