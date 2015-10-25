@@ -1,8 +1,8 @@
 # Módulo: agents
 
-SDK para integrar a linguagem de programação com o barramento ErlangMS. A idéia dos agentes é permitir a implementação dos serviços (Web Services) independente da linguagem de programação ou plataforma, visando integração de sistemas.
+SDK para integrar a linguagem de programação com o barramento ErlangMS, independente da linguagem de programação ou plataforma dos sistemas.
 
-Atualmente o SDK está implementado somente na linguagem Java.
+**Atualmente o SDK está implementado somente na linguagem Java.**
 
 ####Exemplo de Web Service ErlangMS
 
