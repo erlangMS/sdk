@@ -51,9 +51,8 @@ public class ValorAlimentacaoService extends EmsServiceFacade {
 
 ####Registro no catálogo de serviço ErlangMS
 
-É preciso fazer o registro das operações que serão expostas como serviço no catálogo de serviço do barramento ErlangMS. 
-
-O catálogo de serviços está localizado na pasta priv/conf/catalogo do barramento ErlangMS. O layout do catálogo segue o padrão JSON.
+É preciso fazer o registro das operações que serão expostas como serviço no catálogo de 
+serviço do barramento ErlangMS. O catálogo de serviços está localizado na pasta priv/conf/catalogo e segue um layout JSON.
 
 O exemplo a seguir demonstra o contrato dos serviços para a classe java ValorAlimentacaoService:
 
@@ -157,7 +156,9 @@ O exemplo a seguir demonstra o contrato dos serviços para a classe java ValorAl
 
 ####Invocando os serviços no barramento ErlangMS
 
-```bash
-curl -X POST localhost:2301/sae/valoralimentacao -d"{\"campus\":1,\"pagaBeneficio\":\"true\",\"valorBeneficio\":\"500\",\"inicioVigencia\":\"30/12/2015\"}"
+```sh
+curl -X POST localhost:2301/sae/valoralimentacao
+
+-d"{\"campus\":1,\"pagaBeneficio\":\"true\",\"valorBeneficio\":\"500\",\"inicioVigencia\":\"30/12/2015\"}"
 
 ```
