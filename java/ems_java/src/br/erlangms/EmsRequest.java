@@ -201,5 +201,17 @@ public class EmsRequest implements IEmsRequest {
 			throw new EmsRequestException("Não foi possível converter a query "+ nome + " para double do request.");
 		}
 	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public Object mergeObjectFromPayload(Object obj) {
+		if (obj != null){
+			final Map<String, Object> update_values = (Map<String, Object>) getObject(HashMap.class);
+			EmsUtil.setValuesFromMap(obj, update_values);
+			return obj;
+		}else{
+			return null;
+		}
+	}
 	
 }
