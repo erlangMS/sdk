@@ -1,8 +1,12 @@
 # agents
+
 SDK para integrar a linguagem de programação com o barramento ErlangMS.
 
+Atualmente o SDK está implementado somente na linguagem Java.
 
-### Exemplos de uma classe Java exposta como um serviço para o barramento
+Exemplos de uma classe Java exposta como um serviço para o barramento. 
+
+
 
 ```java
 
@@ -43,10 +47,9 @@ public class ValorAlimentacaoService extends EmsServiceFacade {
 
 ```
 
-### Registro no catálogo de serviço
+Registro no catálogo de serviço
 
-Para que o barramento encontre o serviço java ValorAlimentacaoService, é preciso fazer o registro
-dos contratos do serviço oferecido pela classe:
+É preciso fazer o registro das operações que serão expostas como serviço no catálogo de serviço do barramento. O exemplo a seguir demonstra o contrato dos serviços da classe ValorAlimentacaoService:
 
 
 ```json
