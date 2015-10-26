@@ -115,8 +115,7 @@ Lembre-se, a classe Web Service precisa implementar o contrato de serviço. As r
 	"service" : "br.unb.service.sae.ValorAlimentacaoService:findById",
 	"url": "/sae/valoralimentacao/:id",
 	"host": "negocio1",
-	"type": "GET",
-	"APIkey":"true",
+	"type": "GET"
 },
 
 {
@@ -127,8 +126,7 @@ Lembre-se, a classe Web Service precisa implementar o contrato de serviço. As r
 	"service" : "br.unb.service.sae.ValorAlimentacaoService:update",
 	"url": "/sae/valoralimentacao/:id",
 	"host": "negocio1",
-	"type": "PUT",
-	"APIkey":"true",
+	"type": "PUT"
 },
 
 {
@@ -139,8 +137,7 @@ Lembre-se, a classe Web Service precisa implementar o contrato de serviço. As r
 	"service" : "br.unb.service.sae.ValorAlimentacaoService:insert",
 	"url": "/sae/valoralimentacao",
 	"host": "negocio1",
-	"type": "POST",
-	"APIkey":"true",
+	"type": "POST"
 },
 
 {
@@ -151,8 +148,7 @@ Lembre-se, a classe Web Service precisa implementar o contrato de serviço. As r
 	"service" : "br.unb.service.sae.ValorAlimentacaoService:delete",
 	"url": "/sae/valoralimentacao",
 	"host": "negocio1",
-	"type": "DELETE",
-	"APIkey":"true",
+	"type": "DELETE"
 }
 
 
