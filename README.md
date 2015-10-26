@@ -56,7 +56,9 @@ public class ValorAlimentacaoService extends EmsServiceFacade {
 É preciso fazer o registro das operações que serão expostas como serviço no catálogo de 
 serviço do barramento ErlangMS. O catálogo de serviços está localizado na pasta priv/conf/catalogo e segue um layout JSON.
 
-O exemplo a seguir demonstra o contrato dos serviços para a classe java ValorAlimentacaoService. Lembre-se, que a classe Web Service deve implementar o contrato de serviço.
+O exemplo a seguir, demonstra o contrato dos serviços para a classe java ValorAlimentacaoService. 
+
+Lembre-se, a classe Web Service precisa implementar o contrato de serviço. As regras de negócio da parte negocial é tipicamente implementada na camada de negócio e o Web Service em si, é uma fachada (design pattern Service Façade).
 
 
 ```json
