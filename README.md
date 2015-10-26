@@ -4,7 +4,7 @@ SDK para integrar a linguagem de programação com o barramento ErlangMS, indepe
 
 **Atualmente o SDK está implementado somente na linguagem Java.**
 
-###Exemplo de Web Service ErlangMS
+###Exemplo de Web Service em ErlangMS
 
 A classe Java a seguir, implementa um Web Service na plataforma ErlangMS. Qualquer classe Java que herde da classe base EmsServiceFacade é um Web Service. Estas classes são vistas pelo barramento como agentes.
 
@@ -51,14 +51,14 @@ public class ValorAlimentacaoService extends EmsServiceFacade {
 
 ===
 
-###Registro no catálogo de serviço ErlangMS
+###Registro no Catálogo de Serviço ErlangMS
 
 É preciso fazer o registro das operações que serão expostas como serviço no catálogo de 
-serviço do barramento ErlangMS. O catálogo de serviços está localizado na pasta priv/conf/catalogo e segue um layout JSON.
+serviço do barramento ErlangMS. O catálogo de serviços está localizado na pasta ***priv/conf/catalogo*** e segue um layout JSON.
 
 O exemplo a seguir, demonstra o contrato dos serviços para a classe java ValorAlimentacaoService. 
 
-Lembre-se, a classe Web Service precisa implementar o contrato de serviço. As regras de negócio da parte negocial é tipicamente implementada na camada de negócio e o Web Service em si, é uma fachada (design pattern Service Façade).
+Lembre-se, a classe Web Service precisa implementar o contrato de serviço. As regras de negócio da parte negocial é tipicamente implementada na camada de negócio e o Web Service em si, é uma fachada.
 
 
 ```json
@@ -161,7 +161,7 @@ Lembre-se, a classe Web Service precisa implementar o contrato de serviço. As r
 
 ===
 
-###Invocando os serviços no barramento ErlangMS
+###Invocando os Serviços no Barramento ErlangMS
 
 
 Os exemplos a seguir, demonstram como consumir os serviços registrados no catálogo de serviços do barramento ErlangMS. 
