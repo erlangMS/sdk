@@ -178,7 +178,7 @@ Foi utilizado o utilitário de linha de comando ***curl*** para fazer as requisi
 
 Comando curl da requisição:
 ```sh
-curl -X POST localhost:2301/sae/valoralimentacao \   -d"{\"campus\":1,\"pagaBeneficio\":\"true\",\"valorBeneficio\":\"500\",\"inicioVigencia\":\"30/12/2015\"}"
+curl -X POST localhost:2301/sae/valoralimentacao  -d"{\"campus\":1,\"pagaBeneficio\":\"true\",\"valorBeneficio\":\"500\",\"inicioVigencia\":\"30/12/2015\"}"
 
 {"id":5,"campus":1,"inicioVigencia":"30/12/2015","pagaBeneficio":true,"valorBeneficio":"500.00"}
 
