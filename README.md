@@ -6,7 +6,7 @@ SDK para integrar a linguagem de programação com o barramento ErlangMS, indepe
 
 ###Exemplo de Web Service em ErlangMS
 
-A classe Java a seguir, implementa um Web Service na plataforma ErlangMS. Qualquer classe Java que herde da classe base EmsServiceFacade é um Web Service. Estas classes são vistas pelo barramento como agentes.
+A classe Java a seguir, implementa um Web Service na plataforma ErlangMS. Qualquer classe Java que herde da classe base ***EmsServiceFacade*** é um Web Service. Essas classes são vistas pelo barramento como agentes.
 
 
 
