@@ -166,9 +166,19 @@ Lembre-se, a classe Web Service precisa implementar o contrato de serviço. As r
 
 Os exemplos a seguir, demonstram como consumir os serviços registrados no catálogo de serviços do barramento ErlangMS. 
 
+Em REST, os serviços normalmente são chamados de recursos e são invocados por meio dos verbos HTTP a seguir:
+
+GET     -> para listar os recursos
+
+POST    -> para criar um recurso
+
+PUT     -> para modificar um recurso
+
+DELETE  -> para excluir um recurso
+
 Foi utilizado o utilitário de linha de comando ***curl*** para fazer as requisições HTTP/REST.
 
-####a) Cadastrar um novo registro no recurso valoralimentacao por meio de uma requisição POST
+####a) Cadastrar um novo recurso valoralimentacao por meio de uma requisição POST
 
 Comando curl da requisição:
 ```sh
@@ -225,7 +235,7 @@ GET /sae/valoralimentacao HTTP/1.1 {
 
 ```
 
-####c) Modifica um registro do recurso valoralimentacao por meio de uma requisição PUT
+####c) Modifica um recurso valoralimentacao por meio de uma requisição PUT
 
 Comando curl da requisição:
 ```sh
