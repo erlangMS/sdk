@@ -218,7 +218,6 @@ curl -X GET localhost:2301/sae/valoralimentacao
 
 Log do barramento ErlangMS:
 ```sh
-CAST br.unb.service.sae.ValorAlimentacaoService:find em ValorAlimentacaoService@puebla {RID: 1445815782848467549, URI: /sae/valoralimentacao}.
 GET /sae/valoralimentacao HTTP/1.1 {
         RID: 1445815782848467549
         Accept: */*:
@@ -228,6 +227,7 @@ GET /sae/valoralimentacao HTTP/1.1 {
         Status: 200 <<ok>> (3ms)
         Send: ok
 }
+CAST br.unb.service.sae.ValorAlimentacaoService:find em ValorAlimentacaoService@puebla {RID: 1445815782848467549, URI: /sae/valoralimentacao}.
 
 ```
 
