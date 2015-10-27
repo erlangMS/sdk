@@ -114,6 +114,11 @@ public class EmsAgent
 			    	return result_ok;
 			    }else{
 			    	result = m.invoke(facade, request);
+			    	if (result instanceof Boolean){
+			    		return "{\"ok\":"+ result.toString() + "}";
+			    	}else if (result instanceof Integer){
+			    		return "{\"ok\":\""+ result.toString() + "\"}"; 
+			    	}
 			    	return result;
 			    }
 	    	} catch (NoSuchMethodException e) {

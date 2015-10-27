@@ -8,7 +8,6 @@
 
 package br.erlangms;
 
-import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +20,16 @@ import javax.persistence.Query;
 public abstract class EmsDao<T> {
 	public abstract Class<T> getClassOfPojo();
 	protected abstract EntityManager getEntityManager();
+	private String nameOfPojo = null;
+	private String idFieldName = null;
+	private String sqlDeleteQuery = null;
+
+	public EmsDao(){
+		nameOfPojo = getClassOfPojo().getSimpleName();
+		idFieldName = EmsUtil.findFieldByAnnotation(getClassOfPojo(), Id.class).getName();
+		sqlDeleteQuery = new StringBuilder("delete from ").append(nameOfPojo)
+										  .append(" where ").append(idFieldName).append("=:pId").toString();
+	}
 	
 	/**
 	 * Pesquisa um objeto/recurso a partir de um filtro
@@ -158,8 +167,8 @@ public abstract class EmsDao<T> {
 	 * @return objeto/recurso ou EmsNotFoundException se não existe o id
 	 * @author Everton de Vargas Agilar
 	 */
-	public T findById(Serializable id){
-		if (id != null){
+	public T findById(Integer id){
+		if (id != null && id > 0){
 			Class<T> classOfPojo = getClassOfPojo();
 			T obj = getEntityManager().find(getClassOfPojo(), id);
 			if (obj == null){
@@ -167,7 +176,7 @@ public abstract class EmsDao<T> {
 			}
 			return obj;
 		}else{
-			throw new IllegalArgumentException("Argumento obj inválido para findById.");
+			throw new IllegalArgumentException("Argumento id inválido para findById.");
 		}
 	}
 
@@ -179,7 +188,7 @@ public abstract class EmsDao<T> {
 	 * @return objeto/recurso
 	 * @author Everton de Vargas Agilar
 	 */
-	public T update(T obj){
+	public T update(final T obj){
 		if (obj != null){
 			getEntityManager().merge(obj);
 			getEntityManager().flush();
@@ -196,7 +205,7 @@ public abstract class EmsDao<T> {
 	 * @return objeto/recurso
 	 * @author Everton de Vargas Agilar
 	 */
-	public T insert(T obj){
+	public T insert(final T obj){
 		if (obj != null){
 			getEntityManager().persist(obj);
 			getEntityManager().flush();
@@ -206,6 +215,18 @@ public abstract class EmsDao<T> {
 		}
 	}
 
+	/**
+	 * Exclui um novo objeto/recurso no banco
+	 * @param id id do objeto/recurso
+	 * @author Everton de Vargas Agilar
+	 */
+	public int delete(final Integer id) {
+		if (id != null && id > 0){
+			return getEntityManager().createQuery(sqlDeleteQuery).setParameter("pId", id).executeUpdate();
+		}else{
+			throw new IllegalArgumentException("Argumento id inválido para delete.");
+		}
+	}
 		
 }
 
