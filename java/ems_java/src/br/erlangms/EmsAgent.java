@@ -19,7 +19,6 @@ import org.apache.log4j.Logger;
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
 import com.ericsson.otp.erlang.OtpErlangExit;
-import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -33,12 +32,13 @@ public class EmsAgent
 {
     private final OtpErlangAtom ok = new OtpErlangAtom("ok");
     private final OtpErlangAtom servico_atom = new OtpErlangAtom("servico");
-    private final OtpErlangAtom null_atom = new OtpErlangAtom("null");
-	private IEmsServiceFacade facade = null;
+	private final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
+	private final OtpErlangBinary result_null = new OtpErlangBinary("{\"ok\":\"null\"}".getBytes());
+	private final OtpErlangBinary erro_convert_json = new OtpErlangBinary("{\"erro\":\"service_exception\", \"message\" : \"Falha na serialização do conteúdo em JSON\"}".getBytes());
+    private IEmsServiceFacade facade = null;
 	private String nomeAgente = null;
 	private String nomeService = null;
-	private final String result_ok = "{\"ok\":\"ok\"}";
-    private OtpNode myNode = null;
+	private OtpNode myNode = null;
     private static Logger logger = Logger.getLogger(EmsAgent.class);
     
 	public EmsAgent(final String nomeAgente, final String nomeService, final IEmsServiceFacade facade){
@@ -114,25 +114,19 @@ public class EmsAgent
 			    	return result_ok;
 			    }else{
 			    	result = m.invoke(facade, request);
-			    	if (result instanceof Boolean){
-			    		return "{\"ok\":"+ result.toString() + "}";
-			    	}else if (result instanceof Integer){
-			    		return "{\"ok\":\""+ result.toString() + "\"}"; 
-			    	}
-			    	return result;
 			    }
 	    	} catch (NoSuchMethodException e) {
 	    		m = Classe.getMethod(metodo);
 		    	m.setAccessible(true);  
 			    if (m.getReturnType().getName().equals("void")){
-			    	m.invoke(facade, request);
+			    	m.invoke(facade);
 			    	return result_ok;
 			    }else{
-			    	result = m.invoke(facade, request);
-			    	return result;
+			    	result = m.invoke(facade);
 			    }
 	    	}
-	    } catch (NoSuchMethodException e) {  
+	    	return result;
+		} catch (NoSuchMethodException e) {  
 	        // Essa exceção ocorre se o getMethod() não encontrar o método
 	    	String erro = "Método de negócio não encontrado: " + metodo + ".";
 	    	print_log(erro);
@@ -218,25 +212,36 @@ public class EmsAgent
             OtpErlangObject[] reply = new OtpErlangObject[2];
             reply[0] = ok;
             if (ret != null){
-            	if (ret instanceof OtpErlangAtom){
-            		reply[1] = (OtpErlangObject) ret;
-            	}else if (ret instanceof Integer){
-	            	reply[1] = new OtpErlangInt((Integer) ret);
-	            }else if (ret instanceof String){
-	            	reply[1] = new OtpErlangBinary(((String) ret).getBytes());
-	            }else if (ret instanceof Object){
-	            	reply[1] = new OtpErlangBinary(EmsUtil.toJson(ret).getBytes());
-	            }else if (ret.getClass().getName().equals(ArrayList.class.getName())){
-	            	List<?> lista = (List<?>) ret;
-	            	OtpErlangObject[] otp_items = new OtpErlangObject[lista.size()];
-	            	for(int i = 0; i < lista.size(); i++){
-	            		otp_items[i] = new OtpErlangString((String) lista.get(i));
-	            	}
-	            	OtpErlangList otp_list = new OtpErlangList(otp_items);
-	            	reply[1] = otp_list;
-	            }
+            	try{
+	            	String m_json = null;
+	            	if (ret instanceof OtpErlangAtom){
+	            		reply[1] = (OtpErlangObject) ret;
+	            	}else if (ret instanceof Integer || ret instanceof Boolean){
+	            		m_json = "{\"ok\":"+ ret.toString() + "}";
+	            		reply[1] = new OtpErlangBinary(m_json.getBytes());
+	    	    	}else if (ret instanceof java.util.Date || 
+	  	    			  	  ret instanceof java.sql.Timestamp ||
+	  	    			  	  ret instanceof Double){
+	    	    		m_json = "{\"ok\":"+ EmsUtil.toJson(ret) + "}";
+	    	    		reply[1] = new OtpErlangBinary(m_json.getBytes());
+	            	}else if (ret instanceof String){
+		            	reply[1] = new OtpErlangBinary(((String) ret).getBytes());
+		            }else if (ret instanceof Object){
+		            	reply[1] = new OtpErlangBinary(EmsUtil.toJson(ret).getBytes());
+		            }else if (ret.getClass().getName().equals(ArrayList.class.getName())){
+		            	List<?> lista = (List<?>) ret;
+		            	OtpErlangObject[] otp_items = new OtpErlangObject[lista.size()];
+		            	for(int i = 0; i < lista.size(); i++){
+		            		otp_items[i] = new OtpErlangString((String) lista.get(i));
+		            	}
+		            	OtpErlangList otp_list = new OtpErlangList(otp_items);
+		            	reply[1] = otp_list;
+		            }
+            	}catch (Exception e){
+            		reply[1] = erro_convert_json;
+            	}
             }else{
-            	reply[1] = (OtpErlangObject) null_atom;
+        		reply[1] = result_null;
             }
             otp_result[0] = servico_atom;
             otp_result[1] = new OtpErlangLong(request.getRID());
