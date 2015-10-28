@@ -32,17 +32,17 @@ import com.ericsson.otp.erlang.OtpNode;
 
 public class EmsAgent
 {
-	private final int MAX_THREAD_POOL_BY_AGENT = 4;
-	private final OtpErlangAtom ok = new OtpErlangAtom("ok");
-    private final OtpErlangAtom servico_atom = new OtpErlangAtom("servico");
-	private final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
-	private final OtpErlangBinary result_null = new OtpErlangBinary("{\"ok\":\"null\"}".getBytes());
-	private final OtpErlangBinary erro_convert_json = new OtpErlangBinary("{\"erro\":\"service_exception\", \"message\" : \"Falha na serialização do conteúdo em JSON\"}".getBytes());
-    private IEmsServiceFacade facade = null;
+	private static final int MAX_THREAD_POOL_BY_AGENT = 4;
+	private static final OtpErlangAtom ok = new OtpErlangAtom("ok");
+    private static final OtpErlangAtom servico_atom = new OtpErlangAtom("servico");
+	private static final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
+	private static final OtpErlangBinary result_null = new OtpErlangBinary("{\"ok\":\"null\"}".getBytes());
+	private static final OtpErlangBinary erro_convert_json = new OtpErlangBinary("{\"erro\":\"service_exception\", \"message\" : \"Falha na serialização do conteúdo em JSON\"}".getBytes());
+    private static Logger logger = Logger.getLogger(EmsAgent.class);
+	private IEmsServiceFacade facade = null;
 	private String nomeAgente = null;
 	private String nomeService = null;
 	private OtpNode myNode = null;
-    private static Logger logger = Logger.getLogger(EmsAgent.class);
     
 	public EmsAgent(final String nomeAgente, final String nomeService, final IEmsServiceFacade facade){
 		this.nomeAgente = nomeAgente;
