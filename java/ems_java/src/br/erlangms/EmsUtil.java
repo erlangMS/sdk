@@ -390,6 +390,26 @@ public final class EmsUtil {
 						}else{
 							throw new IllegalArgumentException(m_erro);
 						}
+					}else if (tipo_field == java.sql.Date.class){
+						final String m_erro = "Não é uma data válida";
+						if (new_value instanceof String){
+							int len_value = ((String) new_value).length();
+							try {
+	                        	if (len_value == 10){
+	                        		field.set(obj, new java.sql.Date(new SimpleDateFormat("dd/MM/yyyy").parse((String) new_value).getTime()));
+	    						}else if (len_value == 16){
+	                        		field.set(obj, new java.sql.Date(new SimpleDateFormat("dd/MM/yyyy HH:mm").parse((String) new_value).getTime()));
+	    						}else if (len_value == 19){
+	    							field.set(obj, new java.sql.Date(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse((String) new_value).getTime()));
+	    						}else{
+	    							throw new IllegalArgumentException(m_erro);
+	    						}
+							} catch (ParseException e) {
+								throw new IllegalArgumentException(m_erro);
+							}
+						}else{
+							throw new IllegalArgumentException(m_erro);
+						}
 					}else if (tipo_field == java.sql.Timestamp.class){
 						final String m_erro = "Não é uma data válida";
 						java.sql.Timestamp new_time = null;
