@@ -12,6 +12,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.apache.log4j.Logger;
 
@@ -29,7 +32,8 @@ import com.ericsson.otp.erlang.OtpNode;
 
 public class EmsAgent
 {
-    private final OtpErlangAtom ok = new OtpErlangAtom("ok");
+	private final int MAX_THREAD_POOL_BY_AGENT = 4;
+	private final OtpErlangAtom ok = new OtpErlangAtom("ok");
     private final OtpErlangAtom servico_atom = new OtpErlangAtom("servico");
 	private final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
 	private final OtpErlangBinary result_null = new OtpErlangBinary("{\"ok\":\"null\"}".getBytes());
@@ -51,49 +55,50 @@ public class EmsAgent
 	}
 	
 	public void start() throws Exception {
-		   // Se existir conexão previa, finaliza primeiro
-		   if (myNode != null){
-			   close(); 
-		   }
-	       myNode = new OtpNode(nomeAgente);
-	       myNode.setCookie("erlangms");
-	       StringBuilder msg_node = new StringBuilder(nomeService)
-	    		   							.append(" host -> ").append(myNode.host())
-	    		   							.append(" node -> ").append(myNode.node())
-	    		   							.append(" port -> ").append(myNode.port())
-	    		   							.append(" cookie -> ").append(myNode.cookie());
-	       print_log(msg_node.toString());
-	       OtpMbox myMbox = myNode.createMbox(nomeService);
-	       OtpErlangObject myObject;
-           OtpErlangTuple myMsg;
-           OtpErlangPid from;
-           OtpErlangTuple otp_request;
-           IEmsRequest request;
-           StringBuilder msg_task = new StringBuilder();
-           while(true) 
-	    	   try {
-                    myObject = myMbox.receive();
-                    myMsg = (OtpErlangTuple) myObject;
-                    otp_request = (OtpErlangTuple) myMsg.elementAt(0);
-                    request = new EmsRequest(otp_request);
-                    from = (OtpErlangPid) myMsg.elementAt(1);
-                    msg_task.setLength(0);
-                    msg_task.append(request.getMetodo())
-							.append(" ")
-							.append(request.getModulo())
-							.append(".")
-							.append(request.getFunction())
-							.append(" [RID: ")
-							.append(request.getRID())
-							.append(", ")
-							.append(request.getUrl())
-							.append("]");
-                    print_log(msg_task.toString());
-                    new Task(from, request, myMbox).start();  
-			} catch(OtpErlangExit e) {
-				break;
-	        }
+	   // Se existir conexão previa, finaliza primeiro
+	   if (myNode != null){
+		   close(); 
+	   }
+       myNode = new OtpNode(nomeAgente);
+       myNode.setCookie("erlangms");
+       StringBuilder msg_node = new StringBuilder(nomeService)
+    		   							.append(" host -> ").append(myNode.host())
+    		   							.append(" node -> ").append(myNode.node())
+    		   							.append(" port -> ").append(myNode.port())
+    		   							.append(" cookie -> ").append(myNode.cookie());
+       print_log(msg_node.toString());
+       OtpMbox myMbox = myNode.createMbox(nomeService);
+       OtpErlangObject myObject;
+       OtpErlangTuple myMsg;
+       OtpErlangPid from;
+       OtpErlangTuple otp_request;
+       IEmsRequest request;
+       StringBuilder msg_task = new StringBuilder();
+       ExecutorService pool = Executors.newFixedThreadPool(MAX_THREAD_POOL_BY_AGENT);
+       while(true) 
+    	   try {
+                myObject = myMbox.receive();
+                myMsg = (OtpErlangTuple) myObject;
+                otp_request = (OtpErlangTuple) myMsg.elementAt(0);
+                request = new EmsRequest(otp_request);
+                from = (OtpErlangPid) myMsg.elementAt(1);
+                msg_task.setLength(0);
+                msg_task.append(request.getMetodo())
+						.append(" ")
+						.append(request.getModulo())
+						.append(".")
+						.append(request.getFunction())
+						.append(" [RID: ")
+						.append(request.getRID())
+						.append(", ")
+						.append(request.getUrl())
+						.append("]");
+                print_log(msg_task.toString());
+                pool.submit(new Task(from, request, myMbox));
+		} catch(OtpErlangExit e) {
+			break;
         }
+    }
 	
 	public void close(){
 		if (myNode != null){
@@ -202,7 +207,7 @@ public class EmsAgent
 		logger.info(new StringBuilder(nomeAgente).append(": ").append(message).toString());
 	}
 
-	private final class Task extends Thread{
+	private final class Task implements Callable<Boolean>{
 		private OtpErlangPid from;
 		private IEmsRequest request;
 		private OtpMbox myMbox;
@@ -214,8 +219,7 @@ public class EmsAgent
 			this.myMbox = myMbox;
 		}
 		
-        @Override  
-        public void run() {  
+        public Boolean call() {  
             OtpErlangObject[] otp_result = new OtpErlangObject[3];
         	Object ret = chamaMetodo(request.getModulo(), request.getFunction(), request);
             OtpErlangObject[] reply = new OtpErlangObject[2];
@@ -257,6 +261,7 @@ public class EmsAgent
             otp_result[2] = new OtpErlangTuple(reply);
             OtpErlangTuple myTuple = new OtpErlangTuple(otp_result);
             myMbox.send(from, myTuple);
+			return true;
         }  
 	}
 	
