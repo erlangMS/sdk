@@ -13,7 +13,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
@@ -42,7 +41,6 @@ public class EmsAgent
     private static Logger logger = Logger.getLogger(EmsAgent.class);
     
 	public EmsAgent(final String nomeAgente, final String nomeService, final IEmsServiceFacade facade){
-		BasicConfigurator.configure();
 		this.nomeAgente = nomeAgente;
 		this.nomeService = nomeService;
 		this.facade = facade;
@@ -55,23 +53,23 @@ public class EmsAgent
 	public void start() throws Exception {
 		   // Se existir conexão previa, finaliza primeiro
 		   if (myNode != null){
-			   print_log("Já existe EmsAgent para "+ nomeService + ", finalizando primeiro...");
 			   close(); 
 		   }
-		   print_log("EmsAgent para " + nomeService + " iniciado.");
 	       myNode = new OtpNode(nomeAgente);
 	       myNode.setCookie("erlangms");
-	       print_log("host   -> "+ myNode.host());
-	       print_log("node   -> "+ myNode.node());
-	       print_log("port   -> "+ myNode.port());
-	       print_log("cookie -> "+ myNode.cookie());
+	       StringBuilder msg_node = new StringBuilder(nomeService)
+	    		   							.append(" host -> ").append(myNode.host())
+	    		   							.append(" node -> ").append(myNode.node())
+	    		   							.append(" port -> ").append(myNode.port())
+	    		   							.append(" cookie -> ").append(myNode.cookie());
+	       print_log(msg_node.toString());
 	       OtpMbox myMbox = myNode.createMbox(nomeService);
 	       OtpErlangObject myObject;
            OtpErlangTuple myMsg;
            OtpErlangPid from;
            OtpErlangTuple otp_request;
            IEmsRequest request;
-           print_log("EmsAgent [OK]");
+           StringBuilder msg_task = new StringBuilder();
            while(true) 
 	    	   try {
                     myObject = myMbox.receive();
@@ -79,7 +77,18 @@ public class EmsAgent
                     otp_request = (OtpErlangTuple) myMsg.elementAt(0);
                     request = new EmsRequest(otp_request);
                     from = (OtpErlangPid) myMsg.elementAt(1);
-                    print_log(request.getMetodo() + " request " + request.getRID() + " para " + request.getModulo() + "." + request.getFunction() +  "(EmsRequest) [URL: " + request.getUrl()+ "]");
+                    msg_task.setLength(0);
+                    msg_task.append(request.getMetodo())
+							.append(" ")
+							.append(request.getModulo())
+							.append(".")
+							.append(request.getFunction())
+							.append(" [RID: ")
+							.append(request.getRID())
+							.append(", ")
+							.append(request.getUrl())
+							.append("]");
+                    print_log(msg_task.toString());
                     new Task(from, request, myMbox).start();  
 			} catch(OtpErlangExit e) {
 				break;
@@ -94,7 +103,7 @@ public class EmsAgent
 				print_log("Ocorreu o seguinte erro ao finalizar: ");
 				e.printStackTrace();
 			}finally{
-				print_log("EmsAgent para " + nomeService + " finalizado.");
+				print_log(new StringBuilder("EmsAgent para ").append(nomeService).append(" finalizado.").toString());
 				myNode = null;
 			}
 		}
@@ -190,7 +199,7 @@ public class EmsAgent
 	}  	
 	
 	public void print_log(final String message){
-		logger.info(nomeAgente + ": " + message);
+		logger.info(new StringBuilder(nomeAgente).append(": ").append(message).toString());
 	}
 
 	private final class Task extends Thread{
