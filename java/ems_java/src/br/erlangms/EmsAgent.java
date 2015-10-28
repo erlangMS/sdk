@@ -34,11 +34,11 @@ public class EmsAgent
 {
 	private static final int MAX_THREAD_POOL_BY_AGENT = 4;
 	private static final OtpErlangAtom ok = new OtpErlangAtom("ok");
-    private static final OtpErlangAtom servico_atom = new OtpErlangAtom("servico");
+	private static final OtpErlangAtom servico_atom = new OtpErlangAtom("servico");
 	private static final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
 	private static final OtpErlangBinary result_null = new OtpErlangBinary("{\"ok\":\"null\"}".getBytes());
 	private static final OtpErlangBinary erro_convert_json = new OtpErlangBinary("{\"erro\":\"service_exception\", \"message\" : \"Falha na serialização do conteúdo em JSON\"}".getBytes());
-    private static Logger logger = Logger.getLogger(EmsAgent.class);
+	private static Logger logger = Logger.getLogger(EmsAgent.class);
 	private IEmsServiceFacade facade = null;
 	private String nomeAgente = null;
 	private String nomeService = null;
@@ -62,10 +62,10 @@ public class EmsAgent
        myNode = new OtpNode(nomeAgente);
        myNode.setCookie("erlangms");
        StringBuilder msg_node = new StringBuilder(nomeService)
-    		   							.append(" host -> ").append(myNode.host())
-    		   							.append(" node -> ").append(myNode.node())
-    		   							.append(" port -> ").append(myNode.port())
-    		   							.append(" cookie -> ").append(myNode.cookie());
+										.append(" host -> ").append(myNode.host())
+										.append(" node -> ").append(myNode.node())
+										.append(" port -> ").append(myNode.port())
+										.append(" cookie -> ").append(myNode.cookie());
        print_log(msg_node.toString());
        OtpMbox myMbox = myNode.createMbox(nomeService);
        OtpErlangObject myObject;
