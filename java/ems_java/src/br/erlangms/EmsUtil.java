@@ -8,6 +8,7 @@
  
 package br.erlangms;
 
+import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
@@ -21,6 +22,9 @@ import java.util.Map;
 import javax.persistence.OneToMany;
 import javax.persistence.Query;
 
+import org.hibernate.Hibernate;
+import org.hibernate.proxy.HibernateProxy;
+
 import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
@@ -32,6 +36,11 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.google.gson.TypeAdapter;
+import com.google.gson.TypeAdapterFactory;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 
 public final class EmsUtil {
 	private static NumberFormat doubleFormatter = null;
@@ -134,6 +143,7 @@ public final class EmsUtil {
 						}
 					}
                 })    
+			.registerTypeAdapterFactory(HibernateProxyTypeAdapter.FACTORY)				
             .registerTypeAdapter(Boolean.class, new JsonDeserializer<Boolean>() {
                     public Boolean deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 						String value = json.getAsString();
@@ -167,6 +177,51 @@ public final class EmsUtil {
         	return (f.getAnnotation(OneToMany.class) != null);
         }
     }
+	
+	
+	/**
+	 * This TypeAdapter unproxies Hibernate proxied objects, and serializes them
+	 * through the registered (or default) TypeAdapter of the base class.
+	 */
+	public static class HibernateProxyTypeAdapter extends TypeAdapter<HibernateProxy> {
+
+	    public final static TypeAdapterFactory FACTORY = new TypeAdapterFactory() {
+	        @Override
+	        @SuppressWarnings("unchecked")
+	        public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
+	            return (HibernateProxy.class.isAssignableFrom(type.getRawType()) ? (TypeAdapter<T>) new HibernateProxyTypeAdapter(gson) : null);
+	        }
+	    };
+	    private final Gson context;
+
+	    private HibernateProxyTypeAdapter(Gson context) {
+	        this.context = context;
+	    }
+
+	    @Override
+	    public HibernateProxy read(JsonReader in) throws IOException {
+	        throw new UnsupportedOperationException("Not supported");
+	    }
+
+	    @SuppressWarnings({"rawtypes", "unchecked"})
+	    @Override
+	    public void write(JsonWriter out, HibernateProxy value) throws IOException {
+	        if (value == null) {
+	            out.nullValue();
+	            return;
+	        }
+	        // Retrieve the original (not proxy) class
+	        Class<?> baseType = Hibernate.getClass(value);
+	        // Get the TypeAdapter of the original class, to delegate the serialization
+	        TypeAdapter delegate = context.getAdapter(TypeToken.get(baseType));
+	        // Get a filled instance of the original class
+	        Object unproxiedValue = ((HibernateProxy) value).getHibernateLazyInitializer()
+	                .getImplementation();
+	        // Serialize the value
+	        delegate.write(out, unproxiedValue);
+	    }
+	}
+	
 	
 	/**
 	 * Serializa um objeto para json

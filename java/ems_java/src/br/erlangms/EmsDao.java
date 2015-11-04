@@ -18,15 +18,15 @@ import javax.persistence.Id;
 import javax.persistence.Query;
 
 public abstract class EmsDao<T> {
-	public abstract Class<T> getClassOfPojo();
+	public abstract Class<T> getClassOfModel();
 	protected abstract EntityManager getEntityManager();
 	private String nameOfPojo = null;
 	private String idFieldName = null;
 	private String sqlDeleteQuery = null;
 
 	public EmsDao(){
-		nameOfPojo = getClassOfPojo().getSimpleName();
-		idFieldName = EmsUtil.findFieldByAnnotation(getClassOfPojo(), Id.class).getName();
+		nameOfPojo = getClassOfModel().getSimpleName();
+		idFieldName = EmsUtil.findFieldByAnnotation(getClassOfModel(), Id.class).getName();
 		sqlDeleteQuery = new StringBuilder("delete from ").append(nameOfPojo)
 										  .append(" where ").append(idFieldName).append("=:pId").toString();
 	}
@@ -49,7 +49,7 @@ public abstract class EmsDao<T> {
 		StringBuilder where = null;
 		StringBuilder sort_smnt = null;
 		Map<String, Object> filtro_obj = null;		
-		Field idField = EmsUtil.findFieldByAnnotation(getClassOfPojo(), Id.class);
+		Field idField = EmsUtil.findFieldByAnnotation(getClassOfModel(), Id.class);
 
 		// Define o filtro da query se foi informado
 		if (filtro != null && !filtro.isEmpty() && !filtro.equals("{}")){
@@ -131,7 +131,7 @@ public abstract class EmsDao<T> {
 			// formata o sql
 			StringBuilder sql = new StringBuilder("select ")
 				.append(field_smnt == null ? " this " : field_smnt.toString())
-				.append(" from ").append(getClassOfPojo().getSimpleName()).append(" this ");
+				.append(" from ").append(getClassOfModel().getSimpleName()).append(" this ");
 			if (where != null){
 				sql.append(where.toString());
 			}	
@@ -169,8 +169,8 @@ public abstract class EmsDao<T> {
 	 */
 	public T findById(Integer id){
 		if (id != null && id > 0){
-			Class<T> classOfPojo = getClassOfPojo();
-			T obj = getEntityManager().find(getClassOfPojo(), id);
+			Class<T> classOfPojo = getClassOfModel();
+			T obj = getEntityManager().find(getClassOfModel(), id);
 			if (obj == null){
 				throw new EmsNotFoundException("Id "+ id.toString() + " para "+ classOfPojo.getName() + " não encontrado.");
 			}
