@@ -189,7 +189,19 @@ public abstract class EmsRepository<T> {
 	 * @author Everton de Vargas Agilar
 	 */
 	public T update(final T obj){
-		return persist(obj);
+		if (obj != null){
+			EntityManager em = getEntityManager();
+			Integer idValue = EmsUtil.getIdFromObject(obj);
+			if (idValue != null && idValue > 0){
+				em.merge(obj);
+			}else{
+				throw new EmsValidationException("Não é possível atualizar objeto sem id.");
+			}
+			em.flush();
+			return obj;
+		}else{
+			throw new IllegalArgumentException("Argumento obj inválido para update.");
+		}
 	}
 
 	/**
@@ -200,20 +212,15 @@ public abstract class EmsRepository<T> {
 	 * @author Everton de Vargas Agilar
 	 */
 	public T insert(final T obj){
-		return persist(obj);
-	}
-
-	/**
-	 * Persiste um objeto/recurso no banco
-	 * @param obj objeto/recurso
-	 * @param update_values Map com os dados modificados
-	 * @return objeto/recurso
-	 * @author Everton de Vargas Agilar
-	 */
-	public T persist(final T obj){
 		if (obj != null){
-			getEntityManager().persist(obj);
-			getEntityManager().flush();
+			EntityManager em = getEntityManager();
+			Integer idValue = EmsUtil.getIdFromObject(obj);
+			if (idValue != null && idValue > 0){
+				throw new EmsValidationException("Não é possível incluir objeto que já tem id.");
+			}else{
+				em.persist(obj);
+			}
+			em.flush();
 			return obj;
 		}else{
 			throw new IllegalArgumentException("Argumento obj inválido para insert.");

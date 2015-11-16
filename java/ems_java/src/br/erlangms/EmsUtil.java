@@ -19,6 +19,7 @@ import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.Map;
 
+import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
@@ -675,5 +676,29 @@ public final class EmsUtil {
 		    }
 	    }
 	    return null;
+	}
+	
+	public static Integer getIdFromObject(Object obj) {
+	    if (obj != null){
+	    	Field idField = findFieldByAnnotation(obj.getClass(), Id.class);
+			if (idField != null){
+				try {
+					idField.setAccessible(true);
+					Object result = idField.get(obj); 
+					if (result != null){
+						return (int) result;
+					}else{
+						return null;
+					}
+				} catch (Exception e) {
+					return null;
+				}
+			}else{
+				throw new IllegalArgumentException("Objeto não tem id.");
+			}
+	    }else{
+	    	throw new IllegalArgumentException("Obj não pode ser null em EmsUtil.getIdFromObject.");
+	    }
 	}	
+	
 }

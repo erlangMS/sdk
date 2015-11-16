@@ -144,7 +144,7 @@ public class EmsAgent
 	        // Essa exceção ocorre se o getMethod() não encontrar o método
 	    	String erro = "Método de negócio não encontrado: " + metodo + ".";
 	    	print_log(erro);
-	    	return "{\"erro\":\"service_exception\", \"message\" : \"" + erro + "\"}";
+	    	return "{\"erro\":\"service\", \"message\" : \"" + erro + "\"}";
 	    } catch (IllegalAccessException e) {  
 	        // Pode ocorrer se o método que você está invocando não for  
 	        // acessível. Você pode forçar que um método (mesmo privado!) seja  
@@ -152,7 +152,7 @@ public class EmsAgent
 	        // antes do seu invoke.
 	    	String erro = "Acesso ilegal ao método de negócio: " + metodo + ".";
 	    	print_log(erro);
-	    	return "{\"erro\":\"service_exception\", \"message\" : \"" + erro + "\"}";
+	    	return "{\"erro\":\"service\", \"message\" : \"" + erro + "\"}";
 	    } catch (InvocationTargetException e) {  
 	        // Essa exceção acontece se o método chamado gerar uma exceção.  
 	        // Use e.getCause() para descobrir qual exceção foi gerada no método  
@@ -172,14 +172,14 @@ public class EmsAgent
 		    	}
 		    	return msg_json;
 	    	}else if (cause instanceof EmsRequestException){
-	    		msg_json = "{\"erro\":\"request\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
+	    		msg_json = "{\"erro\":\"validation\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
 	    		return msg_json;
 	    	}else if (cause instanceof EmsNotFoundException){
 	    		msg_json = "{\"erro\":\"notfound\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
 	    		return msg_json;
-	    	}else if (cause instanceof javax.ejb.EJBTransactionRolledbackException){
+	    	}else if (cause instanceof javax.ejb.EJBException){
 	    		try{
-		    		Exception causeEx = ((javax.ejb.EJBTransactionRolledbackException) cause).getCausedByException();
+		    		Exception causeEx = ((javax.ejb.EJBException) cause).getCausedByException();
 		    		cause = causeEx.getCause().getCause();
 		    		String motivo = null;
 		    		int posMsgSql = cause.getMessage().indexOf("; SQL statement:");
@@ -188,17 +188,17 @@ public class EmsAgent
 		    		}else{
 		    			motivo = cause.getMessage();
 		    		}
-		    		msg_json = "{\"erro\":\"ejb\", \"message\" : " + EmsUtil.toJson(motivo) + "}";
+		    		msg_json = "{\"erro\":\"service\", \"message\" : " + EmsUtil.toJson(motivo) + "}";
 		    		return msg_json;
 	    		}catch (Exception ex){
 			    	String erro = "O método "+ modulo + "." + metodo + " gerou uma excessão: " + e.getCause() + "."; 
 			    	print_log(erro);
-			    	return "{\"erro\":\"service_exception\", \"message\" : \"" + erro + "\"}";
+			    	return "{\"erro\":\"service\", \"message\" : \"" + erro + "\"}";
 	    		}
 	    	}else{
 		    	String erro = "O método "+ modulo + "." + metodo + " gerou uma excessão: " + e.getCause() + "."; 
 		    	print_log(erro);
-		    	return "{\"erro\":\"service_exception\", \"message\" : " + EmsUtil.toJson(erro) + "}";
+		    	return "{\"erro\":\"service\", \"message\" : " + EmsUtil.toJson(erro) + "}";
 	    	}
 	    }
 	}  	
