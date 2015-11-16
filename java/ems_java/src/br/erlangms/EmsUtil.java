@@ -19,7 +19,9 @@ import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.Map;
 
+import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.Query;
 
 import org.hibernate.Hibernate;
@@ -45,6 +47,7 @@ import com.google.gson.stream.JsonWriter;
 public final class EmsUtil {
 	private static NumberFormat doubleFormatter = null;
 	private static Gson gson = null;
+	private static Gson gson2 = null;
 	static{
 		doubleFormatter = NumberFormat.getInstance(Locale.US);
 		doubleFormatter.setMaximumFractionDigits(2); 
@@ -143,7 +146,6 @@ public final class EmsUtil {
 						}
 					}
                 })    
-			.registerTypeAdapterFactory(HibernateProxyTypeAdapter.FACTORY)				
             .registerTypeAdapter(Boolean.class, new JsonDeserializer<Boolean>() {
                     public Boolean deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 						String value = json.getAsString();
@@ -167,18 +169,147 @@ public final class EmsUtil {
                    }
                 })    
             .create();		
+
+		gson2 = new GsonBuilder()
+    	.setExclusionStrategies(new SerializeStrategy2())
+    	.setDateFormat("dd/MM/yyyy")
+    	//.serializeNulls() <-- uncomment to serialize NULL fields as well
+    	.registerTypeAdapter(BigDecimal.class, new JsonSerializer<BigDecimal>()  { 
+			@Override
+			public JsonElement serialize(BigDecimal value, Type arg1, com.google.gson.JsonSerializationContext arg2) {
+        		String result;
+                result = EmsUtil.doubleFormatter.format(value); 
+                return new JsonPrimitive(result); 
+			}})
+		.registerTypeAdapter(Double.class,  new JsonSerializer<Double>() {   
+		    @Override
+		    public JsonElement serialize(Double src, Type typeOfSrc, JsonSerializationContext context) {
+		        if(src == src.longValue())
+		            return new JsonPrimitive(src.longValue());          
+		        return new JsonPrimitive(src);
+		    }})
+		.registerTypeAdapter(Integer.class,  new JsonSerializer<Integer>() {   
+		    @Override
+		    public JsonElement serialize(Integer value, Type typeOfSrc, JsonSerializationContext context) {
+		        return new JsonPrimitive(value);
+		    }})
+		.registerTypeAdapter(Float.class,  new JsonSerializer<Float>() {   
+		    @Override
+		    public JsonElement serialize(Float value, Type typeOfSrc, JsonSerializationContext context) {
+		        return new JsonPrimitive(value);
+		    }})
+		.registerTypeAdapter(java.util.Date.class, new JsonSerializer<java.util.Date>() {   
+		    @SuppressWarnings("deprecation")
+			@Override
+		    public JsonElement serialize(java.util.Date value, Type typeOfSrc, JsonSerializationContext context) {
+		    	if (value.getHours() == 0 && value.getMinutes() == 0){
+		            return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy").format(value));
+		        }else{
+		        	if (value.getSeconds() == 0){
+		        		return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy HH:mm").format(value));
+		        	}else{
+		        		return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(value));
+		        	}
+		        }
+		    }})					
+		.registerTypeAdapter(java.sql.Timestamp.class, new JsonSerializer<java.sql.Timestamp>() {   
+		    @SuppressWarnings("deprecation")
+			@Override
+		    public JsonElement serialize(java.sql.Timestamp value, Type typeOfSrc, JsonSerializationContext context) {
+		    	if (value.getHours() == 0 && value.getMinutes() == 0){
+		            return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy").format(value));
+		        }else{
+		        	if (value.getSeconds() == 0){
+		        		return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy HH:mm").format(value));
+		        	}else{
+		        		return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(value));
+		        	}
+		        }
+		    }})					
+	    .registerTypeAdapter(java.util.Date.class, new JsonDeserializer<java.util.Date>() {
+                public java.util.Date deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+                	String value = json.getAsString();                            	
+					final String m_erro = "Não é uma data válida";
+                	try {
+                    	if (value.length() == 10){
+							return new SimpleDateFormat("dd/MM/yyyy").parse(value);
+						}else if (value.length() == 16){
+							return new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(value);
+						}else if (value.length() == 19){
+							return new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(value);
+						}else{
+							throw new IllegalArgumentException(m_erro);
+						}
+					} catch (ParseException e) {
+						throw new IllegalArgumentException(m_erro);
+					}
+				}
+            })    
+	    .registerTypeAdapter(java.sql.Timestamp.class, new JsonDeserializer<java.sql.Timestamp>() {
+                public java.sql.Timestamp deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+                	String value = json.getAsString();                            	
+					final String m_erro = "Não é uma data válida";
+                	try {
+                    	if (value.length() == 10){
+							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy").parse(value).getTime());
+						}else if (value.length() == 16){
+							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(value).getTime());
+						}else if (value.length() == 19){
+							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(value).getTime());
+						}else{
+							throw new IllegalArgumentException(m_erro);
+						}
+					} catch (ParseException e) {
+						throw new IllegalArgumentException(m_erro);
+					}
+				}
+            })    
+        .registerTypeAdapter(Boolean.class, new JsonDeserializer<Boolean>() {
+                public Boolean deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+					String value = json.getAsString();
+					if (value.equalsIgnoreCase("true")){
+						return true;	
+					}else if  (value.equalsIgnoreCase("false")){
+						return false;
+					}else if  (value.equalsIgnoreCase("1")){
+						return true;
+					}else if  (value.equalsIgnoreCase("0")){
+						return false;
+					}else if  (value.equalsIgnoreCase("sim")){
+						return true; 
+					}else if  (value.equalsIgnoreCase("1.0")){
+						return true;
+					}else if  (value.equalsIgnoreCase("yes")){
+						return true;
+					}else{
+						return false;
+					}
+               }
+            })    
+        .create();		
+	
 	}
 	
 	private static class SerializeStrategy implements ExclusionStrategy {
-        public boolean shouldSkipClass(Class<?> arg0) {
-            return false;
+        public boolean shouldSkipClass(Class<?> c) {
+        	return false;
+        }
+        public boolean shouldSkipField(FieldAttributes f) {
+        	return (f.getAnnotation(OneToMany.class)  != null ||
+        			f.getAnnotation(JoinColumn.class) != null ||
+        			f.getAnnotation(OneToOne.class)   != null);
+        }
+    }
+	
+	private static class SerializeStrategy2 implements ExclusionStrategy {
+        public boolean shouldSkipClass(Class<?> c) {
+        	return false;
         }
         public boolean shouldSkipField(FieldAttributes f) {
         	return (f.getAnnotation(OneToMany.class) != null);
         }
     }
-	
-	
+
 	/**
 	 * This TypeAdapter unproxies Hibernate proxied objects, and serializes them
 	 * through the registered (or default) TypeAdapter of the base class.
@@ -210,15 +341,19 @@ public final class EmsUtil {
 	            out.nullValue();
 	            return;
 	        }
-	        // Retrieve the original (not proxy) class
-	        Class<?> baseType = Hibernate.getClass(value);
-	        // Get the TypeAdapter of the original class, to delegate the serialization
-	        TypeAdapter delegate = context.getAdapter(TypeToken.get(baseType));
-	        // Get a filled instance of the original class
-	        Object unproxiedValue = ((HibernateProxy) value).getHibernateLazyInitializer()
-	                .getImplementation();
-	        // Serialize the value
-	        delegate.write(out, unproxiedValue);
+	        try{
+		        // Retrieve the original (not proxy) class
+		        Class<?> baseType = Hibernate.getClass(value);
+		        // Get the TypeAdapter of the original class, to delegate the serialization
+		        TypeAdapter delegate = context.getAdapter(TypeToken.get(baseType));
+		        // Get a filled instance of the original class
+		        Object unproxiedValue = ((HibernateProxy) value).getHibernateLazyInitializer()
+		                .getImplementation();
+		        // Serialize the value
+		        delegate.write(out, unproxiedValue);
+	        }catch (Exception e){
+	        	out.nullValue();
+	        }
 	    }
 	}
 	
@@ -230,8 +365,24 @@ public final class EmsUtil {
 	 * @author Everton de Vargas Agilar
 	 */
 	public static String toJson(final Object obj){
+		return toJson(obj, false);
+	}
+
+	/**
+	 * Serializa um objeto para json
+	 * @param obj Objeto que será serializado para json
+	 * @param serializeFullObject Se true, serializa atributos de classe também
+	 * @return string json da serialização
+	 * @author Everton de Vargas Agilar
+	 */
+	public static String toJson(final Object obj, boolean serializeFullObject){
 		if (obj != null){
-			String result = gson.toJson(obj);
+			String result = null;
+			if (serializeFullObject){
+				result = gson2.toJson(obj);
+			}else{
+				result = gson.toJson(obj);
+			}
 			return result;
 		}else{
 			return null;
@@ -364,7 +515,13 @@ public final class EmsUtil {
 			Class<? extends Object> class_obj = obj.getClass();
 			for (String field_name : update_values.keySet()){
 				try{
-					Field field = class_obj.getDeclaredField(field_name); 
+					Field field = null;
+					try{
+						field = class_obj.getDeclaredField(field_name);
+					}catch (NoSuchFieldException e){
+						// Ignora o campo quando ele não existe
+						continue;
+					}
 					field.setAccessible(true);
 					Object new_value = update_values.get(field_name);
 					Class<?> tipo_field = field.getType(); 

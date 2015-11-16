@@ -17,14 +17,14 @@ import javax.persistence.EntityManager;
 import javax.persistence.Id;
 import javax.persistence.Query;
 
-public abstract class EmsDao<T> {
+public abstract class EmsRepository<T> {
 	public abstract Class<T> getClassOfModel();
-	protected abstract EntityManager getEntityManager();
+	public abstract EntityManager getEntityManager();
 	private String nameOfPojo = null;
 	private String idFieldName = null;
 	private String sqlDeleteQuery = null;
 
-	public EmsDao(){
+	public EmsRepository(){
 		nameOfPojo = getClassOfModel().getSimpleName();
 		idFieldName = EmsUtil.findFieldByAnnotation(getClassOfModel(), Id.class).getName();
 		sqlDeleteQuery = new StringBuilder("delete from ").append(nameOfPojo)
@@ -172,7 +172,7 @@ public abstract class EmsDao<T> {
 			Class<T> classOfPojo = getClassOfModel();
 			T obj = getEntityManager().find(getClassOfModel(), id);
 			if (obj == null){
-				throw new EmsNotFoundException("Id "+ id.toString() + " para "+ classOfPojo.getName() + " não encontrado.");
+				throw new EmsNotFoundException(classOfPojo.getSimpleName() + " não encontrado: "+ id.toString());
 			}
 			return obj;
 		}else{
@@ -189,13 +189,7 @@ public abstract class EmsDao<T> {
 	 * @author Everton de Vargas Agilar
 	 */
 	public T update(final T obj){
-		if (obj != null){
-			getEntityManager().merge(obj);
-			getEntityManager().flush();
-			return obj;
-		}else{
-			throw new IllegalArgumentException("Argumento obj inválido para update.");
-		}
+		return persist(obj);
 	}
 
 	/**
@@ -206,6 +200,17 @@ public abstract class EmsDao<T> {
 	 * @author Everton de Vargas Agilar
 	 */
 	public T insert(final T obj){
+		return persist(obj);
+	}
+
+	/**
+	 * Persiste um objeto/recurso no banco
+	 * @param obj objeto/recurso
+	 * @param update_values Map com os dados modificados
+	 * @return objeto/recurso
+	 * @author Everton de Vargas Agilar
+	 */
+	public T persist(final T obj){
 		if (obj != null){
 			getEntityManager().persist(obj);
 			getEntityManager().flush();
@@ -220,9 +225,9 @@ public abstract class EmsDao<T> {
 	 * @param id id do objeto/recurso
 	 * @author Everton de Vargas Agilar
 	 */
-	public int delete(final Integer id) {
+	public boolean delete(final Integer id) {
 		if (id != null && id > 0){
-			return getEntityManager().createQuery(sqlDeleteQuery).setParameter("pId", id).executeUpdate();
+			return getEntityManager().createQuery(sqlDeleteQuery).setParameter("pId", id).executeUpdate() > 0;
 		}else{
 			throw new IllegalArgumentException("Argumento id inválido para delete.");
 		}

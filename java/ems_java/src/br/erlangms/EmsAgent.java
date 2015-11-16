@@ -34,7 +34,7 @@ public class EmsAgent
 {
 	private static final int MAX_THREAD_POOL_BY_AGENT = 4;
 	private static final OtpErlangAtom ok = new OtpErlangAtom("ok");
-	private static final OtpErlangAtom servico_atom = new OtpErlangAtom("servico");
+	private static final OtpErlangAtom service_atom = new OtpErlangAtom("servico");
 	private static final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
 	private static final OtpErlangBinary result_null = new OtpErlangBinary("{\"ok\":\"null\"}".getBytes());
 	private static final OtpErlangBinary erro_convert_json = new OtpErlangBinary("{\"erro\":\"service_exception\", \"message\" : \"Falha na serialização do conteúdo em JSON\"}".getBytes());
@@ -227,7 +227,9 @@ public class EmsAgent
             if (ret != null){
             	try{
 	            	String m_json = null;
-	            	if (ret instanceof OtpErlangAtom){
+	            	if (ret instanceof OtpErlangBinary){
+	            		reply[1] = (OtpErlangBinary) ret;
+	            	}else if (ret instanceof OtpErlangAtom){
 	            		reply[1] = (OtpErlangObject) ret;
 	            	}else if (ret instanceof Integer || ret instanceof Boolean){
 	            		m_json = "{\"ok\":"+ ret.toString() + "}";
@@ -256,7 +258,7 @@ public class EmsAgent
             }else{
         		reply[1] = result_null;
             }
-            otp_result[0] = servico_atom;
+            otp_result[0] = service_atom;
             otp_result[1] = new OtpErlangLong(request.getRID());
             otp_result[2] = new OtpErlangTuple(reply);
             OtpErlangTuple myTuple = new OtpErlangTuple(otp_result);
