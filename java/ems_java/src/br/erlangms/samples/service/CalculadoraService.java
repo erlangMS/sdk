@@ -5,15 +5,10 @@ import javax.ejb.Startup;
 
 import br.erlangms.EmsServiceFacade;
 import br.erlangms.IEmsRequest;
-import br.erlangms.IEmsServiceFacade;
 
 @Singleton
 @Startup
-public class CalculadoraService extends EmsServiceFacade implements IEmsServiceFacade {
-
-	public CalculadoraService() throws Exception {
-		super();
-	}
+public class CalculadoraService extends EmsServiceFacade {
 
 	static public Integer soma(IEmsRequest request) {
 		Integer valor1 = Integer.parseInt(request.getQuery("valor1"));
