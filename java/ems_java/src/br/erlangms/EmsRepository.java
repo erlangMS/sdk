@@ -17,6 +17,9 @@ import javax.persistence.EntityManager;
 import javax.persistence.Id;
 import javax.persistence.Query;
 
+import org.jinq.jpa.JPAJinqStream;
+import org.jinq.jpa.JinqJPAStreamProvider;
+
 public abstract class EmsRepository<T> {
 	public abstract Class<T> getClassOfModel();
 	public abstract EntityManager getEntityManager();
@@ -28,6 +31,29 @@ public abstract class EmsRepository<T> {
 								.append(getClassOfModel().getSimpleName())
 								.append(" where ")
 								.append(idFieldName).append("=:pId").toString();
+	}
+
+	/**
+	 * Obtém um stream para realizar pesquisas 
+	 * @return  stream para pesquisa
+	 * @author Everton de Vargas Agilar
+	 */
+	public JPAJinqStream<T> getStreams(){
+		EntityManager em = getEntityManager();
+		JinqJPAStreamProvider streams = new JinqJPAStreamProvider(em.getMetamodel());
+		return (JPAJinqStream<T>) streams.streamAll(em, getClassOfModel());
+	}
+
+	/**
+	 * Obtém um stream para realizar pesquisas
+	 * @param classOfModel classe do modelo para pesquisa 
+	 * @return  stream para pesquisa
+	 * @author Everton de Vargas Agilar
+	 */
+	public JPAJinqStream<?> getStreams(Class<?> classOfModel){
+		EntityManager em = getEntityManager();
+		JinqJPAStreamProvider streams = new JinqJPAStreamProvider(em.getMetamodel());
+		return (JPAJinqStream<?>) streams.streamAll(em, classOfModel);
 	}
 	
 	/**

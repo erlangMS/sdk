@@ -172,7 +172,7 @@ public class EmsAgent
 		    	}
 		    	return msg_json;
 	    	}else if (cause instanceof EmsRequestException){
-	    		msg_json = "{\"erro\":\"validation\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
+	    		msg_json = "{\"erro\":\"facade\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
 	    		return msg_json;
 	    	}else if (cause instanceof EmsNotFoundException){
 	    		msg_json = "{\"erro\":\"notfound\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
