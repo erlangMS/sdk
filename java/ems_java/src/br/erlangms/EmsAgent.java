@@ -37,7 +37,8 @@ public class EmsAgent
 	private static final OtpErlangAtom service_atom = new OtpErlangAtom("servico");
 	private static final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
 	private static final OtpErlangBinary result_null = new OtpErlangBinary("{\"ok\":\"null\"}".getBytes());
-	private static final OtpErlangBinary erro_convert_json = new OtpErlangBinary("{\"erro\":\"service_exception\", \"message\" : \"Falha na serialização do conteúdo em JSON\"}".getBytes());
+	private static final OtpErlangBinary erro_convert_json = new OtpErlangBinary("{\"erro\":\"service\", \"message\" : \"Falha na serialização do conteúdo em JSON\"}".getBytes());
+	private static final OtpErlangBinary result_list_empty = new OtpErlangBinary("[]".getBytes());
 	private static Logger logger = Logger.getLogger(EmsAgent.class);
 	private IEmsServiceFacade facade = null;
 	private String nomeAgente = null;
@@ -241,7 +242,9 @@ public class EmsAgent
 	    	    		reply[1] = new OtpErlangBinary(m_json.getBytes());
 	            	}else if (ret instanceof String){
 		            	reply[1] = new OtpErlangBinary(((String) ret).getBytes());
-		            }else if (ret instanceof Object){
+	            	}else if (ret instanceof List && ((List<?>) ret).isEmpty()){
+	            		reply[1] = result_list_empty; 
+	            	}else if (ret instanceof Object){
 		            	reply[1] = new OtpErlangBinary(EmsUtil.toJson(ret).getBytes());
 		            }else if (ret.getClass().getName().equals(ArrayList.class.getName())){
 		            	List<?> lista = (List<?>) ret;

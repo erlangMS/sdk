@@ -4,7 +4,7 @@
   <artifactId>ems_java</artifactId>
   <version>1.0.0</version>
   <name>ems_java</name>
-  <description>Agentes para serviços ErlangMS</description>
+  <description>SDK ErlangMS by Everton de Vargas Agilar</description>
 
 <properties>
 	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -20,31 +20,30 @@
         <version>1.6.0</version>
     </dependency>	
     
-    <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-      <version>2.3.1</version>
-      <scope>compile</scope>
-    </dependency>    
-    
-    <dependency>
-		<groupId>javax</groupId>
-		<artifactId>javaee-api</artifactId>
-		<version>6.0</version>
-		<scope>provided</scope>
+	<dependency>
+		<groupId>com.google.code.gson</groupId>
+		<artifactId>gson</artifactId>
+		<version>2.4</version>
 	</dependency>
 
 	<dependency>
+		<groupId>javax</groupId>
+		<artifactId>javaee-api</artifactId>
+		<version>7.0</version>
+		<scope>provided</scope>
+	</dependency>
+    
+	<dependency>
 		<groupId>log4j</groupId>
 		<artifactId>log4j</artifactId>
-		<version>1.2.16</version>
+		<version>1.2.17</version>
 		<scope>provided</scope>
 	</dependency>
 	
 	<dependency>
 		<groupId>org.hibernate</groupId>
 		<artifactId>hibernate-entitymanager</artifactId>
-		<version>4.2.21.Final</version>
+		<version>4.3.11.Final</version>
 		<scope>provided</scope>
 	</dependency>
 	
