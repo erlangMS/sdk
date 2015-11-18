@@ -11,8 +11,8 @@ package br.erlangms;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
-import br.erlangms.EmsAgent;
-import br.erlangms.IEmsServiceFacade;
+import com.ericsson.otp.erlang.OtpMbox;
+import com.ericsson.otp.erlang.OtpNode;
 
 
 /**
@@ -44,9 +44,17 @@ public abstract class EmsServiceFacade implements IEmsServiceFacade {
         
     }
 
-    public States getState() {
+    protected States getState() {
         return state;
     }
+    
+    protected OtpNode getNode(){
+    	return agent.getNode();
+    }
+    
+	protected OtpMbox getMBox(){
+		return agent.getMBox();
+	}
     
 	private class AgentThread extends Thread{
 		private EmsAgent agent;

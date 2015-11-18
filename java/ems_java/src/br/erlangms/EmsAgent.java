@@ -40,10 +40,11 @@ public class EmsAgent
 	private static final OtpErlangBinary erro_convert_json = new OtpErlangBinary("{\"erro\":\"service\", \"message\" : \"Falha na serialização do conteúdo em JSON\"}".getBytes());
 	private static final OtpErlangBinary result_list_empty = new OtpErlangBinary("[]".getBytes());
 	private static Logger logger = Logger.getLogger(EmsAgent.class);
-	private IEmsServiceFacade facade = null;
-	private String nomeAgente = null;
-	private String nomeService = null;
+	private final IEmsServiceFacade facade;
+	private final String nomeAgente;
+	private final String nomeService;
 	private OtpNode myNode = null;
+	private OtpMbox myMbox = null;
     
 	public EmsAgent(final String nomeAgente, final String nomeService, final IEmsServiceFacade facade){
 		this.nomeAgente = nomeAgente;
@@ -54,7 +55,15 @@ public class EmsAgent
 	public String getNomeAgente(){
 		return nomeAgente;
 	}
+
+	public OtpNode getNode(){
+		return myNode;
+	}
 	
+	public OtpMbox getMBox(){
+		return myMbox;
+	}
+
 	public void start() throws Exception {
 	   // Se existir conexão previa, finaliza primeiro
 	   if (myNode != null){
@@ -68,7 +77,7 @@ public class EmsAgent
 										.append(" port -> ").append(myNode.port())
 										.append(" cookie -> ").append(myNode.cookie());
        print_log(msg_node.toString());
-       OtpMbox myMbox = myNode.createMbox(nomeService);
+       myMbox = myNode.createMbox(nomeService);
        OtpErlangObject myObject;
        OtpErlangTuple myMsg;
        OtpErlangPid from;
