@@ -192,12 +192,17 @@ public class EmsAgent
 		    		Exception causeEx = ((javax.ejb.EJBException) cause).getCausedByException();
 		    		cause = causeEx.getCause().getCause();
 		    		String motivo = null;
-		    		int posMsgSql = cause.getMessage().indexOf("; SQL statement:");
-		    		if (posMsgSql > 0){
-		    			motivo = cause.getMessage().substring(0, posMsgSql-1);
-		    		}else{
-		    			motivo = cause.getMessage();
-		    		}
+		    		int posMsgSql = cause.getMessage().toLowerCase().indexOf("unique index");
+	    			if (posMsgSql != -1){
+	    				motivo = "Registro duplicado, verifique.";
+	    			}else{
+			    		posMsgSql = cause.getMessage().indexOf("; SQL statement:");
+	    				if (posMsgSql > 0){
+			    			motivo = cause.getMessage().substring(0, posMsgSql-1);
+			    		}else{
+		    				motivo = cause.getMessage();	
+			    		}
+	    			}
 		    		msg_json = "{\"erro\":\"service\", \"message\" : " + EmsUtil.toJson(motivo) + "}";
 		    		return msg_json;
 	    		}catch (Exception ex){

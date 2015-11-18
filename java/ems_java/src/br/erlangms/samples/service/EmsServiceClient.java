@@ -6,7 +6,6 @@ import java.util.Map;
 import br.erlangms.EmsServiceFacade;
 
 import com.ericsson.otp.erlang.OtpErlangBinary;
-import com.ericsson.otp.erlang.OtpErlangPid;
 
 public abstract class EmsServiceClient extends EmsServiceFacade {
 
