@@ -690,7 +690,6 @@ public final class EmsUtil {
 
 	/**
 	 * Retorna o primeiro campo que encontrar a anotação passada como argumento.
-	 * Obs: Desenvolvido para suporte ao ErlangMS
 	 * @param clazz Classe pojo. Ex.: OrgaoInterno.class
 	 * @param ann	anotação que será pesquisada. Ex.: Id.class
 	 * @return campo
@@ -711,6 +710,13 @@ public final class EmsUtil {
 	    return null;
 	}
 	
+	/**
+	 * Obtém o id de um objeto
+	 * @param clazz Classe pojo. Ex.: OrgaoInterno.class
+	 * @param ann	anotação que será pesquisada. Ex.: Id.class
+	 * @return campo
+	 * @author Everton de Vargas Agilar
+	 */
 	public static Integer getIdFromObject(Object obj) {
 	    if (obj != null){
 	    	Field idField = findFieldByAnnotation(obj.getClass(), Id.class);
@@ -734,12 +740,21 @@ public final class EmsUtil {
 	    }
 	}	
 
+	/**
+	 * Converte um inteiro para a enumeração de acordo com clazz
+	 * @param code código da enumeração
+	 * @param clazz	classe da enumeração
+	 * @return enumeração
+	 * @author Everton de Vargas Agilar
+	 */
 	public static Enum<?> intToEnum(int code, @SuppressWarnings("rawtypes") Class<Enum> clazz) {
-		for(Enum<?> t : clazz.getEnumConstants()) {
-	        if(t.ordinal() == code) {
-	            return t;
-	        }
-	    }
+		if (code >= 0 && clazz != null){
+			for(Enum<?> t : clazz.getEnumConstants()) {
+		        if(t.ordinal() == code) {
+		            return t;
+		        }
+		    }
+		}
 	    return null;
 	}	
 }
