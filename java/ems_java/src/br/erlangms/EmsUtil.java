@@ -11,6 +11,7 @@ package br.erlangms;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -20,9 +21,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
 import javax.persistence.Query;
 
 import org.hibernate.Hibernate;
@@ -296,9 +295,9 @@ public final class EmsUtil {
         	return false;
         }
         public boolean shouldSkipField(FieldAttributes f) {
-        	return (f.getAnnotation(OneToMany.class)  != null ||
-        			f.getAnnotation(JoinColumn.class) != null ||
-        			f.getAnnotation(OneToOne.class)   != null);
+        	return f.getAnnotation(OneToMany.class)  != null;
+        			//f.getAnnotation(JoinColumn.class) != null ||
+        			//f.getAnnotation(OneToOne.class)   != null);
         }
     }
 	
@@ -397,8 +396,29 @@ public final class EmsUtil {
 	 * @author Everton de Vargas Agilar
 	 */
 	public static <T> Object fromJson(final String jsonString, Class<T> classOfObj) {
+		return fromJson(jsonString, classOfObj, null);
+	}
+
+	/**
+	 * Serializa um objeto a partir de uma string json
+	 * @param jsonString String json
+	 * @param classOfObj	Classe do objeto que será serializado
+	 * @param emsJsonModelSerialize adaptador para permitir obter atributos de modelo 
+	 * @author Everton de Vargas Agilar
+	 */
+	public static <T> Object fromJson(final String jsonString, Class<T> classOfObj, EmsJsonModelAdapter emsJsonModelSerialize) {
 		if (jsonString != null && jsonString.length() > 0 && classOfObj != null){
-			T obj = (T) gson.fromJson(jsonString, classOfObj);
+			@SuppressWarnings("unchecked")
+			Map<String, Object> values = gson.fromJson(jsonString, Map.class);
+			T obj;
+			try {
+				obj = classOfObj.getConstructor().newInstance();
+			} catch (InstantiationException | IllegalAccessException
+					| IllegalArgumentException | InvocationTargetException
+					| NoSuchMethodException | SecurityException e) {
+				throw new IllegalArgumentException("Não suporta conversão do json para a classe do objeto.");
+			}
+			setValuesFromMap(obj, values, emsJsonModelSerialize);
 			return obj;
 		}else{
 			return null;
@@ -511,7 +531,7 @@ public final class EmsUtil {
 	 * @param update_values	Map com chave/valor dos dados que serão aplicados no objeto
 	 * @author Everton de Vargas Agilar
 	 */
-	public static void setValuesFromMap(Object obj, Map<String, Object> update_values){
+	public static void setValuesFromMap(Object obj, Map<String, Object> update_values, EmsJsonModelAdapter jsonModelAdapter){
 		if (obj != null && update_values != null && update_values.size() > 0){
 			Class<? extends Object> class_obj = obj.getClass();
 			for (String field_name : update_values.keySet()){
@@ -645,8 +665,15 @@ public final class EmsUtil {
 						}else{
 							throw new IllegalArgumentException(m_erro);
 						}
+					}else if (tipo_field instanceof Object && 
+							  findFieldByAnnotation(tipo_field, Id.class) != null){
+						Integer idValue = ((Double)new_value).intValue();
+						if (idValue > 0){
+							Object model = jsonModelAdapter.findById(tipo_field, idValue);
+							field.set(obj, model);
+						}
 					}else{
-						throw new IllegalArgumentException("Não suporta o tipo de dado para pesquisa.");
+						throw new IllegalArgumentException("Não suporta a conversão do tipo de dado");
 					}
 				}catch (Exception e){
 					throw new IllegalArgumentException("Campo "+ field_name + " inválido. Erro interno: "+ e.getMessage());

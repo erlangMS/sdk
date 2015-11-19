@@ -32,7 +32,9 @@ public interface IEmsRequest {
 	public Date getParamAsDate(final String NomeParam) throws ParseException;
 	public String getPayload();
 	public Object getObject(Class<?> clazz);
+	public Object getObject(Class<?> clazz, EmsJsonModelAdapter emsJsonModelSerialize);
 	public Object mergeObjectFromPayload(Object obj);
+	public Object mergeObjectFromPayload(Object obj, EmsJsonModelAdapter emsJsonModelSerialize);
 	public Map<String, Object> getPayloadAsMap();
-	public String getContentType();
+	public String getContentType();	
 }

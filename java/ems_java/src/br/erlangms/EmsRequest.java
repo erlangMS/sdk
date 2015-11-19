@@ -197,8 +197,13 @@ public class EmsRequest implements IEmsRequest {
 	 * @author Everton de Vargas Agilar
 	 */
 	public Object getObject(Class<?> clazz){
+		return getObject(clazz, null);
+	}
+	
+	@Override
+	public Object getObject(Class<?> clazz, EmsJsonModelAdapter emsJsonModelSerialize) {
 		try{
-			return EmsUtil.fromJson(getPayload(), clazz);
+			return EmsUtil.fromJson(getPayload(), clazz, emsJsonModelSerialize);
 		}catch (Exception e){
 			throw new EmsRequestException("Não foi possível serializar o objeto a partir do payload. Erro interno: "+ e.getMessage());
 		}
@@ -295,16 +300,30 @@ public class EmsRequest implements IEmsRequest {
 	 * @return objeto após merge
 	 * @author Everton de Vargas Agilar
 	 */
-	@SuppressWarnings("unchecked")
 	@Override
 	public Object mergeObjectFromPayload(Object obj) {
+		return mergeObjectFromPayload(obj, null);
+	}
+
+	/**
+	 * Realiza o merge dos atributos do objeto com o objeto JSON do request
+	 * Útil para métodos que fazem o update dos dados no banco de dados
+	 * @param obj Objeto para fazer merge com o payload
+	 * @return objeto após merge
+	 * @author Everton de Vargas Agilar
+	 */
+	@SuppressWarnings("unchecked")
+	@Override
+	public Object mergeObjectFromPayload(Object obj, EmsJsonModelAdapter emsJsonModelSerialize) {
 		if (obj != null){
 			final Map<String, Object> update_values = (Map<String, Object>) getObject(HashMap.class);
-			EmsUtil.setValuesFromMap(obj, update_values);
+			EmsUtil.setValuesFromMap(obj, update_values, emsJsonModelSerialize);
 			return obj;
 		}else{
 			return null;
 		}
 	}
+
+
 	
 }
