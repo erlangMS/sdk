@@ -665,6 +665,11 @@ public final class EmsUtil {
 						}else{
 							throw new IllegalArgumentException(m_erro);
 						}
+					}else if (tipo_field.isEnum()){
+						int idValue = ((Double)new_value).intValue();
+						@SuppressWarnings({ "unchecked", "rawtypes" })
+						Enum<?> value = intToEnum(idValue, (Class<Enum>) tipo_field);
+						field.set(obj, value);
 					}else if (tipo_field instanceof Object && 
 							  findFieldByAnnotation(tipo_field, Id.class) != null){
 						Integer idValue = ((Double)new_value).intValue();
@@ -682,6 +687,7 @@ public final class EmsUtil {
 		}
 	}
 	
+
 	/**
 	 * Retorna o primeiro campo que encontrar a anotação passada como argumento.
 	 * Obs: Desenvolvido para suporte ao ErlangMS
@@ -727,5 +733,13 @@ public final class EmsUtil {
 	    	throw new IllegalArgumentException("Obj não pode ser null em EmsUtil.getIdFromObject.");
 	    }
 	}	
-	
+
+	public static Enum<?> intToEnum(int code, @SuppressWarnings("rawtypes") Class<Enum> clazz) {
+		for(Enum<?> t : clazz.getEnumConstants()) {
+	        if(t.ordinal() == code) {
+	            return t;
+	        }
+	    }
+	    return null;
+	}	
 }
