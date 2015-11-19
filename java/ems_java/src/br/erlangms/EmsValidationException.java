@@ -11,11 +11,13 @@ public class EmsValidationException extends RuntimeException {
 	private List<String> errors;
 	
 	public EmsValidationException () {
+		super();
 		errors = new ArrayList<>();
 	}
 	
 	public EmsValidationException (String e) {
-		this ();
+		super(e);
+		errors = new ArrayList<>();
 		errors.add(e);
 	}
 	

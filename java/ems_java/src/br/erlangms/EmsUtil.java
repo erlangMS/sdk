@@ -146,6 +146,7 @@ public final class EmsUtil {
 						}
 					}
                 })    
+            .registerTypeAdapterFactory(HibernateProxyTypeAdapter.FACTORY)	
             .registerTypeAdapter(Boolean.class, new JsonDeserializer<Boolean>() {
                     public Boolean deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 						String value = json.getAsString();
@@ -680,6 +681,8 @@ public final class EmsUtil {
 					}else{
 						throw new IllegalArgumentException("Não suporta a conversão do tipo de dado");
 					}
+				}catch (EmsValidationException e){
+					throw e;
 				}catch (Exception e){
 					throw new IllegalArgumentException("Campo "+ field_name + " inválido. Erro interno: "+ e.getMessage());
 				}
@@ -755,6 +758,6 @@ public final class EmsUtil {
 		        }
 		    }
 		}
-	    return null;
+	    throw new EmsValidationException("Enumeração inválido para o campo "+ clazz.getSimpleName());
 	}	
 }
