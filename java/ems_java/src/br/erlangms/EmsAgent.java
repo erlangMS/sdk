@@ -10,7 +10,6 @@ package br.erlangms;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -18,14 +17,10 @@ import java.util.concurrent.Executors;
 
 import org.apache.log4j.Logger;
 
-import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
 import com.ericsson.otp.erlang.OtpErlangExit;
-import com.ericsson.otp.erlang.OtpErlangList;
-import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPid;
-import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.ericsson.otp.erlang.OtpMbox;
 import com.ericsson.otp.erlang.OtpNode;
@@ -33,18 +28,15 @@ import com.ericsson.otp.erlang.OtpNode;
 public class EmsAgent
 {
 	private static final int MAX_THREAD_POOL_BY_AGENT = 4;
-	private static final OtpErlangAtom ok = new OtpErlangAtom("ok");
-	private static final OtpErlangAtom service_atom = new OtpErlangAtom("servico");
 	private static final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
-	private static final OtpErlangBinary result_null = new OtpErlangBinary("{\"ok\":\"null\"}".getBytes());
-	private static final OtpErlangBinary erro_convert_json = new OtpErlangBinary("{\"erro\":\"service\", \"message\" : \"Falha na serialização do conteúdo em JSON\"}".getBytes());
-	private static final OtpErlangBinary result_list_empty = new OtpErlangBinary("[]".getBytes());
 	private static Logger logger = Logger.getLogger(EmsAgent.class);
 	private final IEmsServiceFacade facade;
 	private final String nomeAgente;
 	private final String nomeService;
 	private OtpNode myNode = null;
 	private OtpMbox myMbox = null;
+    private static OtpErlangPid dispatcherPid;
+
     
 	public EmsAgent(final String nomeAgente, final String nomeService, final IEmsServiceFacade facade){
 		this.nomeAgente = nomeAgente;
@@ -64,12 +56,16 @@ public class EmsAgent
 		return myMbox;
 	}
 
+	public static OtpErlangPid getDispatcherPid(){
+		return dispatcherPid;
+	}
+	
 	public void start() throws Exception {
 	   // Se existir conexão previa, finaliza primeiro
 	   if (myNode != null){
 		   close(); 
 	   }
-       myNode = new OtpNode(nomeAgente);
+	   myNode = new OtpNode(nomeAgente);
        myNode.setCookie("erlangms");
        StringBuilder msg_node = new StringBuilder(nomeService)
 										.append(" host -> ").append(myNode.host())
@@ -78,9 +74,11 @@ public class EmsAgent
 										.append(" cookie -> ").append(myNode.cookie());
        print_log(msg_node.toString());
        myMbox = myNode.createMbox(nomeService);
+       myMbox.registerName(nomeService);
+	   OtpErlangPid xx = myNode.whereis(nomeService);
+	   System.out.println(xx.toString());
        OtpErlangObject myObject;
        OtpErlangTuple myMsg;
-       OtpErlangPid from;
        OtpErlangTuple otp_request;
        IEmsRequest request;
        StringBuilder msg_task = new StringBuilder();
@@ -91,7 +89,7 @@ public class EmsAgent
                 myMsg = (OtpErlangTuple) myObject;
                 otp_request = (OtpErlangTuple) myMsg.elementAt(0);
                 request = new EmsRequest(otp_request);
-                from = (OtpErlangPid) myMsg.elementAt(1);
+                dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
                 msg_task.setLength(0);
                 msg_task.append(request.getMetodo())
 						.append(" ")
@@ -104,7 +102,7 @@ public class EmsAgent
 						.append(request.getUrl())
 						.append("]");
                 print_log(msg_task.toString());
-                pool.submit(new Task(from, request, myMbox));
+                pool.submit(new Task(dispatcherPid, request, myMbox));
 		} catch(OtpErlangExit e) {
 			break;
         }
@@ -235,51 +233,11 @@ public class EmsAgent
 		}
 		
         public Boolean call() {  
-            OtpErlangObject[] otp_result = new OtpErlangObject[3];
         	Object ret = chamaMetodo(request.getModulo(), request.getFunction(), request);
-            OtpErlangObject[] reply = new OtpErlangObject[2];
-            reply[0] = ok;
             if (ret != null){
-            	try{
-	            	String m_json = null;
-	            	if (ret instanceof OtpErlangBinary){
-	            		reply[1] = (OtpErlangBinary) ret;
-	            	}else if (ret instanceof OtpErlangAtom){
-	            		reply[1] = (OtpErlangObject) ret;
-	            	}else if (ret instanceof Integer || ret instanceof Boolean){
-	            		m_json = "{\"ok\":"+ ret.toString() + "}";
-	            		reply[1] = new OtpErlangBinary(m_json.getBytes());
-	    	    	}else if (ret instanceof java.util.Date || 
-	  	    			  	  ret instanceof java.sql.Timestamp ||
-	  	    			  	  ret instanceof Double){
-	    	    		m_json = "{\"ok\":"+ EmsUtil.toJson(ret) + "}";
-	    	    		reply[1] = new OtpErlangBinary(m_json.getBytes());
-	            	}else if (ret instanceof String){
-		            	reply[1] = new OtpErlangBinary(((String) ret).getBytes());
-	            	}else if (ret instanceof List && ((List<?>) ret).isEmpty()){
-	            		reply[1] = result_list_empty; 
-	            	}else if (ret instanceof Object){
-		            	reply[1] = new OtpErlangBinary(EmsUtil.toJson(ret).getBytes());
-		            }else if (ret.getClass().getName().equals(ArrayList.class.getName())){
-		            	List<?> lista = (List<?>) ret;
-		            	OtpErlangObject[] otp_items = new OtpErlangObject[lista.size()];
-		            	for(int i = 0; i < lista.size(); i++){
-		            		otp_items[i] = new OtpErlangString((String) lista.get(i));
-		            	}
-		            	OtpErlangList otp_list = new OtpErlangList(otp_items);
-		            	reply[1] = otp_list;
-		            }
-            	}catch (Exception e){
-            		reply[1] = erro_convert_json;
-            	}
-            }else{
-        		reply[1] = result_null;
+            	OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request.getRID());
+            	myMbox.send(from, response);
             }
-            otp_result[0] = service_atom;
-            otp_result[1] = new OtpErlangLong(request.getRID());
-            otp_result[2] = new OtpErlangTuple(reply);
-            OtpErlangTuple myTuple = new OtpErlangTuple(otp_result);
-            myMbox.send(from, myTuple);
 			return true;
         }  
 	}

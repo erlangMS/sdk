@@ -17,16 +17,27 @@ import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Query;
+import javax.ws.rs.client.ClientBuilder;
 
 import org.hibernate.Hibernate;
 import org.hibernate.proxy.HibernateProxy;
 
+import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangBinary;
+import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangLong;
+import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangPid;
+import com.ericsson.otp.erlang.OtpErlangString;
+import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
@@ -45,6 +56,12 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 public final class EmsUtil {
+	private static final OtpErlangAtom ok = new OtpErlangAtom("ok");
+	private static final OtpErlangAtom service_atom = new OtpErlangAtom("servico");
+	private static final OtpErlangAtom request_msg_atom = new OtpErlangAtom("request");
+	private static final OtpErlangBinary result_null = new OtpErlangBinary("{\"ok\":\"null\"}".getBytes());
+	private static final OtpErlangBinary erro_convert_json = new OtpErlangBinary("{\"erro\":\"service\", \"message\" : \"Falha na serialização do conteúdo em JSON\"}".getBytes());
+	private static final OtpErlangBinary result_list_empty = new OtpErlangBinary("[]".getBytes());
 	private static NumberFormat doubleFormatter = null;
 	private static Gson gson = null;
 	private static Gson gson2 = null;
@@ -759,5 +776,111 @@ public final class EmsUtil {
 		    }
 		}
 	    throw new EmsValidationException("Enumeração inválido para o campo "+ clazz.getSimpleName());
+	}
+
+	/**
+	 * Converte um inteiro para a enumeração de acordo com clazz
+	 * @param code código da enumeração
+	 * @param clazz	classe da enumeração
+	 * @return enumeração
+	 * @author Everton de Vargas Agilar
+	 */
+	public static javax.ws.rs.client.Client getRestStream(){
+		javax.ws.rs.client.Client client = ClientBuilder.newClient();
+		return client;
 	}	
+
+	public static OtpErlangTuple serializeObjectToErlangResponse(Object ret, long rid){
+	    OtpErlangObject[] otp_result = new OtpErlangObject[3];
+		OtpErlangObject[] reply = new OtpErlangObject[2];
+	    reply[0] = ok;
+	    if (ret != null){
+	    	try{
+	        	String m_json = null;
+	        	if (ret instanceof OtpErlangBinary){
+	        		reply[1] = (OtpErlangBinary) ret;
+	        	}else if (ret instanceof OtpErlangAtom){
+	        		reply[1] = (OtpErlangObject) ret;
+	        	}else if (ret instanceof Integer || ret instanceof Boolean){
+	        		m_json = "{\"ok\":"+ ret.toString() + "}";
+	        		reply[1] = new OtpErlangBinary(m_json.getBytes());
+		    	}else if (ret instanceof java.util.Date || 
+		    			  	  ret instanceof java.sql.Timestamp ||
+		    			  	  ret instanceof Double){
+		    		m_json = "{\"ok\":"+ EmsUtil.toJson(ret) + "}";
+		    		reply[1] = new OtpErlangBinary(m_json.getBytes());
+	        	}else if (ret instanceof String){
+	            	reply[1] = new OtpErlangBinary(((String) ret).getBytes());
+	        	}else if (ret instanceof List && ((List<?>) ret).isEmpty()){
+	        		reply[1] = result_list_empty; 
+	        	}else if (ret instanceof Object){
+	            	reply[1] = new OtpErlangBinary(EmsUtil.toJson(ret).getBytes());
+	            }else if (ret.getClass().getName().equals(ArrayList.class.getName())){
+	            	List<?> lista = (List<?>) ret;
+	            	OtpErlangObject[] otp_items = new OtpErlangObject[lista.size()];
+	            	for(int i = 0; i < lista.size(); i++){
+	            		otp_items[i] = new OtpErlangString((String) lista.get(i));
+	            	}
+	            	OtpErlangList otp_list = new OtpErlangList(otp_items);
+	            	reply[1] = otp_list;
+	            }
+	    	}catch (Exception e){
+	    		reply[1] = erro_convert_json;
+	    	}
+	    }else{
+			reply[1] = result_null;
+	    }
+	    otp_result[0] = service_atom;
+	    otp_result[1] = new OtpErlangLong(rid);
+	    otp_result[2] = new OtpErlangTuple(reply);
+	    OtpErlangTuple myTuple = new OtpErlangTuple(otp_result);
+	    return myTuple;
+	}
+	
+	public static OtpErlangTuple serializeObjectToErlangRequest(Object ret, OtpErlangPid from){
+	    OtpErlangObject[] otp_result = new OtpErlangObject[3];
+		OtpErlangObject reply = null;
+	    if (ret != null){
+	    	try{
+	        	String m_json = null;
+	        	if (ret instanceof OtpErlangBinary){
+	        		reply = (OtpErlangBinary) ret;
+	        	}else if (ret instanceof OtpErlangAtom){
+	        		reply = (OtpErlangObject) ret;
+	        	}else if (ret instanceof Integer || ret instanceof Boolean){
+	        		m_json = "{\"ok\":"+ ret.toString() + "}";
+	        		reply = new OtpErlangBinary(m_json.getBytes());
+		    	}else if (ret instanceof java.util.Date || 
+		    			  	  ret instanceof java.sql.Timestamp ||
+		    			  	  ret instanceof Double){
+		    		m_json = "{\"ok\":"+ EmsUtil.toJson(ret) + "}";
+		    		reply = new OtpErlangBinary(m_json.getBytes());
+	        	}else if (ret instanceof String){
+	            	reply = new OtpErlangBinary(((String) ret).getBytes());
+	        	}else if (ret instanceof List && ((List<?>) ret).isEmpty()){
+	        		reply = result_list_empty; 
+	        	}else if (ret instanceof Object){
+	            	reply = new OtpErlangBinary(EmsUtil.toJson(ret).getBytes());
+	            }else if (ret.getClass().getName().equals(ArrayList.class.getName())){
+	            	List<?> lista = (List<?>) ret;
+	            	OtpErlangObject[] otp_items = new OtpErlangObject[lista.size()];
+	            	for(int i = 0; i < lista.size(); i++){
+	            		otp_items[i] = new OtpErlangString((String) lista.get(i));
+	            	}
+	            	OtpErlangList otp_list = new OtpErlangList(otp_items);
+	            	reply = otp_list;
+	            }
+	    	}catch (Exception e){
+	    		reply = erro_convert_json;
+	    	}
+	    }else{
+			reply = result_null;
+	    }
+	    otp_result[0] = request_msg_atom;
+	    otp_result[1] = new OtpErlangTuple(reply);
+	    otp_result[2] = from;
+	    OtpErlangTuple myTuple = new OtpErlangTuple(otp_result);
+	    return myTuple;
+	}
+	
 }
