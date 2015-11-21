@@ -234,10 +234,8 @@ public class EmsAgent
 		
         public Boolean call() {  
         	Object ret = chamaMetodo(request.getModulo(), request.getFunction(), request);
-            if (ret != null){
-            	OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request.getRID());
-            	myMbox.send(from, response);
-            }
+        	OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request.getRID());
+        	myMbox.send(from, response);
 			return true;
         }  
 	}

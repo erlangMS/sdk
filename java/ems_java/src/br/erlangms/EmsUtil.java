@@ -413,36 +413,76 @@ public final class EmsUtil {
 	 * @param classOfObj	Classe do objeto que será serializado
 	 * @author Everton de Vargas Agilar
 	 */
-	public static <T> Object fromJson(final String jsonString, Class<T> classOfObj) {
-		return fromJson(jsonString, classOfObj, null);
+	public static <T> T fromJson(final String jsonString, Class<T> classOfObj) {
+		return (T) fromJson(jsonString, classOfObj, null);
 	}
 
 	/**
 	 * Serializa um objeto a partir de uma string json
 	 * @param jsonString String json
 	 * @param classOfObj	Classe do objeto que será serializado
-	 * @param emsJsonModelSerialize adaptador para permitir obter atributos de modelo 
+	 * @param jsonModelAdapter adaptador para permitir obter atributos de modelo 
 	 * @author Everton de Vargas Agilar
 	 */
-	public static <T> Object fromJson(final String jsonString, Class<T> classOfObj, EmsJsonModelAdapter emsJsonModelSerialize) {
-		if (jsonString != null && jsonString.length() > 0 && classOfObj != null){
-			@SuppressWarnings("unchecked")
-			Map<String, Object> values = gson.fromJson(jsonString, Map.class);
-			T obj;
-			try {
-				obj = classOfObj.getConstructor().newInstance();
-			} catch (InstantiationException | IllegalAccessException
-					| IllegalArgumentException | InvocationTargetException
-					| NoSuchMethodException | SecurityException e) {
-				throw new IllegalArgumentException("Não suporta conversão do json para a classe do objeto.");
+	@SuppressWarnings("unchecked")
+	public static <T> T fromJson(final String jsonString, Class<T> classOfObj, EmsJsonModelAdapter jsonModelAdapter) {
+		if (jsonString != null && !jsonString.isEmpty() && classOfObj != null){
+			if (classOfObj == List.class || classOfObj == ArrayList.class){
+				List<Object> values = gson.fromJson(jsonString, List.class);
+				return (T) values;
+			}else{
+				Map<String, Object> values = gson.fromJson(jsonString, Map.class);
+				T obj = null;
+				try {
+					obj = classOfObj.getConstructor().newInstance();
+				} catch (InstantiationException | IllegalAccessException
+						| IllegalArgumentException | InvocationTargetException
+						| NoSuchMethodException | SecurityException e) {
+					throw new IllegalArgumentException("Não suporta conversão do json para "+ classOfObj.getSimpleName() + ".");
+				}
+				setValuesFromMap(obj, values, jsonModelAdapter);
+				return obj;
 			}
-			setValuesFromMap(obj, values, emsJsonModelSerialize);
-			return obj;
-		}else{
-			return null;
 		}
+		return null;
 	}
 
+	/**
+	 * Obtém uma lista a partir de um json
+	 * @param jsonString String json
+	 * @param classOfObj	Classe do objeto que será serializado
+	 * @author Everton de Vargas Agilar
+	 */
+	public static <T> List<T> fromListJson(String jsonString, Class<T> classOfObj) {
+		return fromListJson(jsonString, classOfObj, null);
+	}
+	
+	/**
+	 * Obtém uma lista a partir de um json
+	 * @param jsonString String json
+	 * @param classOfObj	Classe do objeto que será serializado
+ 	 * @param jsonModelAdapter adaptador para permitir obter atributos de modelo 
+	 * @author Everton de Vargas Agilar
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T> List<T> fromListJson(String jsonString, Class<T> classOfObj, EmsJsonModelAdapter jsonModelAdapter) {
+		if (jsonString != null && classOfObj != null){
+			List<Object> values = gson.fromJson(jsonString, List.class);
+			ArrayList<T> newList = new ArrayList<T>();
+			for (Object value : values){
+				try {
+					T obj = classOfObj.getConstructor().newInstance();
+					setValuesFromMap(obj, (Map<String, Object>) value, jsonModelAdapter);
+					newList.add(obj);
+				} catch (Exception e) {
+					throw new IllegalArgumentException("Não suporta conversão do json para "+ classOfObj.getSimpleName() + ".");
+				}
+			}
+			return newList;
+		}
+		return null;
+	}
+	
 	/**
 	 * Seta os valores nos parâmetros de um query a partir de um map
 	 * @param query Instância da query com parâmetros a setar
@@ -546,13 +586,13 @@ public final class EmsUtil {
 	/**
 	 * Seta os valores no objeto a partir de um map
 	 * @param obj Instância de um objeto
-	 * @param update_values	Map com chave/valor dos dados que serão aplicados no objeto
+	 * @param values	Map com chave/valor dos dados que serão aplicados no objeto
 	 * @author Everton de Vargas Agilar
 	 */
-	public static void setValuesFromMap(Object obj, Map<String, Object> update_values, EmsJsonModelAdapter jsonModelAdapter){
-		if (obj != null && update_values != null && update_values.size() > 0){
+	public static void setValuesFromMap(Object obj, Map<String, Object> values, EmsJsonModelAdapter jsonModelAdapter){
+		if (obj != null && values != null && values.size() > 0){
 			Class<? extends Object> class_obj = obj.getClass();
-			for (String field_name : update_values.keySet()){
+			for (String field_name : values.keySet()){
 				try{
 					Field field = null;
 					try{
@@ -562,9 +602,9 @@ public final class EmsUtil {
 						continue;
 					}
 					field.setAccessible(true);
-					Object new_value = update_values.get(field_name);
+					Object new_value = values.get(field_name);
 					Class<?> tipo_field = field.getType(); 
-					if (tipo_field == Integer.class){
+					if (tipo_field == Integer.class || tipo_field == int.class){
 						if (new_value instanceof String){
 							field.set(obj, Integer.parseInt((String) new_value));
 						}else if (new_value instanceof Double){
@@ -790,6 +830,13 @@ public final class EmsUtil {
 		return client;
 	}	
 
+	/**
+	 * Converte um objeto Java para um objeto de response Erlang
+	 * @param ret objeto
+	 * @param rid Request Id da requisição
+	 * @return OtpErlangTuple
+	 * @author Everton de Vargas Agilar
+	 */
 	public static OtpErlangTuple serializeObjectToErlangResponse(Object ret, long rid){
 	    OtpErlangObject[] otp_result = new OtpErlangObject[3];
 		OtpErlangObject[] reply = new OtpErlangObject[2];
@@ -836,7 +883,14 @@ public final class EmsUtil {
 	    OtpErlangTuple myTuple = new OtpErlangTuple(otp_result);
 	    return myTuple;
 	}
-	
+
+	/**
+	 * Converte um objeto Java para um objeto de requisição Erlang
+	 * @param ret objeto
+	 * @param from pid do agente
+	 * @return OtpErlangTuple
+	 * @author Everton de Vargas Agilar
+	 */
 	public static OtpErlangTuple serializeObjectToErlangRequest(Object ret, OtpErlangPid from){
 	    OtpErlangObject[] otp_result = new OtpErlangObject[3];
 		OtpErlangObject reply = null;
@@ -882,5 +936,6 @@ public final class EmsUtil {
 	    OtpErlangTuple myTuple = new OtpErlangTuple(otp_result);
 	    return myTuple;
 	}
+
 	
 }

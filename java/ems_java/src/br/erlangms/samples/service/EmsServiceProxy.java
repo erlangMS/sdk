@@ -1,16 +1,10 @@
 package br.erlangms.samples.service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.core.Response;
-
 import br.erlangms.EmsServiceFacade;
 import br.erlangms.EmsUtil;
-
-import com.ericsson.otp.erlang.OtpMbox;
-import com.ericsson.otp.erlang.OtpNode;
 
 public abstract class EmsServiceProxy extends EmsServiceFacade {
 
@@ -43,8 +37,8 @@ public abstract class EmsServiceProxy extends EmsServiceFacade {
 		}
 
 		public EmsServiceStream request() {
-			OtpNode node = proxy.getNode();
-			OtpMbox mbox = proxy.getMBox();
+			//OtpNode node = proxy.getNode();
+			//OtpMbox mbox = proxy.getMBox();
 			String host = "http://localhost:2301";
 
 			String username = "everton";
@@ -97,14 +91,19 @@ public abstract class EmsServiceProxy extends EmsServiceFacade {
 			return this;
 		}
 
+		public <T> List<T> toList(Class<T> classOfModel) {
+			System.out.println(response);
+			return EmsUtil.fromListJson(response.toString(), classOfModel, null);
+		}
+
 		@SuppressWarnings("unchecked")
 		public List<Object> toList() {
 			System.out.println(response);
-			return (List<Object>) EmsUtil.fromJson(response.toString(), ArrayList.class);
+			return (List<Object>) EmsUtil.fromJson(response.toString(), List.class);
 		}
 
-		public Object getObject(Class<?> classOfModel) {
-			return EmsUtil.fromJson(response, classOfModel);
+		public <T> T getObject(Class<T> classOfModel) {
+			return (T) EmsUtil.fromJson(response, classOfModel);
 		}
 
 		public Object getObject() {

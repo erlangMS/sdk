@@ -31,10 +31,10 @@ public interface IEmsRequest {
 	public OtpErlangObject getOtpRequest();
 	public Date getParamAsDate(final String NomeParam) throws ParseException;
 	public String getPayload();
-	public Object getObject(Class<?> clazz);
-	public Object getObject(Class<?> clazz, EmsJsonModelAdapter emsJsonModelSerialize);
+	public <T> T getObject(Class<T> classOfObj, EmsJsonModelAdapter jsonModelAdapter);	
+	public <T> T getObject(Class<T> classOfObj);
 	public Object mergeObjectFromPayload(Object obj);
-	public Object mergeObjectFromPayload(Object obj, EmsJsonModelAdapter emsJsonModelSerialize);
+	public Object mergeObjectFromPayload(Object obj, EmsJsonModelAdapter jsonModelAdapter);
 	public Map<String, Object> getPayloadAsMap();
-	public String getContentType();	
+	public String getContentType();
 }

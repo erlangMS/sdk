@@ -229,7 +229,7 @@ public abstract class EmsRepository<T> {
 	 * @return objeto
 	 * @author Everton de Vargas Agilar
 	 */
-	public Object update(final Object obj){
+	public <Obj> Obj update(final Obj obj){
 		if (obj != null){
 			EntityManager em = getEntityManager();
 			Integer idValue = EmsUtil.getIdFromObject(obj);

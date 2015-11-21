@@ -192,20 +192,20 @@ public class EmsRequest implements IEmsRequest {
 	/**
 	 * Retorna o payload do request serializado como objeto. Um erro será gerado se não for possível ler o objeto JSON.
 	 * Útil para converter o objeto JSON do request no objeto que será trabalhado na camada de negócio
-	 * @param clazz classe do objeto que será serializado. Exemplo: Municipio.class
+	 * @param classOfObj classe do objeto que será serializado. Exemplo: Municipio.class
 	 * @return Object
 	 * @author Everton de Vargas Agilar
 	 */
-	public Object getObject(Class<?> clazz){
-		return getObject(clazz, null);
+	public <T> T getObject(Class<T> classOfObj){
+		return getObject(classOfObj, null);
 	}
 	
 	@Override
-	public Object getObject(Class<?> clazz, EmsJsonModelAdapter emsJsonModelSerialize) {
+	public <T> T getObject(Class<T> classOfObj, EmsJsonModelAdapter jsonModelAdapter) {
 		try{
-			return EmsUtil.fromJson(getPayload(), clazz, emsJsonModelSerialize);
+			return EmsUtil.fromJson(getPayload(), classOfObj, jsonModelAdapter);
 		}catch (Exception e){
-			throw new EmsRequestException("Não foi possível serializar o objeto a partir do payload. Erro interno: "+ e.getMessage());
+			throw new EmsRequestException(e.getMessage());
 		}
 	}
 	
