@@ -20,40 +20,36 @@ import javax.persistence.Query;
 import org.jinq.jpa.JPAJinqStream;
 import org.jinq.jpa.JinqJPAStreamProvider;
 
-public abstract class EmsRepository<T> {
-	public abstract Class<T> getClassOfModel();
+public abstract class EmsRepository<Model> {
+	public abstract Class<Model> getClassOfModel();
 	public abstract EntityManager getEntityManager();
-	private String sqlDeleteQuery = null;
+	private String sqlDeleteQuery;
 
 	public EmsRepository(){
-		String idFieldName = EmsUtil.findFieldByAnnotation(getClassOfModel(), Id.class).getName();
-		sqlDeleteQuery = new StringBuilder("delete from ")
-								.append(getClassOfModel().getSimpleName())
-								.append(" where ")
-								.append(idFieldName).append("=:pId").toString();
+		createCacheSQL();
 	}
 
 	/**
-	 * Obtém um stream para realizar pesquisas 
+	 * Retorna um stream para realizar pesquisas 
 	 * @return  stream para pesquisa
 	 * @author Everton de Vargas Agilar
 	 */
-	public JPAJinqStream<T> getStreams(){
+	public JPAJinqStream<Model> getStreams(){
 		EntityManager em = getEntityManager();
 		JinqJPAStreamProvider streams = new JinqJPAStreamProvider(em.getMetamodel());
-		return (JPAJinqStream<T>) streams.streamAll(em, getClassOfModel());
+		return (JPAJinqStream<Model>) streams.streamAll(em, getClassOfModel());
 	}
 
 	/**
-	 * Obtém um stream para realizar pesquisas
-	 * @param classOfModel classe do modelo para pesquisa 
+	 * Retorna um stream para realizar pesquisas
+	 * @param classOfModel classe do modelo 
 	 * @return  stream para pesquisa
 	 * @author Everton de Vargas Agilar
 	 */
-	public JPAJinqStream<?> getStreams(Class<?> classOfModel){
+	public <T> JPAJinqStream<T> getStreams(Class<T> classOfModel){
 		EntityManager em = getEntityManager();
 		JinqJPAStreamProvider streams = new JinqJPAStreamProvider(em.getMetamodel());
-		return (JPAJinqStream<?>) streams.streamAll(em, classOfModel);
+		return streams.streamAll(em, classOfModel);
 	}
 	
 	/**
@@ -67,7 +63,7 @@ public abstract class EmsRepository<T> {
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
-	public List<T> find(String filtro, String fields, int limit_ini, int limit_fim, String sort){
+	public List<Model> find(String filtro, String fields, int limit_ini, int limit_fim, String sort){
 		Query query = null;
 		StringBuilder field_smnt = null;
 		StringBuilder where = null;
@@ -180,7 +176,7 @@ public abstract class EmsRepository<T> {
 			throw new IllegalArgumentException("Limite final para pesquisa deve ser maior que limite inicial.");
 		}
 		
-		List<T> result = query.getResultList();
+		List<Model> result = query.getResultList();
 		return result;
 	}
 
@@ -190,16 +186,16 @@ public abstract class EmsRepository<T> {
 	 * @return objeto ou EmsNotFoundException se não existe o id
 	 * @author Everton de Vargas Agilar
 	 */
-	public T findById(Integer id){
-		if (id != null && id > 0){
-			Class<T> classOfModel = getClassOfModel();
-			T obj = getEntityManager().find(classOfModel, id);
+	public Model findById(Integer id){
+		if (id != null && id >= 0){
+			Class<Model> classOfModel = getClassOfModel();
+			Model obj = getEntityManager().find(classOfModel, id);
 			if (obj == null){
 				throw new EmsNotFoundException(classOfModel.getSimpleName() + " não encontrado: "+ id.toString());
 			}
 			return obj;
 		}else{
-			throw new IllegalArgumentException("Argumento obj não pode ser null para EmsRepository.findById.");
+			throw new IllegalArgumentException("Argumento id não pode ser null para EmsRepository.findById.");
 		}
 	}
 
@@ -210,30 +206,29 @@ public abstract class EmsRepository<T> {
 	 * @return objeto ou EmsNotFoundException se não existe o id
 	 * @author Everton de Vargas Agilar
 	 */
-	public Object findById(Class<?> classOfModel, Integer id){
-		if (classOfModel != null && id != null && id > 0){
-			Object obj = getEntityManager().find(classOfModel, id);
+	public <T> T findById(Class<T> classOfModel, Integer id){
+		if (classOfModel != null && id != null && id >= 0){
+			T obj = getEntityManager().find(classOfModel, id);
 			if (obj == null){
 				throw new EmsNotFoundException(classOfModel.getSimpleName() + " não encontrado: "+ id.toString());
 			}
 			return obj;
 		}else{
-			throw new IllegalArgumentException("Argumento obj ou classOfModel não pode ser null para EmsRepository.findById.");
+			throw new IllegalArgumentException("Argumentos classOfModel e id não podem ser null para EmsRepository.findById.");
 		}
 	}
 	
 	/**
-	 * Persiste as modificações de um objeto no banco
-	 * @param obj objeto
-	 * @param update_values Map com os dados modificados
-	 * @return objeto
+	 * Persiste as modificações de um objeto
+	 * @param obj objeto que será persistido
+	 * @return objeto persistido
 	 * @author Everton de Vargas Agilar
 	 */
-	public <Obj> Obj update(final Obj obj){
+	public <T> T update(final T obj){
 		if (obj != null){
 			EntityManager em = getEntityManager();
 			Integer idValue = EmsUtil.getIdFromObject(obj);
-			if (idValue != null && idValue > 0){
+			if (idValue != null && idValue >= 0){
 				em.merge(obj);
 			}else{
 				throw new EmsValidationException("Não é possível atualizar objeto sem id em EmsRepository.update.");
@@ -246,17 +241,16 @@ public abstract class EmsRepository<T> {
 	}
 	
 	/**
-	 * Insere um novo objeto no banco
-	 * @param obj objeto
-	 * @param update_values Map com os dados modificados
-	 * @return objeto
+	 * Insere um novo objeto
+	 * @param obj objeto que será inserido
+	 * @return objeto inserido
 	 * @author Everton de Vargas Agilar
 	 */
-	public Object insert(final Object obj){
+	public <T> T insert(final T obj){
 		if (obj != null){
 			EntityManager em = getEntityManager();
 			Integer idValue = EmsUtil.getIdFromObject(obj);
-			if (idValue != null && idValue > 0){
+			if (idValue != null && idValue >= 0){
 				throw new EmsValidationException("Não é possível incluir objeto que já possui id em EmsRepository.insert.");
 			}else{
 				em.persist(obj);
@@ -269,17 +263,17 @@ public abstract class EmsRepository<T> {
 	}
 
 	/**
-	 * Persiste as modificações de um objeto no banco
-	 * @param obj objeto
+	 * Insere ou atualiza um objeto
+	 * @param obj objeto que será inserido ou atualizado
 	 * @param update_values Map com os dados modificados
-	 * @return objeto
+	 * @return objeto inserido ou atualizado
 	 * @author Everton de Vargas Agilar
 	 */
-	public Object insertOrUpdate(final Object obj){
+	public <T> T insertOrUpdate(final T obj){
 		if (obj != null){
 			EntityManager em = getEntityManager();
 			Integer idValue = EmsUtil.getIdFromObject(obj);
-			if (idValue != null && idValue > 0){
+			if (idValue != null && idValue >= 0){
 				em.merge(obj);
 			}else{
 				em.persist(obj);
@@ -292,12 +286,13 @@ public abstract class EmsRepository<T> {
 	}
 	
 	/**
-	 * Exclui um novo objeto no banco
-	 * @param id id do objeto
+	 * Exclui um objeto
+	 * @param id identificador do objeto
+	 * @return true se o objeto foi excluído
 	 * @author Everton de Vargas Agilar
 	 */
 	public boolean delete(final Integer id) {
-		if (id != null && id > 0){
+		if (id != null && id >= 0){
 			return getEntityManager()
 				.createQuery(sqlDeleteQuery)
 				.setParameter("pId", id)
@@ -308,25 +303,35 @@ public abstract class EmsRepository<T> {
 	}
 
 	/**
-	 * Exclui um novo objeto no banco
+	 * Exclui um objeto
 	 * @param classOfModel classe do objeto
-	 * @param id id do objeto
+	 * @param id identificador do objeto
+	 * @return true se o objeto foi excluído
 	 * @author Everton de Vargas Agilar
+	 * @param <T>
 	 */
-	public boolean delete(Class<?> classOfModel, Integer id) {
-		if (classOfModel != null && id != null && id > 0){
+	public <T> boolean delete(Class<T> classOfModel, Integer id) {
+		if (classOfModel != null && id != null && id >= 0){
 			String idFieldName = EmsUtil.findFieldByAnnotation(classOfModel, Id.class).getName();
 			String sql = new StringBuilder("delete from ")
 								.append(classOfModel.getSimpleName())
 								.append(" where ")
-								.append( idFieldName).append("=:pId").toString();
+								.append(idFieldName).append("=:pId").toString();
 			return getEntityManager()
 					.createQuery(sql)
 					.setParameter("pId", id)
 					.executeUpdate() > 0;
 		}else{
-			throw new IllegalArgumentException("Argumento obj ou classOfModel não pode ser null para EmsRepository.findById.");
+			throw new IllegalArgumentException("Argumentos classOfModel e id não podem ser null para EmsRepository.delete.");
 		}
+	}
+
+	protected void createCacheSQL() {
+		String idFieldName = EmsUtil.findFieldByAnnotation(getClassOfModel(), Id.class).getName();
+		sqlDeleteQuery = new StringBuilder("delete from ")
+								.append(getClassOfModel().getSimpleName())
+								.append(" where ")
+								.append(idFieldName).append("=:pId").toString();
 	}
 	
 }
