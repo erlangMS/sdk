@@ -8,6 +8,8 @@
  
 package br.erlangms;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -21,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
@@ -937,5 +940,10 @@ public final class EmsUtil {
 	    return myTuple;
 	}
 
+	public static Properties getConfig() throws FileNotFoundException, IOException{
+		Properties props = new Properties();
+		props.load(new FileInputStream("erlangms.conf"));
+		return props;
+	}
 	
 }

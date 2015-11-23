@@ -10,6 +10,8 @@ package br.erlangms;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -27,7 +29,11 @@ import com.ericsson.otp.erlang.OtpNode;
 
 public class EmsAgent
 {
-	private static final int MAX_THREAD_POOL_BY_AGENT = 4;
+	private static int maxThreadPoolByAgent;
+	private static String cookie;
+	private static String msbusHost;
+	private static String hostName;
+	private static String nodeName;
 	private static final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
 	private static Logger logger = Logger.getLogger(EmsAgent.class);
 	private final IEmsServiceFacade facade;
@@ -36,7 +42,9 @@ public class EmsAgent
 	private OtpNode myNode = null;
 	private OtpMbox myMbox = null;
     private static OtpErlangPid dispatcherPid;
-
+    static{
+    	getSystemProperties();
+    }
     
 	public EmsAgent(final String nomeAgente, final String nomeService, final IEmsServiceFacade facade){
 		this.nomeAgente = nomeAgente;
@@ -44,6 +52,52 @@ public class EmsAgent
 		this.facade = facade;
 	}
 	
+	/**
+	 * Obtem as configurações para o node
+	 * Exemplo: 
+	 *    -Dcookie=erlangms
+	 *    -Dems_node="node01"
+	 *    -Dems_msbus_host=
+	 * @param from pid do agente
+	 * @return OtpErlangTuple
+	 * @author Everton de Vargas Agilar
+	 */
+	private static void getSystemProperties() {
+		String tmp_thread_pool = System.getProperty("ems_max_thread_pool_by_agent");
+		if (tmp_thread_pool != null){
+			try{
+				maxThreadPoolByAgent = Integer.parseInt(tmp_thread_pool);
+			}catch (NumberFormatException e){
+				maxThreadPoolByAgent = 12;
+			}
+		}else{
+			maxThreadPoolByAgent = 12;
+		}
+		String tmp_cookie = System.getProperty("ems_cookie");
+		if (tmp_cookie != null){
+		   cookie = tmp_cookie;
+	   }else{
+		   cookie = "erlangms";
+	   }
+	   try {
+		   hostName = InetAddress.getLocalHost().getHostName();
+		} catch (UnknownHostException e) {
+			System.out.println("Não foi possível obter o hostname do ambiente onde vai executar este node.");
+		}
+	   String tmp_nodeName = System.getProperty("ems_node");
+	   if (tmp_nodeName != null){
+		   nodeName = tmp_nodeName;
+	   }else{
+		   nodeName = "";
+	   }
+	   String tmp_msbusHost = System.getProperty("ems_msbus_host");
+	   if (tmp_msbusHost != null){
+		   msbusHost = tmp_msbusHost;
+	   }else{
+		   msbusHost = "http://localhost:2301";
+	   }
+	}
+
 	public String getNomeAgente(){
 		return nomeAgente;
 	}
@@ -61,12 +115,14 @@ public class EmsAgent
 	}
 	
 	public void start() throws Exception {
-	   // Se existir conexão previa, finaliza primeiro
-	   if (myNode != null){
-		   close(); 
+		String otpNodeName = null;
+		if (nodeName != null && !nodeName.isEmpty()){
+		   otpNodeName = nomeAgente + "_" + nodeName;
+	   }else{
+		   otpNodeName = nomeAgente;
 	   }
-	   myNode = new OtpNode(nomeAgente);
-       myNode.setCookie("erlangms");
+	   myNode = new OtpNode(otpNodeName);
+       myNode.setCookie(cookie);
        StringBuilder msg_node = new StringBuilder(nomeService)
 										.append(" host -> ").append(myNode.host())
 										.append(" node -> ").append(myNode.node())
@@ -74,16 +130,13 @@ public class EmsAgent
 										.append(" cookie -> ").append(myNode.cookie());
        print_log(msg_node.toString());
        myMbox = myNode.createMbox(nomeService);
-       myMbox.registerName(nomeService);
-	   OtpErlangPid xx = myNode.whereis(nomeService);
-	   System.out.println(xx.toString());
        OtpErlangObject myObject;
        OtpErlangTuple myMsg;
        OtpErlangTuple otp_request;
        IEmsRequest request;
        StringBuilder msg_task = new StringBuilder();
-       ExecutorService pool = Executors.newFixedThreadPool(MAX_THREAD_POOL_BY_AGENT);
-       while(true) 
+       ExecutorService pool = Executors.newFixedThreadPool(maxThreadPoolByAgent);
+       while(true){ 
     	   try {
                 myObject = myMbox.receive();
                 myMsg = (OtpErlangTuple) myObject;
@@ -91,21 +144,15 @@ public class EmsAgent
                 request = new EmsRequest(otp_request);
                 dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
                 msg_task.setLength(0);
-                msg_task.append(request.getMetodo())
-						.append(" ")
-						.append(request.getModulo())
-						.append(".")
-						.append(request.getFunction())
-						.append(" [RID: ")
-						.append(request.getRID())
-						.append(", ")
-						.append(request.getUrl())
-						.append("]");
+                msg_task.append(request.getMetodo()).append(" ").append(request.getModulo())
+						.append(".").append(request.getFunction()).append(" [RID: ")
+						.append(request.getRID()).append(", ").append(request.getUrl()).append("]");
                 print_log(msg_task.toString());
                 pool.submit(new Task(dispatcherPid, request, myMbox));
-		} catch(OtpErlangExit e) {
-			break;
-        }
+			} catch(OtpErlangExit e) {
+				break;
+	        }
+       }
     }
 	
 	public void close(){
