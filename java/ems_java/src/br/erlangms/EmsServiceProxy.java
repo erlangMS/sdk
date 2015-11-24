@@ -6,7 +6,7 @@
  * @copyright ErlangMS Team
  *********************************************************************/
  
-package br.erlangms.service;
+package br.erlangms;
 
 import br.erlangms.EmsServiceFacade;
 import br.erlangms.EmsServiceStream;
