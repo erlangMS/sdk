@@ -1,7 +1,7 @@
 /*********************************************************************
  * @title Módulo EmsServiceFacade
  * @version 1.0.0
- * @doc Session Bean implementation class EmsServiceFacade
+ * @doc Classe de fachada para serviços ErlangMS
  * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
  * @copyright ErlangMS Team
  *********************************************************************/
@@ -11,16 +11,13 @@ package br.erlangms;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
-import com.ericsson.otp.erlang.OtpMbox;
-import com.ericsson.otp.erlang.OtpNode;
-
 
 /**
- * Classe base para serviços ErlangMS
+ * Classe de fachada para os serviços
  */
 public abstract class EmsServiceFacade implements IEmsServiceFacade {
-	private EmsAgent agent = null;
-	private AgentThread agentThread = null;
+	private EmsConnection connection = null;
+	private DaemonThread daemon = null;
 	public enum States {BEFORESTARTED, STARTED, PAUSED, SHUTTINGDOWN};
     private States state;
        	
@@ -28,9 +25,9 @@ public abstract class EmsServiceFacade implements IEmsServiceFacade {
     public void initialize() {
         state = States.BEFORESTARTED;
         Class<? extends EmsServiceFacade> cls = getClass();
-        agent = new EmsAgent(cls.getSimpleName(), cls.getName(), this);
-        agentThread = new AgentThread(agent);
-        agentThread.start();
+        connection = new EmsConnection(cls.getSimpleName(), cls.getName(), this);
+        daemon = new DaemonThread(connection);
+        daemon.start();
         state = States.STARTED;
     }
     
@@ -38,9 +35,9 @@ public abstract class EmsServiceFacade implements IEmsServiceFacade {
 	@PreDestroy
     public void terminate() {
         state = States.SHUTTINGDOWN;
-        agentThread.stop();
-        agent.close();
-        agent = null;
+        daemon.stop();
+        connection.close();
+        connection = null;
         
     }
 
@@ -48,18 +45,14 @@ public abstract class EmsServiceFacade implements IEmsServiceFacade {
         return state;
     }
     
-    protected OtpNode getNode(){
-    	return agent.getNode();
+    protected EmsConnection getConnection(){
+    	return connection;
     }
     
-	protected OtpMbox getMBox(){
-		return agent.getMBox();
-	}
-    
-	private class AgentThread extends Thread{
-		private EmsAgent agent;
+	private class DaemonThread extends Thread{
+		private EmsConnection agent;
 		
-		public AgentThread(final EmsAgent agent){
+		public DaemonThread(final EmsConnection agent){
 			super();
 			this.agent = agent;
 		}

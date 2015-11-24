@@ -1,7 +1,8 @@
 /*********************************************************************
- * @title Módulo EmsAgent
+ * @title Módulo EmsConnection
  * @version 1.0.0
- * @doc Agente que gerencia o ErlangMS MailBox 
+ * @doc Classe para conectar com o barramento msbus. Cada conexão representa um 
+ *      agente e pode receber e enviar mensagens.  
  * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
  * @copyright ErlangMS Team
  *********************************************************************/
@@ -27,37 +28,44 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.ericsson.otp.erlang.OtpMbox;
 import com.ericsson.otp.erlang.OtpNode;
 
-public class EmsAgent
+public class EmsConnection
 {
 	private static int maxThreadPoolByAgent;
 	private static String cookie;
 	private static String msbusHost;
 	private static String hostName;
 	private static String nodeName;
-	private static final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
-	private static Logger logger = Logger.getLogger(EmsAgent.class);
-	private final IEmsServiceFacade facade;
 	private final String nomeAgente;
 	private final String nomeService;
+	private static final OtpErlangBinary result_ok; 
+	private static final Logger logger;
+	private final IEmsServiceFacade facade;
+    private static OtpErlangPid dispatcherPid;
+	private static String nodeUser;
+	private static String nodePassword;
+    private static String authorizationHeaderName;
+    private static String authorizationHeaderValue;
 	private OtpNode myNode = null;
 	private OtpMbox myMbox = null;
-    private static OtpErlangPid dispatcherPid;
-    static{
+	static{
+		logger = Logger.getLogger(EmsConnection.class);
+		result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
     	getSystemProperties();
     }
     
-	public EmsAgent(final String nomeAgente, final String nomeService, final IEmsServiceFacade facade){
+	public EmsConnection(final String nomeAgente, final String nomeService, final IEmsServiceFacade facade){
 		this.nomeAgente = nomeAgente;
 		this.nomeService = nomeService;
 		this.facade = facade;
 	}
 	
 	/**
-	 * Obtem as configurações para o node
+	 * Obtem as configurações necessárias para executar os agentes
 	 * Exemplo: 
 	 *    -Dcookie=erlangms
-	 *    -Dems_node="node01"
-	 *    -Dems_msbus_host=
+	 *    -Dems_node=node01
+	 *    -Dems_msbus=http://localhost:2301
+	 *    -Dems_cookie=erlangms
 	 * @param from pid do agente
 	 * @return OtpErlangTuple
 	 * @author Everton de Vargas Agilar
@@ -90,12 +98,30 @@ public class EmsAgent
 	   }else{
 		   nodeName = "";
 	   }
-	   String tmp_msbusHost = System.getProperty("ems_msbus_host");
+	   String tmp_msbusHost = System.getProperty("ems_msbus");
 	   if (tmp_msbusHost != null){
 		   msbusHost = tmp_msbusHost;
 	   }else{
 		   msbusHost = "http://localhost:2301";
 	   }
+	   String tmp_user = System.getProperty("ems_user");
+	   if (tmp_user != null){
+		   nodeUser = tmp_user;
+	   }else{
+		   nodeUser = "";
+	   }
+	   String tmp_password = System.getProperty("ems_password");
+	   if (tmp_password != null){
+		   nodePassword = tmp_password;
+	   }else{
+		   nodePassword = "";
+	   }
+	   
+       String usernameAndPassword = nodeUser + ":" + nodePassword;
+       authorizationHeaderName = "Authorization";
+       authorizationHeaderValue = "Basic " + java.util.Base64.getEncoder()
+    		   .encodeToString(usernameAndPassword.getBytes());
+	   
 	}
 
 	public String getNomeAgente(){
@@ -114,6 +140,30 @@ public class EmsAgent
 		return dispatcherPid;
 	}
 	
+	public static String getHostName(){
+		return hostName;
+	}
+	
+	public static String getMsbusHost(){
+		return msbusHost;
+	}
+	
+	public static String getNodeUser() {
+		return nodeUser;
+	}
+
+	public static String getNodePassword() {
+		return nodePassword;
+	}
+
+	public static String getAuthorizationHeaderName() {
+		return authorizationHeaderName;
+	}
+
+	public static String getAuthorizationHeaderValue() {
+		return authorizationHeaderValue;
+	}
+
 	public void start() throws Exception {
 		String otpNodeName = null;
 		if (nodeName != null && !nodeName.isEmpty()){
@@ -286,5 +336,6 @@ public class EmsAgent
 			return true;
         }  
 	}
+
 	
 }
