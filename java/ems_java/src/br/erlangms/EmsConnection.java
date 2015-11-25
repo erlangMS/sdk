@@ -66,6 +66,9 @@ public class EmsConnection
 	 *    -Dems_node=node01
 	 *    -Dems_msbus=http://localhost:2301
 	 *    -Dems_cookie=erlangms
+	 *    -Dems_max_thread_pool_by_agent=10
+	 *    -Dems_user=everton 
+	 *    -Dems_password=123456 
 	 * @param from pid do agente
 	 * @return OtpErlangTuple
 	 * @author Everton de Vargas Agilar
@@ -88,15 +91,15 @@ public class EmsConnection
 		   cookie = "erlangms";
 	   }
 	   try {
-		   hostName = InetAddress.getLocalHost().getHostName();
+		   hostName = InetAddress.getLocalHost().getHostName().toLowerCase();
 		} catch (UnknownHostException e) {
-			System.out.println("Não foi possível obter o hostname do ambiente onde vai executar este node.");
+			System.out.println("Não foi possível obter o hostname da máquina onde está o node.");
 		}
 	   String tmp_nodeName = System.getProperty("ems_node");
 	   if (tmp_nodeName != null){
 		   nodeName = tmp_nodeName;
 	   }else{
-		   nodeName = "";
+		   nodeName = "node01";
 	   }
 	   String tmp_msbusHost = System.getProperty("ems_msbus");
 	   if (tmp_msbusHost != null){
