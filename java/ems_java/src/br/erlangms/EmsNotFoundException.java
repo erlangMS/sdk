@@ -10,5 +10,4 @@ public class EmsNotFoundException extends RuntimeException {
     }
 		
 	private static final long serialVersionUID = 7613628452863123488L;
-
 }

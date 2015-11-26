@@ -13,7 +13,7 @@ import javax.annotation.PreDestroy;
 
 
 /**
- * Classe de fachada para os serviços
+ * Classe de fachada para os serviços ErlangMS
  */
 public abstract class EmsServiceFacade implements IEmsServiceFacade {
 	private EmsConnection connection = null;
@@ -62,7 +62,6 @@ public abstract class EmsServiceFacade implements IEmsServiceFacade {
         	try {
 				agent.start();
 			} catch (Exception e) {
-				agent.print_log("Ocorreu o seguinte erro ao iniciar "+ agent.getNomeAgente() + ":");
 				e.printStackTrace();
 			}
         }  

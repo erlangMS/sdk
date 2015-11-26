@@ -91,7 +91,7 @@ public class EmsConnection
 		   cookie = "erlangms";
 	   }
 	   try {
-		   hostName = InetAddress.getLocalHost().getHostName().toLowerCase();
+		   hostName = InetAddress.getLocalHost().getHostName();
 		} catch (UnknownHostException e) {
 			System.out.println("Não foi possível obter o hostname da máquina onde está o node.");
 		}
@@ -181,7 +181,7 @@ public class EmsConnection
 										.append(" node -> ").append(myNode.node())
 										.append(" port -> ").append(myNode.port())
 										.append(" cookie -> ").append(myNode.cookie());
-       print_log(msg_node.toString());
+       logger.info(msg_node.toString());
        myMbox = myNode.createMbox(nomeService);
        OtpErlangObject myObject;
        OtpErlangTuple myMsg;
@@ -200,7 +200,7 @@ public class EmsConnection
                 msg_task.append(request.getMetodo()).append(" ").append(request.getModulo())
 						.append(".").append(request.getFunction()).append(" [RID: ")
 						.append(request.getRID()).append(", ").append(request.getUrl()).append("]");
-                print_log(msg_task.toString());
+                logger.info(msg_task.toString());
                 pool.submit(new Task(dispatcherPid, request, myMbox));
 			} catch(OtpErlangExit e) {
 				break;
@@ -213,10 +213,9 @@ public class EmsConnection
 			try{
 				myNode.close();
 			}catch (Exception e){
-				print_log("Ocorreu o seguinte erro ao finalizar: ");
 				e.printStackTrace();
 			}finally{
-				print_log(new StringBuilder("EmsAgent para ").append(nomeService).append(" finalizado.").toString());
+				logger.info(nomeService + " finalizado.");
 				myNode = null;
 			}
 		}
@@ -251,7 +250,7 @@ public class EmsConnection
 		} catch (NoSuchMethodException e) {  
 	        // Essa exceção ocorre se o getMethod() não encontrar o método
 	    	String erro = "Método de negócio não encontrado: " + metodo + ".";
-	    	print_log(erro);
+	    	logger.info(erro);
 	    	return "{\"erro\":\"service\", \"message\" : \"" + erro + "\"}";
 	    } catch (IllegalAccessException e) {  
 	        // Pode ocorrer se o método que você está invocando não for  
@@ -259,7 +258,7 @@ public class EmsConnection
 	        // acessível fazendo:  
 	        // antes do seu invoke.
 	    	String erro = "Acesso ilegal ao método de negócio: " + metodo + ".";
-	    	print_log(erro);
+	    	logger.info(erro);
 	    	return "{\"erro\":\"service\", \"message\" : \"" + erro + "\"}";
 	    } catch (InvocationTargetException e) {  
 	        // Essa exceção acontece se o método chamado gerar uma exceção.  
@@ -305,21 +304,17 @@ public class EmsConnection
 		    		return msg_json;
 	    		}catch (Exception ex){
 			    	String erro = "O método "+ modulo + "." + metodo + " gerou uma excessão: " + e.getCause() + "."; 
-			    	print_log(erro);
+			    	logger.info(erro);
 			    	return "{\"erro\":\"service\", \"message\" : \"" + erro + "\"}";
 	    		}
 	    	}else{
 		    	String erro = "O método "+ modulo + "." + metodo + " gerou uma excessão: " + e.getCause() + "."; 
-		    	print_log(erro);
+		    	logger.info(erro);
 		    	return "{\"erro\":\"service\", \"message\" : " + EmsUtil.toJson(erro) + "}";
 	    	}
 	    }
 	}  	
 	
-	public void print_log(final String message){
-		logger.info(new StringBuilder(nomeAgente).append(": ").append(message).toString());
-	}
-
 	private final class Task implements Callable<Boolean>{
 		private OtpErlangPid from;
 		private IEmsRequest request;
