@@ -30,7 +30,7 @@ import com.ericsson.otp.erlang.OtpNode;
 
 public class EmsConnection
 {
-	private static int maxThreadPoolByAgent;
+	private static int maxThreadPool;
 	private static String cookie;
 	private static String msbusHost;
 	private static String hostName;
@@ -74,15 +74,15 @@ public class EmsConnection
 	 * @author Everton de Vargas Agilar
 	 */
 	private static void getSystemProperties() {
-		String tmp_thread_pool = System.getProperty("ems_max_thread_pool_by_agent");
+		String tmp_thread_pool = System.getProperty("ems_thread_pool");
 		if (tmp_thread_pool != null){
 			try{
-				maxThreadPoolByAgent = Integer.parseInt(tmp_thread_pool);
+				maxThreadPool = Integer.parseInt(tmp_thread_pool);
 			}catch (NumberFormatException e){
-				maxThreadPoolByAgent = 12;
+				maxThreadPool = 12;
 			}
 		}else{
-			maxThreadPoolByAgent = 12;
+			maxThreadPool = 128;
 		}
 		String tmp_cookie = System.getProperty("ems_cookie");
 		if (tmp_cookie != null){
@@ -188,7 +188,7 @@ public class EmsConnection
        OtpErlangTuple otp_request;
        IEmsRequest request;
        StringBuilder msg_task = new StringBuilder();
-       ExecutorService pool = Executors.newFixedThreadPool(maxThreadPoolByAgent);
+       ExecutorService pool = Executors.newFixedThreadPool(maxThreadPool);
        while(true){ 
     	   try {
                 myObject = myMbox.receive();
