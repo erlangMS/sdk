@@ -131,7 +131,7 @@ public final class EmsUtil {
 		    .registerTypeAdapter(java.util.Date.class, new JsonDeserializer<java.util.Date>() {
                     public java.util.Date deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
                     	String value = json.getAsString();                            	
-						final String m_erro = "Não é uma data válida";
+						final String m_erro = "Não é uma data válida.";
                     	try {
                         	if (value.length() == 10){
 								return new SimpleDateFormat("dd/MM/yyyy").parse(value);
@@ -140,10 +140,10 @@ public final class EmsUtil {
     						}else if (value.length() == 19){
     							return new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(value);
     						}else{
-    							throw new IllegalArgumentException(m_erro);
+    							throw new EmsValidationException(m_erro);
     						}
 						} catch (ParseException e) {
-							throw new IllegalArgumentException(m_erro);
+							throw new EmsValidationException(m_erro);
 						}
 					}
                 })    
@@ -159,10 +159,10 @@ public final class EmsUtil {
     						}else if (value.length() == 19){
     							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(value).getTime());
     						}else{
-    							throw new IllegalArgumentException(m_erro);
+    							throw new EmsValidationException(m_erro);
     						}
 						} catch (ParseException e) {
-							throw new IllegalArgumentException(m_erro);
+							throw new EmsValidationException(m_erro);
 						}
 					}
                 })    
@@ -250,7 +250,7 @@ public final class EmsUtil {
 	    .registerTypeAdapter(java.util.Date.class, new JsonDeserializer<java.util.Date>() {
                 public java.util.Date deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
                 	String value = json.getAsString();                            	
-					final String m_erro = "Não é uma data válida";
+					final String m_erro = "Não é uma data válida.";
                 	try {
                     	if (value.length() == 10){
 							return new SimpleDateFormat("dd/MM/yyyy").parse(value);
@@ -259,17 +259,17 @@ public final class EmsUtil {
 						}else if (value.length() == 19){
 							return new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(value);
 						}else{
-							throw new IllegalArgumentException(m_erro);
+							throw new EmsValidationException(m_erro);
 						}
 					} catch (ParseException e) {
-						throw new IllegalArgumentException(m_erro);
+						throw new EmsValidationException(m_erro);
 					}
 				}
             })    
 	    .registerTypeAdapter(java.sql.Timestamp.class, new JsonDeserializer<java.sql.Timestamp>() {
                 public java.sql.Timestamp deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
                 	String value = json.getAsString();                            	
-					final String m_erro = "Não é uma data válida";
+					final String m_erro = "Não é uma data válida.";
                 	try {
                     	if (value.length() == 10){
 							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy").parse(value).getTime());
@@ -278,10 +278,10 @@ public final class EmsUtil {
 						}else if (value.length() == 19){
 							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(value).getTime());
 						}else{
-							throw new IllegalArgumentException(m_erro);
+							throw new EmsValidationException(m_erro);
 						}
 					} catch (ParseException e) {
-						throw new IllegalArgumentException(m_erro);
+						throw new EmsValidationException(m_erro);
 					}
 				}
             })    
@@ -433,15 +433,18 @@ public final class EmsUtil {
 			if (classOfObj == List.class || classOfObj == ArrayList.class){
 				List<Object> values = gson.fromJson(jsonString, List.class);
 				return (T) values;
+			}else if (classOfObj == java.util.HashMap.class || classOfObj == Map.class){
+				Map<String, Object> values = gson.fromJson(jsonString, Map.class);
+				return (T) values;
 			}else{
 				Map<String, Object> values = gson.fromJson(jsonString, Map.class);
 				T obj = null;
 				try {
 					obj = classOfObj.getConstructor().newInstance();
 				} catch (InstantiationException | IllegalAccessException
-						| IllegalArgumentException | InvocationTargetException
+						| EmsValidationException | InvocationTargetException
 						| NoSuchMethodException | SecurityException e) {
-					throw new IllegalArgumentException("Não suporta conversão do json para "+ classOfObj.getSimpleName() + ".");
+					throw new EmsValidationException("Não suporta conversão do json para "+ classOfObj.getSimpleName() + ". Json: "+ jsonString);
 				}
 				setValuesFromMap(obj, values, jsonModelAdapter);
 				return obj;
@@ -478,7 +481,7 @@ public final class EmsUtil {
 					setValuesFromMap(obj, (Map<String, Object>) value, jsonModelAdapter);
 					newList.add(obj);
 				} catch (Exception e) {
-					throw new IllegalArgumentException("Não suporta conversão do json para "+ classOfObj.getSimpleName() + ".");
+					throw new EmsValidationException("Não suporta conversão do json para "+ classOfObj.getSimpleName() + ". Json: "+ jsonString);
 				}
 			}
 			return newList;
@@ -495,9 +498,9 @@ public final class EmsUtil {
 	public static void setQueryParameterFromMap(Query query, Map<String, Object> values){
 		if (query != null && values != null && values.size() > 0){
 			int p = 1;
-			for (String field : values.keySet()){
+			for (String field_name : values.keySet()){
 				try{
-					Object value_field = values.get(field);
+					Object value_field = values.get(field_name);
 					Class<?> paramType = query.getParameter(p).getParameterType();
 					if (paramType == Integer.class){
 						if (value_field instanceof String){
@@ -557,7 +560,7 @@ public final class EmsUtil {
 							query.setParameter(p++, false);
 						}
 					}else if (paramType == java.util.Date.class){
-						final String m_erro = "Não é uma data válida";
+						final String m_erro = field_name + " não é uma data válida.";
 						if (value_field instanceof String){
 							int len_value = ((String) value_field).length();
 							try {
@@ -568,19 +571,19 @@ public final class EmsUtil {
 	    						}else if (len_value == 19){
 	    							query.setParameter(p++, new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse((String) value_field));	    							
 	    						}else{
-	    							throw new IllegalArgumentException(m_erro);
+	    							throw new EmsValidationException(m_erro);
 	    						}
 							} catch (ParseException e) {
-								throw new IllegalArgumentException(m_erro);
+								throw new EmsValidationException(m_erro);
 							}
 						}else{
-							throw new IllegalArgumentException(m_erro);
+							throw new EmsValidationException(m_erro);
 						}
 					}else{
-						throw new IllegalArgumentException("Não suporta o tipo de dado para pesquisa.");
+						throw new EmsValidationException("Não suporta o tipo de dado para o campo "+ field_name + ".");
 					}
 				}catch (Exception e){
-					throw new IllegalArgumentException("Erro ao setar parâmetros da query. Erro interno: "+ e.getMessage());
+					throw new EmsValidationException("Erro ao setar parâmetros da query. Erro interno: "+ e.getMessage());
 				}
 			}
 		}
@@ -665,7 +668,7 @@ public final class EmsUtil {
 							field.set(obj, false);
 						}
 					}else if (tipo_field == java.util.Date.class){
-						final String m_erro = "Não é uma data válida";
+						final String m_erro = field_name + " não é uma data válida.";
 						if (new_value instanceof String){
 							int len_value = ((String) new_value).length();
 							try {
@@ -676,16 +679,16 @@ public final class EmsUtil {
 	    						}else if (len_value == 19){
 	    							field.set(obj, new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse((String) new_value));
 	    						}else{
-	    							throw new IllegalArgumentException(m_erro);
+	    							throw new EmsValidationException(m_erro);
 	    						}
 							} catch (ParseException e) {
-								throw new IllegalArgumentException(m_erro);
+								throw new EmsValidationException(m_erro);
 							}
 						}else{
-							throw new IllegalArgumentException(m_erro);
+							throw new EmsValidationException(m_erro);
 						}
 					}else if (tipo_field == java.sql.Date.class){
-						final String m_erro = "Não é uma data válida";
+						final String m_erro = field_name + " não é uma data válida.";
 						if (new_value instanceof String){
 							int len_value = ((String) new_value).length();
 							try {
@@ -696,16 +699,16 @@ public final class EmsUtil {
 	    						}else if (len_value == 19){
 	    							field.set(obj, new java.sql.Date(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse((String) new_value).getTime()));
 	    						}else{
-	    							throw new IllegalArgumentException(m_erro);
+	    							throw new EmsValidationException(m_erro);
 	    						}
 							} catch (ParseException e) {
-								throw new IllegalArgumentException(m_erro);
+								throw new EmsValidationException(m_erro);
 							}
 						}else{
-							throw new IllegalArgumentException(m_erro);
+							throw new EmsValidationException(m_erro);
 						}
 					}else if (tipo_field == java.sql.Timestamp.class){
-						final String m_erro = "Não é uma data válida";
+						final String m_erro = field_name + " não é uma data válida.";
 						java.sql.Timestamp new_time = null;
 						if (new_value instanceof String){
 							int len_value = ((String) new_value).length();
@@ -717,34 +720,55 @@ public final class EmsUtil {
 	    						}else if (len_value == 19){
 	    							new_time = new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse((String) new_value).getTime());
 	    						}else{
-	    							throw new IllegalArgumentException(m_erro);
+	    							throw new EmsValidationException(m_erro);
 	    						}
 							} catch (ParseException e) {
-								throw new IllegalArgumentException(m_erro);
+								throw new EmsValidationException(m_erro);
 							}
 							field.set(obj, new_time);
 						}else{
-							throw new IllegalArgumentException(m_erro);
+							throw new EmsValidationException(m_erro);
 						}
 					}else if (tipo_field.isEnum()){
-						int idValue = ((Double)new_value).intValue();
-						@SuppressWarnings({ "unchecked", "rawtypes" })
-						Enum<?> value = intToEnum(idValue, (Class<Enum>) tipo_field);
-						field.set(obj, value);
+						try{
+							Integer idValue = null;
+							if (new_value instanceof String){
+								idValue = Integer.parseInt((String)new_value);	
+							}else{
+								idValue = ((Double)new_value).intValue();
+							}
+							@SuppressWarnings({ "unchecked", "rawtypes" })
+							Enum<?> value = intToEnum(idValue, (Class<Enum>) tipo_field);
+							field.set(obj, value);
+						}catch (Exception e){
+							throw new EmsValidationException(field_name + " não é válido.");
+						}
 					}else if (tipo_field instanceof Object && 
 							  findFieldByAnnotation(tipo_field, Id.class) != null){
-						Integer idValue = ((Double)new_value).intValue();
-						if (idValue > 0){
-							Object model = jsonModelAdapter.findById(tipo_field, idValue);
-							field.set(obj, model);
+						try{
+							Integer idValue = null;
+							if (new_value instanceof String){
+								idValue = Integer.parseInt((String)new_value);	
+							}else{
+								idValue = ((Double)new_value).intValue();
+							}
+							if (idValue > 0){
+								Object model = jsonModelAdapter.findById(tipo_field, idValue);
+								field.set(obj, model);
+							}
+						}
+						catch (EmsNotFoundException e){
+							throw new EmsValidationException(field_name + " não existe.");
+						}catch (Exception e){
+							throw new EmsValidationException(field_name + " inválido.");
 						}
 					}else{
-						throw new IllegalArgumentException("Não suporta a conversão do tipo de dado");
+						throw new EmsValidationException("Não suporta o tipo de dado do campo "+ field_name + ".");
 					}
 				}catch (EmsValidationException e){
 					throw e;
 				}catch (Exception e){
-					throw new IllegalArgumentException("Campo "+ field_name + " inválido. Erro interno: "+ e.getMessage());
+					throw new EmsValidationException("Campo "+ field_name + " inválido. Erro interno: "+ e.getMessage());
 				}
 			}
 		}
@@ -796,10 +820,10 @@ public final class EmsUtil {
 					return null;
 				}
 			}else{
-				throw new IllegalArgumentException("Objeto não tem id.");
+				throw new EmsValidationException("Objeto não tem id.");
 			}
 	    }else{
-	    	throw new IllegalArgumentException("Obj não pode ser null em EmsUtil.getIdFromObject.");
+	    	throw new EmsValidationException("Obj não pode ser null em EmsUtil.getIdFromObject.");
 	    }
 	}	
 
@@ -818,7 +842,7 @@ public final class EmsUtil {
 		        }
 		    }
 		}
-	    throw new EmsValidationException("Enumeração inválido para o campo "+ clazz.getSimpleName());
+	    throw new EmsValidationException("Valor inválido para o campo "+ clazz.getSimpleName());
 	}
 
 	/**

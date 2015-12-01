@@ -25,9 +25,11 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
 public class EmsRequest implements IEmsRequest {
 	private OtpErlangTuple otp_request;
 	private static OtpErlangAtom undefined = new OtpErlangAtom("undefined");
+	private Map<String, Object> properties;
 
 	public EmsRequest(final OtpErlangTuple otp_request){
 		this.otp_request = otp_request;
+		this.properties = null;
 	}
 	
 	/**
@@ -160,8 +162,8 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public String getQuery(final String nome) {
-		try{
-			if (getQueryCount() > 0){
+		if (getQueryCount() > 0){
+			try{
 				OtpErlangMap Queries = ((OtpErlangMap) otp_request.elementAt(4));
 				OtpErlangBinary OtpNome = new OtpErlangBinary(nome.getBytes());
 				OtpErlangBinary otp_result = (OtpErlangBinary) Queries.get(OtpNome);
@@ -171,11 +173,11 @@ public class EmsRequest implements IEmsRequest {
 				}else{
 					return null;
 				}
-			}else{
-				return null;
+			}catch (Exception e){
+				throw new EmsRequestException("Não foi possível obter a query "+ nome + " do request.");
 			}
-		}catch (Exception e){
-			throw new EmsRequestException("Não foi possível obter a query "+ nome + " do request.");
+		}else{
+			throw new EmsRequestException("Não existe nenhuma query para o request.");
 		}
 	}
 
@@ -209,6 +211,41 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 	
+	@Override
+	public Map<String, Object> getObject() {
+		return getPayloadAsMap();
+	}
+	
+	/**
+	 * Permite obter uma propriedade do payload. Útil para tratar o payload como uma lista de propriedades.
+	 * @param nome nome da propriedade
+	 * @return Object 
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
+	public Object getProperty(final String nome){
+		if (properties == null){
+			properties = getPayloadAsMap();
+		}
+		Object result = properties.get(nome);
+		if (result == null){
+			throw new EmsValidationException("Propriedade "+ nome + " não exite na requisição."); 
+		}
+		return result;
+	};
+	
+	@Override
+	public Integer getPropertyAsInt(final String nome){
+		Object prop = getProperty(nome);
+		if (prop instanceof String){
+			return Integer.parseInt((String) prop);
+		}else if (prop instanceof Double){
+			return ((Double) prop).intValue();
+		}else{
+			throw new EmsValidationException("Propriedade "+ nome + " não é numérica.");
+		}
+	};
+
 	/**
 	 * Retorna o payload do request como map. Um erro será gerado se não for possível ler o objeto JSON.
 	 * @return Map<String, Object>
@@ -219,7 +256,7 @@ public class EmsRequest implements IEmsRequest {
 		try{
 			return (Map<String, Object>) EmsUtil.fromJson(getPayload(), HashMap.class);
 		}catch (Exception e){
-			throw new EmsRequestException("Não foi possível converter o payload do request em map. Erro interno: "+ e.getMessage());
+			throw new EmsRequestException("Não foi possível converter o payload do request em um objeto da interface java.util.Map. Erro interno: "+ e.getMessage());
 		}
 	}
 
@@ -323,7 +360,6 @@ public class EmsRequest implements IEmsRequest {
 			return null;
 		}
 	}
-
 
 	
 }
