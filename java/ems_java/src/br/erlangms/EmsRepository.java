@@ -23,7 +23,7 @@ import org.jinq.jpa.JinqJPAStreamProvider;
 public abstract class EmsRepository<Model> {
 	public abstract Class<Model> getClassOfModel();
 	public abstract EntityManager getEntityManager();
-	private String sqlDeleteQuery;
+	private static String SQL_DELETE;
 
 	public EmsRepository(){
 		createCacheSQL();
@@ -294,7 +294,7 @@ public abstract class EmsRepository<Model> {
 	public boolean delete(final Integer id) {
 		if (id != null && id >= 0){
 			return getEntityManager()
-				.createQuery(sqlDeleteQuery)
+				.createQuery(SQL_DELETE)
 				.setParameter("pId", id)
 				.executeUpdate() > 0;
 		}else{
@@ -326,9 +326,14 @@ public abstract class EmsRepository<Model> {
 		}
 	}
 
+	/**
+	 * Um método para inserir os sql do repositório
+	 * @author Everton de Vargas Agilar
+	 * @param <T>
+	 */
 	protected void createCacheSQL() {
 		String idFieldName = EmsUtil.findFieldByAnnotation(getClassOfModel(), Id.class).getName();
-		sqlDeleteQuery = new StringBuilder("delete from ")
+		SQL_DELETE = new StringBuilder("delete from ")
 								.append(getClassOfModel().getSimpleName())
 								.append(" where ")
 								.append(idFieldName).append("=:pId").toString();
