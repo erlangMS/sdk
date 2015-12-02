@@ -643,7 +643,7 @@ public final class EmsUtil {
 						}else{
 							field.set(obj, new_value.toString());
 						}
-					}else if (tipo_field == Boolean.class){
+					}else if (tipo_field == Boolean.class || tipo_field == boolean.class){
 						if (new_value instanceof String){
 							if (((String) new_value).equalsIgnoreCase("true")){
 								field.set(obj, true);	
