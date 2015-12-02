@@ -26,7 +26,11 @@ import java.util.Map;
 import java.util.Properties;
 
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.Query;
 import javax.ws.rs.client.ClientBuilder;
 
@@ -316,9 +320,11 @@ public final class EmsUtil {
         	return false;
         }
         public boolean shouldSkipField(FieldAttributes f) {
-        	return f.getAnnotation(OneToMany.class)  != null;
-        			//f.getAnnotation(JoinColumn.class) != null ||
-        			//f.getAnnotation(OneToOne.class)   != null);
+        	return (f.getAnnotation(OneToMany.class)  != null &&
+        			f.getAnnotation(JoinColumn.class) != null &&
+        			f.getAnnotation(OneToOne.class)   != null &&
+        			f.getAnnotation(JoinTable.class)  != null &&
+        			f.getAnnotation(ManyToMany.class)  != null);
         }
     }
 	
