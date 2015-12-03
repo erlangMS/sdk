@@ -625,6 +625,12 @@ public final class EmsUtil {
 						}else{
 							field.set(obj,  (int) new_value);
 						}
+					}else if (tipo_field == Long.class || tipo_field == long.class){
+						if (new_value instanceof String){
+							field.set(obj, Double.parseDouble((String) new_value));
+						}else{
+							field.set(obj, ((Double) new_value).longValue());
+						}
 					}else if (tipo_field == BigDecimal.class){
 						if (new_value instanceof String){
 							field.set(obj, BigDecimal.valueOf(Double.parseDouble((String) new_value)));
