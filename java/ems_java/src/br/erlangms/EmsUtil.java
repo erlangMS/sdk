@@ -21,6 +21,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -596,13 +597,37 @@ public final class EmsUtil {
 		}
 	}
 	
+	
+	@SuppressWarnings({ "unchecked" })
+	private static Map<String, Object> ObjectFieldsToMap(Object obj){
+		if (obj != null){
+			if (obj instanceof Map){
+				return (Map<String, Object>) obj;
+			}else{
+				Map<String, Object> map = new HashMap<String, Object>();
+				Field[] fields = obj.getClass().getFields();
+				for (Field field : fields){
+					try {
+						map.put(field.getName(), field.get(obj));
+					} catch (IllegalArgumentException | IllegalAccessException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		return null;
+		
+	}
+	
+		
+	
 	/**
 	 * Seta os valores no objeto a partir de um map
 	 * @param obj Instância de um objeto
 	 * @param values	Map com chave/valor dos dados que serão aplicados no objeto
 	 * @author Everton de Vargas Agilar
 	 */
-	public static void setValuesFromMap(Object obj, Map<String, Object> values, EmsJsonModelAdapter jsonModelAdapter){
+	public static Object setValuesFromMap(Object obj, Map<String, Object> values, EmsJsonModelAdapter jsonModelAdapter){
 		if (obj != null && values != null && values.size() > 0){
 			Class<? extends Object> class_obj = obj.getClass();
 			for (String field_name : values.keySet()){
@@ -785,6 +810,7 @@ public final class EmsUtil {
 				}
 			}
 		}
+		return obj;
 	}
 	
 
@@ -1002,6 +1028,15 @@ public final class EmsUtil {
 	public static boolean isFieldObjectValid(Object obj){
 		return (obj != null  ? true : false);
 		
+	}
+
+	public static Object mergeObjects(Object obj1, Object obj2){
+		return mergeObjects(obj1, obj2, null);
+	}
+
+	public static Object mergeObjects(Object obj1, Object obj2, EmsJsonModelAdapter jsonModelAdapter){
+		Map<String, Object> values = ObjectFieldsToMap(obj2);
+		return setValuesFromMap(obj1, values, jsonModelAdapter);
 	}
 	
 }

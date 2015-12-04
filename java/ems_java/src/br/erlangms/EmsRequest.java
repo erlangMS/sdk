@@ -150,7 +150,7 @@ public class EmsRequest implements IEmsRequest {
 				return 0;
 			}
 		}catch (Exception e){
-			throw new EmsRequestException("Não foi possível a quantidade de queries do request.");
+			throw new EmsRequestException("Não foi possível obter a quantidade de queries do request.");
 		}
 	}
 
