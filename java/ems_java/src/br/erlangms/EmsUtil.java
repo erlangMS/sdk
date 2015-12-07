@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -27,8 +28,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.persistence.FetchType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
@@ -317,15 +318,51 @@ public final class EmsUtil {
 	
 	}
 	
+	public static boolean isAnyParameterAnnotated(Method method, Class<?> annotationType) {
+	    final Annotation[][] paramAnnotations = method.getParameterAnnotations();    
+	    for (Annotation[] annotations : paramAnnotations) {
+	        for (Annotation an : annotations) {
+	            if(an.annotationType().equals(annotationType)) {
+	                return true;
+	            }
+	        }
+	    }
+	    return false;
+	}	
+	
+	public static String getClassAnnotationValue(@SuppressWarnings("rawtypes") Class classType, @SuppressWarnings("rawtypes") Class annotationType, String attributeName) {
+        String value = null;
+ 
+        @SuppressWarnings("unchecked")
+		Annotation annotation = classType.getAnnotation(annotationType);
+        if (annotation != null) {
+            try {
+                value = (String) annotation.annotationType().getMethod(attributeName).invoke(annotation);
+            } catch (Exception ex) {
+            }
+        }
+ 
+        return value;
+    }
+	
 	private static class SerializeStrategy implements ExclusionStrategy {
         public boolean shouldSkipClass(Class<?> c) {
         	return false;
         }
         public boolean shouldSkipField(FieldAttributes f) {
-        	return (f.getAnnotation(OneToMany.class)  != null &&
-        			f.getAnnotation(JoinColumn.class) != null &&
-        			f.getAnnotation(OneToOne.class)   != null &&
-        			f.getAnnotation(JoinTable.class)  != null &&
+        	OneToOne oneToOne = f.getAnnotation(OneToOne.class);
+        	if (oneToOne != null && oneToOne.fetch() == FetchType.EAGER) {
+        		return false;
+        	}
+        	
+        	//OneToMany oneToMany = f.getAnnotation(OneToMany.class);
+        	//if (oneToMany != null && oneToMany.fetch() == FetchType.EAGER) {
+        	//	return true;
+        	//}
+
+        	return (f.getDeclaredType() == List.class ||
+        			f.getAnnotation(OneToMany.class)   != null ||
+        			f.getAnnotation(JoinTable.class)   != null ||
         			f.getAnnotation(ManyToMany.class)  != null);
         }
     }
