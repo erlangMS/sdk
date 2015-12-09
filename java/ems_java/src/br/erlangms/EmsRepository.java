@@ -23,10 +23,10 @@ import org.jinq.jpa.JinqJPAStreamProvider;
 public abstract class EmsRepository<Model> {
 	public abstract Class<Model> getClassOfModel();
 	public abstract EntityManager getEntityManager();
-	private static String SQL_DELETE;
+	private String SQL_DELETE;
 
 	public EmsRepository(){
-		createCacheSQL();
+		doCreateCacheSQL();
 	}
 
 	/**
@@ -326,17 +326,20 @@ public abstract class EmsRepository<Model> {
 		}
 	}
 
-	/**
-	 * Um método para inserir os sql do repositório
-	 * @author Everton de Vargas Agilar
-	 * @param <T>
-	 */
-	protected void createCacheSQL() {
+	private void doCreateCacheSQL(){
 		String idFieldName = EmsUtil.findFieldByAnnotation(getClassOfModel(), Id.class).getName();
 		SQL_DELETE = new StringBuilder("delete from ")
 								.append(getClassOfModel().getSimpleName())
 								.append(" where ")
 								.append(idFieldName).append("=:pId").toString();
+		createCacheSQL();
+	}
+	
+	/**
+	 * Um método para criar as contantes de sql necessários para o repositório
+	 * @author Everton de Vargas Agilar
+	 */
+	protected void createCacheSQL() {
 	}
 	
 }
