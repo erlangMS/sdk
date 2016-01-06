@@ -67,8 +67,8 @@ public class EmsConnection
 	 *    -Dems_msbus=http://localhost:2301
 	 *    -Dems_cookie=erlangms
 	 *    -Dems_max_thread_pool_by_agent=10
-	 *    -Dems_user=everton 
-	 *    -Dems_password=123456 
+	 *    -Dems_user=xxxxxxx 
+	 *    -Dems_password=xxxxxx 
 	 * @param from pid do agente
 	 * @return OtpErlangTuple
 	 * @author Everton de Vargas Agilar
@@ -250,16 +250,18 @@ public class EmsConnection
 		} catch (NoSuchMethodException e) {  
 	        // Essa exceção ocorre se o getMethod() não encontrar o método
 	    	String erro = "Método de negócio não encontrado: " + metodo + ".";
-	    	logger.info(erro);
-	    	return "{\"erro\":\"service\", \"message\" : \"" + erro + "\"}";
+	    	msg_json = "{\"erro\":\"service\", \"message\" : \"" + erro + "\"}"; 
+	    	logger.error(erro);
+	    	return new EmsResponse(400, msg_json); 
 	    } catch (IllegalAccessException e) {  
 	        // Pode ocorrer se o método que você está invocando não for  
 	        // acessível. Você pode forçar que um método (mesmo privado!) seja  
 	        // acessível fazendo:  
 	        // antes do seu invoke.
 	    	String erro = "Acesso ilegal ao método de negócio: " + metodo + ".";
-	    	logger.info(erro);
-	    	return "{\"erro\":\"service\", \"message\" : \"" + erro + "\"}";
+	    	msg_json = "{\"erro\":\"service\", \"message\" : \"" + erro + "\"}"; 
+	    	logger.error(erro);
+	    	return new EmsResponse(400, msg_json); 
 	    } catch (InvocationTargetException e) {  
 	        // Essa exceção acontece se o método chamado gerar uma exceção.  
 	        // Use e.getCause() para descobrir qual exceção foi gerada no método  
@@ -277,13 +279,13 @@ public class EmsConnection
 		    	}else{
 		    		msg_json = "{\"erro\":\"validation\", \"message\" : \"\"}";
 		    	}
-		    	return msg_json;
+		    	return new EmsResponse(400, msg_json);
 	    	}else if (cause instanceof EmsRequestException){
-	    		msg_json = "{\"erro\":\"facade\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
-	    		return msg_json;
+	    		msg_json = "{\"erro\":\"service\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
+	    		return new EmsResponse(400, msg_json);
 	    	}else if (cause instanceof EmsNotFoundException){
 	    		msg_json = "{\"erro\":\"notfound\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
-	    		return msg_json;
+	    		return new EmsResponse(404, msg_json);
 	    	}else if (cause instanceof javax.ejb.EJBException){
 	    		try{
 		    		Exception causeEx = ((javax.ejb.EJBException) cause).getCausedByException();
@@ -300,17 +302,19 @@ public class EmsConnection
 		    				motivo = cause.getMessage();	
 			    		}
 	    			}
-		    		msg_json = "{\"erro\":\"service\", \"message\" : " + EmsUtil.toJson(motivo) + "}";
-		    		return msg_json;
+		    		msg_json = "{\"erro\":\"validation\", \"message\" : " + EmsUtil.toJson(motivo) + "}";
+		    		return new EmsResponse(400, msg_json);
 	    		}catch (Exception ex){
 			    	String erro = "O método "+ modulo + "." + metodo + " gerou uma excessão: " + e.getCause() + "."; 
-			    	logger.info(erro);
-			    	return "{\"erro\":\"service\", \"message\" : \"" + erro + "\"}";
+			    	msg_json = "{\"erro\":\"service\", \"message\" : \"" + erro + "\"}"; 
+			    	logger.error(erro);
+			    	return new EmsResponse(400, msg_json); 
 	    		}
 	    	}else{
 		    	String erro = "O método "+ modulo + "." + metodo + " gerou uma excessão: " + e.getCause() + "."; 
-		    	logger.info(erro);
-		    	return "{\"erro\":\"service\", \"message\" : " + EmsUtil.toJson(erro) + "}";
+		    	msg_json = "{\"erro\":\"service\", \"message\" : " + EmsUtil.toJson(erro) + "}";
+		    	logger.error(erro);
+		    	return new EmsResponse(400, msg_json);
 	    	}
 	    }
 	}  	
@@ -329,7 +333,7 @@ public class EmsConnection
 		
         public Boolean call() {  
         	Object ret = chamaMetodo(request.getModulo(), request.getFunction(), request);
-        	OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request.getRID());
+        	OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
         	myMbox.send(from, response);
 			return true;
         }  

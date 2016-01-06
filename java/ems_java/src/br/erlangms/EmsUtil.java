@@ -42,6 +42,7 @@ import org.hibernate.proxy.HibernateProxy;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
+import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -66,8 +67,8 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 public final class EmsUtil {
-	private static final OtpErlangAtom ok = new OtpErlangAtom("ok");
-	private static final OtpErlangAtom service_atom = new OtpErlangAtom("servico");
+	private static final OtpErlangAtom ok_atom = new OtpErlangAtom("ok");
+	private static final OtpErlangAtom error_atom = new OtpErlangAtom("error");
 	private static final OtpErlangAtom request_msg_atom = new OtpErlangAtom("request");
 	private static final OtpErlangBinary result_null = new OtpErlangBinary("{\"ok\":\"null\"}".getBytes());
 	private static final OtpErlangBinary erro_convert_json = new OtpErlangBinary("{\"erro\":\"service\", \"message\" : \"Falha na serialização do conteúdo em JSON\"}".getBytes());
@@ -940,14 +941,17 @@ public final class EmsUtil {
 	 * @return OtpErlangTuple
 	 * @author Everton de Vargas Agilar
 	 */
-	public static OtpErlangTuple serializeObjectToErlangResponse(Object ret, long rid){
+	public static OtpErlangTuple serializeObjectToErlangResponse(Object ret, IEmsRequest request){
 	    OtpErlangObject[] otp_result = new OtpErlangObject[3];
 		OtpErlangObject[] reply = new OtpErlangObject[2];
-	    reply[0] = ok;
+	    boolean isEmsResponse = ret instanceof EmsResponse;
+		reply[0] = ok_atom;
 	    if (ret != null){
 	    	try{
 	        	String m_json = null;
-	        	if (ret instanceof OtpErlangBinary){
+	        	if (isEmsResponse){
+	            	reply[1] = new OtpErlangBinary((((EmsResponse) ret).content).getBytes());
+	        	}else if (ret instanceof OtpErlangBinary){
 	        		reply[1] = (OtpErlangBinary) ret;
 	        	}else if (ret instanceof OtpErlangAtom){
 	        		reply[1] = (OtpErlangObject) ret;
@@ -980,8 +984,17 @@ public final class EmsUtil {
 	    }else{
 			reply[1] = result_null;
 	    }
-	    otp_result[0] = service_atom;
-	    otp_result[1] = new OtpErlangLong(rid);
+	    if (isEmsResponse){
+	    	int code = ((EmsResponse) ret).code;
+	    	otp_result[0] = new OtpErlangInt(code);	
+	    }else{
+	    	if (request.getMetodo().equals("POST")){
+	    		otp_result[0] = new OtpErlangInt(201);
+	    	}else{
+	    		otp_result[0] = new OtpErlangInt(200);
+	    	}
+	    }
+	    otp_result[1] = new OtpErlangLong(request.getRID());
 	    otp_result[2] = new OtpErlangTuple(reply);
 	    OtpErlangTuple myTuple = new OtpErlangTuple(otp_result);
 	    return myTuple;

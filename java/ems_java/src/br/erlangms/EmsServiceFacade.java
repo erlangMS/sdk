@@ -38,7 +38,6 @@ public abstract class EmsServiceFacade implements IEmsServiceFacade {
         daemon.stop();
         connection.close();
         connection = null;
-        
     }
 
     protected States getState() {
