@@ -688,11 +688,13 @@ public final class EmsUtil {
 						}else{
 							field.set(obj,  (int) new_value);
 						}
-					}else if (tipo_field == Double.class || tipo_field == double.class){
+					}else if (tipo_field == Float.class || tipo_field == float.class){
 						if (new_value instanceof String){
-							field.set(obj, Double.parseDouble((String) new_value));
+							field.set(obj, Float.parseFloat((String) new_value));
+						}else if (new_value instanceof Double){
+							field.set(obj, ((Double) new_value).floatValue());
 						}else{
-							field.set(obj, ((Double) new_value));
+							field.set(obj, ((Float) new_value));
 						}
 					}else if (tipo_field == Long.class || tipo_field == long.class){
 						if (new_value instanceof String){
