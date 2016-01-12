@@ -68,7 +68,6 @@ import com.google.gson.stream.JsonWriter;
 
 public final class EmsUtil {
 	private static final OtpErlangAtom ok_atom = new OtpErlangAtom("ok");
-	private static final OtpErlangAtom error_atom = new OtpErlangAtom("error");
 	private static final OtpErlangAtom request_msg_atom = new OtpErlangAtom("request");
 	private static final OtpErlangBinary result_null = new OtpErlangBinary("{\"ok\":\"null\"}".getBytes());
 	private static final OtpErlangBinary erro_convert_json = new OtpErlangBinary("{\"erro\":\"service\", \"message\" : \"Falha na serialização do conteúdo em JSON\"}".getBytes());
@@ -141,11 +140,12 @@ public final class EmsUtil {
                     	String value = json.getAsString();                            	
 						final String m_erro = "Não é uma data válida.";
                     	try {
-                        	if (value.length() == 10){
+                    		int len_value = value.length();
+                    		if (len_value >= 6 && len_value <= 10){
 								return new SimpleDateFormat("dd/MM/yyyy").parse(value);
-    						}else if (value.length() == 16){
+    						}else if (len_value == 16){
     							return new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(value);
-    						}else if (value.length() == 19){
+    						}else if (len_value == 19){
     							return new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(value);
     						}else{
     							throw new EmsValidationException(m_erro);
@@ -160,11 +160,12 @@ public final class EmsUtil {
                     	String value = json.getAsString();                            	
 						final String m_erro = "Não é uma data válida";
                     	try {
-                        	if (value.length() == 10){
+                    		int len_value = value.length();
+                    		if (len_value >= 6 && len_value <= 10){
 								return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy").parse(value).getTime());
-    						}else if (value.length() == 16){
+    						}else if (len_value == 16){
     							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(value).getTime());
-    						}else if (value.length() == 19){
+    						}else if (len_value == 19){
     							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(value).getTime());
     						}else{
     							throw new EmsValidationException(m_erro);
@@ -260,11 +261,12 @@ public final class EmsUtil {
                 	String value = json.getAsString();                            	
 					final String m_erro = "Não é uma data válida.";
                 	try {
-                    	if (value.length() == 10){
+                		int len_value = value.length();
+                		if (len_value >= 6 && len_value <= 10){
 							return new SimpleDateFormat("dd/MM/yyyy").parse(value);
-						}else if (value.length() == 16){
+						}else if (len_value == 16){
 							return new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(value);
-						}else if (value.length() == 19){
+						}else if (len_value == 19){
 							return new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(value);
 						}else{
 							throw new EmsValidationException(m_erro);
@@ -279,11 +281,12 @@ public final class EmsUtil {
                 	String value = json.getAsString();                            	
 					final String m_erro = "Não é uma data válida.";
                 	try {
-                    	if (value.length() == 10){
+                		int len_value = value.length();
+                		if (len_value >= 6 && len_value <= 10){
 							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy").parse(value).getTime());
-						}else if (value.length() == 16){
+						}else if (len_value == 16){
 							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(value).getTime());
-						}else if (value.length() == 19){
+						}else if (len_value == 19){
 							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(value).getTime());
 						}else{
 							throw new EmsValidationException(m_erro);
@@ -610,7 +613,7 @@ public final class EmsUtil {
 						if (value_field instanceof String){
 							int len_value = ((String) value_field).length();
 							try {
-	                        	if (len_value == 10){
+								if (len_value >= 6 && len_value <= 10){
 	                        		query.setParameter(p++, new SimpleDateFormat("dd/MM/yyyy").parse((String) value_field));
 	    						}else if (len_value == 16){
 	    							query.setParameter(p++, new SimpleDateFormat("dd/MM/yyyy HH:mm").parse((String) value_field));
@@ -665,6 +668,7 @@ public final class EmsUtil {
 	 * @param values	Map com chave/valor dos dados que serão aplicados no objeto
 	 * @author Everton de Vargas Agilar
 	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static Object setValuesFromMap(Object obj, Map<String, Object> values, EmsJsonModelAdapter jsonModelAdapter){
 		if (obj != null && values != null && values.size() > 0){
 			Class<? extends Object> class_obj = obj.getClass();
@@ -687,6 +691,14 @@ public final class EmsUtil {
 							field.set(obj, ((Double)new_value).intValue());
 						}else{
 							field.set(obj,  (int) new_value);
+						}
+					}else if (tipo_field == Double.class || tipo_field == double.class){
+						if (new_value instanceof String){
+							field.set(obj, Double.parseDouble((String) new_value));
+						}else if (new_value instanceof Double){
+							field.set(obj, ((Double) new_value).doubleValue());
+						}else{
+							field.set(obj, ((Float) new_value));
 						}
 					}else if (tipo_field == Float.class || tipo_field == float.class){
 						if (new_value instanceof String){
@@ -756,7 +768,7 @@ public final class EmsUtil {
 						if (new_value instanceof String){
 							int len_value = ((String) new_value).length();
 							try {
-	                        	if (len_value == 10){
+	                        	if (len_value >= 6 && len_value <= 10){
 	                        		field.set(obj, new SimpleDateFormat("dd/MM/yyyy").parse((String) new_value));
 	    						}else if (len_value == 16){
 	                        		field.set(obj, new SimpleDateFormat("dd/MM/yyyy HH:mm").parse((String) new_value));
@@ -776,7 +788,7 @@ public final class EmsUtil {
 						if (new_value instanceof String){
 							int len_value = ((String) new_value).length();
 							try {
-	                        	if (len_value == 10){
+								if (len_value >= 6 && len_value <= 10){
 	                        		field.set(obj, new java.sql.Date(new SimpleDateFormat("dd/MM/yyyy").parse((String) new_value).getTime()));
 	    						}else if (len_value == 16){
 	                        		field.set(obj, new java.sql.Date(new SimpleDateFormat("dd/MM/yyyy HH:mm").parse((String) new_value).getTime()));
@@ -797,7 +809,7 @@ public final class EmsUtil {
 						if (new_value instanceof String){
 							int len_value = ((String) new_value).length();
 							try {
-	                        	if (len_value == 10){
+								if (len_value >= 6 && len_value <= 10){
 	    							new_time = new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy").parse((String) new_value).getTime());
 	    						}else if (len_value == 16){
 	    							new_time = new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm").parse((String) new_value).getTime());
@@ -816,13 +828,18 @@ public final class EmsUtil {
 					}else if (tipo_field.isEnum()){
 						try{
 							Integer idValue = null;
+							Enum<?> value = null;
 							if (new_value instanceof String){
-								idValue = Integer.parseInt((String)new_value);	
+								try{
+									idValue = Integer.parseInt((String) new_value);	
+									value = intToEnum(idValue, (Class<Enum>) tipo_field);
+								}catch (NumberFormatException e){
+									value = StrToEnum((String) new_value, (Class<Enum>) tipo_field);
+								}
 							}else{
-								idValue = ((Double)new_value).intValue();
+								idValue = ((Double) new_value).intValue();
+								value = intToEnum(idValue, (Class<Enum>) tipo_field);
 							}
-							@SuppressWarnings({ "unchecked", "rawtypes" })
-							Enum<?> value = intToEnum(idValue, (Class<Enum>) tipo_field);
 							field.set(obj, value);
 						}catch (Exception e){
 							throw new EmsValidationException(field_name + " não é válido.");
@@ -914,15 +931,33 @@ public final class EmsUtil {
 
 	/**
 	 * Converte um inteiro para a enumeração de acordo com clazz
-	 * @param code código da enumeração
+	 * @param value código da enumeração
 	 * @param clazz	classe da enumeração
 	 * @return enumeração
 	 * @author Everton de Vargas Agilar
 	 */
-	public static Enum<?> intToEnum(int code, @SuppressWarnings("rawtypes") Class<Enum> clazz) {
-		if (code >= 0 && clazz != null){
+	public static Enum<?> intToEnum(int value, @SuppressWarnings("rawtypes") Class<Enum> clazz) {
+		if (value >= 0 && clazz != null){
 			for(Enum<?> t : clazz.getEnumConstants()) {
-		        if(t.ordinal() == code) {
+		        if(t.ordinal() == value) {
+		            return t;
+		        }
+		    }
+		}
+	    throw new EmsValidationException("Valor inválido para o campo "+ clazz.getSimpleName());
+	}
+
+	/**
+	 * Converte a descrição da enumeração para a enumeração de acordo com clazz
+	 * @param value descrição da enumeração
+	 * @param clazz	classe da enumeração
+	 * @return enumeração
+	 * @author Everton de Vargas Agilar
+	 */
+	public static Enum<?> StrToEnum(String value, @SuppressWarnings("rawtypes") Class<Enum> clazz) {
+		if (value != null && value != "" && clazz != null){
+			for(Enum<?> t : clazz.getEnumConstants()) {
+		        if(t.name().equalsIgnoreCase(value)) {
 		            return t;
 		        }
 		    }
