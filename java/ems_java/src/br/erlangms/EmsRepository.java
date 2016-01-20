@@ -72,7 +72,7 @@ public abstract class EmsRepository<Model> {
 		Field idField = EmsUtil.findFieldByAnnotation(getClassOfModel(), Id.class);
 
 		// Define o filtro da query se foi informado
-		if (filtro != null && !filtro.isEmpty() && !filtro.equals("{}")){
+		if (filtro != null && filtro.length() > 5){
 			try{
 				boolean useAnd = false; 
 				filtro_obj = (Map<String, Object>) EmsUtil.fromJson(filtro, HashMap.class);

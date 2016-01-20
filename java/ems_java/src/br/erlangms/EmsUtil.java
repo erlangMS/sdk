@@ -768,7 +768,10 @@ public final class EmsUtil {
 						if (new_value instanceof String){
 							int len_value = ((String) new_value).length();
 							try {
-	                        	if (len_value >= 6 && len_value <= 10){
+								if (len_value == 0){
+									field.set(obj, null);
+								}
+								else if (len_value >= 6 && len_value <= 10){
 	                        		field.set(obj, new SimpleDateFormat("dd/MM/yyyy").parse((String) new_value));
 	    						}else if (len_value == 16){
 	                        		field.set(obj, new SimpleDateFormat("dd/MM/yyyy HH:mm").parse((String) new_value));
@@ -788,7 +791,10 @@ public final class EmsUtil {
 						if (new_value instanceof String){
 							int len_value = ((String) new_value).length();
 							try {
-								if (len_value >= 6 && len_value <= 10){
+								if (len_value == 0){
+									field.set(obj, null);
+								}
+								else if (len_value >= 6 && len_value <= 10){
 	                        		field.set(obj, new java.sql.Date(new SimpleDateFormat("dd/MM/yyyy").parse((String) new_value).getTime()));
 	    						}else if (len_value == 16){
 	                        		field.set(obj, new java.sql.Date(new SimpleDateFormat("dd/MM/yyyy HH:mm").parse((String) new_value).getTime()));
@@ -809,7 +815,10 @@ public final class EmsUtil {
 						if (new_value instanceof String){
 							int len_value = ((String) new_value).length();
 							try {
-								if (len_value >= 6 && len_value <= 10){
+								if (len_value == 0){
+									new_time = null;
+								}
+								else if (len_value >= 6 && len_value <= 10){
 	    							new_time = new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy").parse((String) new_value).getTime());
 	    						}else if (len_value == 16){
 	    							new_time = new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm").parse((String) new_value).getTime());
