@@ -1,6 +1,6 @@
-# Módulo: agents
+# Módulo: sdk
 
-SDK para integrar a linguagem de programação com o barramento ErlangMS, independente da linguagem de programação ou plataforma dos sistemas.
+O sdk integra a linguagem de programação com o barramento msbus e permite que os serviços possam ser implementados em qualquer linguagem.
 
 **Atualmente o SDK está implementado somente na linguagem Java.**
 
