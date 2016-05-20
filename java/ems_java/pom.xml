@@ -15,10 +15,12 @@
 	
 <dependencies>
 	<dependency>
-        <groupId>br.erlangms</groupId>
-        <artifactId>OtpErlang</artifactId>
-        <version>1.6.0</version>
-    </dependency>	
+		<groupId>org.erlang.otp</groupId>
+		<artifactId>jinterface</artifactId>
+		<version>1.6.1</version>
+	</dependency>
+
+
     
 	<dependency>
 		<groupId>com.google.code.gson</groupId>
