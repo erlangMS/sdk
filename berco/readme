@@ -1,0 +1,47 @@
+##
+## Instruções para o berço
+##
+
+1) subir um shell erlang em uma VM (virtual machine)
+
+erl -setcookie aula -sname no1
+
+       onde no1 é o nome do nó, troque para qualquer nome!!!
+ 
+
+
+2) para iniciar um processo server em algum nó
+
+# compilar 
+c(server).
+
+# ou somente carregar
+l(server).
+
+# iniciar o processo e registrá-lo como atom server (o processo vai ficar em loop aguardando mensagens!)
+register(server, server:start()).
+
+
+# para testar na mesma VM (mesmo shell!!!)
+
+server ! {self(), "ola"}.
+
+
+# para testar em outra VM (em outro shell!!!)
+
+{server, no1@dominio} ! {self(), "Ola, tudo bom?"}.
+
+       onde 
+           server é o atom do nome do nó registrado;
+           no1@dominio é em qual nó encontra-se o processo;
+           self() é o próprio shell (que também é um processo Erlang), 
+
+
+OBS.: após enviar mensagens, para vermos as mensagens que chegou para o shell,
+      devemos usar a função flush().
+
+flush().
+
+
+é isso ai!!!
+
