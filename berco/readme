@@ -43,5 +43,17 @@ OBS.: após enviar mensagens, para vermos as mensagens que chegou para o shell,
 flush().
 
 
-é isso ai!!!
+3) #Compilar códigos desenvolvidos em .NET
+
+Instalar para Linux/Mac
+
+http://www.monodevelop.com
+
+## Compilar
+
+mcs <file>.cs
+
+## Executar
+mono <file>.exe
+
 
