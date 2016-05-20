@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProjectGuid>{1C571300-8A5F-4B30-98E8-72B2DC984168}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Cliente</RootNamespace>
+    <AssemblyName>Cliente</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <StartupObject>Cliente.MainClass</StartupObject>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Externalconsole>true</Externalconsole>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Externalconsole>true</Externalconsole>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="log4net">
+      <HintPath>..\..\..\Erlang.NET\bin\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Configuration" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="lib\AbstractConnection.cs" />
+    <Compile Include="lib\AbstractNode.cs" />
+    <Compile Include="lib\BufferedTcpClient.cs" />
+    <Compile Include="lib\GenericQueue.cs" />
+    <Compile Include="lib\Link.cs" />
+    <Compile Include="lib\Links.cs" />
+    <Compile Include="lib\OtpActor.cs" />
+    <Compile Include="lib\OtpActorMbox.cs" />
+    <Compile Include="lib\OtpActorSched.cs" />
+    <Compile Include="lib\OtpAuthException.cs" />
+    <Compile Include="lib\OtpConnection.cs" />
+    <Compile Include="lib\OtpCookedConnection.cs" />
+    <Compile Include="lib\OtpEpmd.Client.cs" />
+    <Compile Include="lib\OtpEpmd.Server.cs" />
+    <Compile Include="lib\OtpErlangAtom.cs" />
+    <Compile Include="lib\OtpErlangBinary.cs" />
+    <Compile Include="lib\OtpErlangBitstr.cs" />
+    <Compile Include="lib\OtpErlangBoolean.cs" />
+    <Compile Include="lib\OtpErlangByte.cs" />
+    <Compile Include="lib\OtpErlangChar.cs" />
+    <Compile Include="lib\OtpErlangDecodeException.cs" />
+    <Compile Include="lib\OtpErlangDouble.cs" />
+    <Compile Include="lib\OtpErlangException.cs" />
+    <Compile Include="lib\OtpErlangExit.cs" />
+    <Compile Include="lib\OtpErlangExternalFun.cs" />
+    <Compile Include="lib\OtpErlangFloat.cs" />
+    <Compile Include="lib\OtpErlangFun.cs" />
+    <Compile Include="lib\OtpErlangInt.cs" />
+    <Compile Include="lib\OtpErlangList.cs" />
+    <Compile Include="lib\OtpErlangLong.cs" />
+    <Compile Include="lib\OtpErlangObject.cs" />
+    <Compile Include="lib\OtpErlangPid.cs" />
+    <Compile Include="lib\OtpErlangPort.cs" />
+    <Compile Include="lib\OtpErlangRangeException.cs" />
+    <Compile Include="lib\OtpErlangRef.cs" />
+    <Compile Include="lib\OtpErlangShort.cs" />
+    <Compile Include="lib\OtpErlangString.cs" />
+    <Compile Include="lib\OtpErlangTuple.cs" />
+    <Compile Include="lib\OtpErlangUInt.cs" />
+    <Compile Include="lib\OtpErlangUShort.cs" />
+    <Compile Include="lib\OtpException.cs" />
+    <Compile Include="lib\OtpExternal.cs" />
+    <Compile Include="lib\OtpInputStream.cs" />
+    <Compile Include="lib\OtpLocalNode.cs" />
+    <Compile Include="lib\OtpMD5.cs" />
+    <Compile Include="lib\OtpMbox.cs" />
+    <Compile Include="lib\OtpMsg.cs" />
+    <Compile Include="lib\OtpNode.cs" />
+    <Compile Include="lib\OtpNodeStatus.cs" />
+    <Compile Include="lib\OtpOutputStream.cs" />
+    <Compile Include="lib\OtpPeer.cs" />
+    <Compile Include="lib\OtpSelf.cs" />
+    <Compile Include="lib\OtpServer.cs" />
+    <Compile Include="lib\ThreadBase.cs" />
+    <Compile Include="lib\BigInteger\BigInteger.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <None Include="lib\BigInteger\BigIntegerDoc.html" />
+  </ItemGroup>
+</Project>
