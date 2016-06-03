@@ -95,6 +95,9 @@
     <Compile Include="lib\OtpServer.cs" />
     <Compile Include="lib\ThreadBase.cs" />
     <Compile Include="lib\BigInteger\BigInteger.cs" />
+    <Compile Include="EmsConnection.cs" />
+    <Compile Include="IEmsServiceFacade.cs" />
+    <Compile Include="EmsUtil.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

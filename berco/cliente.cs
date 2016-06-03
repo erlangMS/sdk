@@ -10,7 +10,7 @@ class TestClass
 		System.Console.WriteLine("Cliente CSharp ErlangMS");
 	
 		OtpSelf cNode = new OtpSelf("clientnode", "aula");
-		OtpPeer sNode = new OtpPeer("no1@puebla");
+		OtpPeer sNode = new OtpPeer("no1@Willians-MacBook-Pro");
 
 		OtpConnection connection = cNode.connect(sNode);
 

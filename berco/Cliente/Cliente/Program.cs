@@ -3,6 +3,7 @@
 using Erlang.NET;
 using log4net;
 using log4net.Config;
+using br.erlangms;
 
 namespace Cliente
 {
@@ -14,6 +15,9 @@ namespace Cliente
 
 		public static void Main (string[] args)
 		{
+
+			EmsConnection con = new EmsConnection("Cliente","Cliente",null);
+
 			// Set up a simple configuration that logs on the console.
 			BasicConfigurator.Configure();
 
@@ -22,7 +26,7 @@ namespace Cliente
 			System.Console.WriteLine("Cliente CSharp ErlangMS");
 
 			OtpSelf cNode = new OtpSelf("clientnode", "aula");
-			OtpPeer sNode = new OtpPeer("no1@puebla");
+			OtpPeer sNode = new OtpPeer("no1@Willians-MacBook-Pro");
 
 			OtpConnection connection = cNode.connect(sNode);
 

@@ -10,3 +10,9 @@
 /home/viper/desenvolvimento/erlangms/sdk/berco/Cliente/Cliente/obj/x86/Debug/Cliente.exe
 /home/viper/desenvolvimento/erlangms/sdk/berco/Cliente/Cliente/obj/x86/Debug/Cliente.exe.mdb
 /home/viper/desenvolvimento/erlangms/sdk/berco/Cliente/Cliente/bin/Debug/log4net.dll
+/Users/willianpinho/Projects/sdk/berco/Cliente/Cliente/obj/x86/Debug/.NETFramework,Version=v4.5.AssemblyAttribute.cs
+/Users/willianpinho/Projects/sdk/berco/Cliente/Cliente/bin/Debug/Cliente.exe.mdb
+/Users/willianpinho/Projects/sdk/berco/Cliente/Cliente/bin/Debug/Cliente.exe
+/Users/willianpinho/Projects/sdk/berco/Cliente/Cliente/obj/x86/Debug/Cliente.exe
+/Users/willianpinho/Projects/sdk/berco/Cliente/Cliente/obj/x86/Debug/Cliente.exe.mdb
+/Users/willianpinho/Projects/sdk/berco/Cliente/Cliente/bin/Debug/log4net.dll
