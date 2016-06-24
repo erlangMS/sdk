@@ -1,35 +1,36 @@
 ﻿using System;
 using Erlang.NET;
+using System.Collections.Generic;
 
 namespace br.erlangms
 {
-	public interface IEmsRequest
+	public interface IEmsRequest<T>
 	{
-		public long getRID();
-		public string getUrl();
-		public string getMetodo();
-		public int getParamsCount();
-		public string getParam(String NomeParam);
-		public int getParamAsInt(String NomeParam);
-		public double getParamAsDouble(String NomeParam);
-		public int getQueryCount();
-		public string getQuery(String Nome);
-		public int getQueryAsInt(String Nome);
-		public double getQueryAsDouble(String Nome);
-		public string getModulo();
-		public string getFunction();
-		public OtpErlangObject getOtpRequest();
-		public DateTime getParamAsDate(String NomeParam) throws ParseException;
-		public String getPayload();
-		public <T> T getObject(Class<T> classOfObj, EmsJsonModelAdapter jsonModelAdapter);
-		public <T> T getObject(Class<T> classOfObj);
-		public Map<String, Object> getObject();
-		public Object getProperty(String nome);
-		public Integer getPropertyAsInt(String nome);
-		public Object mergeObjectFromPayload(Object obj);
-		public Object mergeObjectFromPayload(Object obj, EmsJsonModelAdapter jsonModelAdapter);
-		public Map<String, Object> getPayloadAsMap();
-		public String getContentType();
+		long getRID();
+		string getUrl();
+		string getMetodo();
+		int getParamsCount();
+		string getParam(String NomeParam);
+		int getParamAsInt(String NomeParam);
+		double getParamAsDouble(String NomeParam);
+		int getQueryCount();
+		string getQuery(String Nome);
+		int getQueryAsInt(String Nome);
+		double getQueryAsDouble(String Nome);
+		string getModulo();
+		string getFunction();
+		OtpErlangObject getOtpRequest();
+		DateTime getParamAsDate(String NomeParam);
+		String getPayload();
+		T getObject(Type classOfObj, EmsJsonModelAdapter jsonModelAdapter);
+		T getObject(Type classOfObj);
+		Dictionary<String,Object> getObject();
+		Object getProperty(String nome);
+		int getPropertyAsInt(String nome);
+		Object mergeObjectFromPayload(Object obj);
+		Object mergeObjectFromPayload(Object obj, EmsJsonModelAdapter jsonModelAdapter);
+		Dictionary<String, Object> getPayloadAsMap();
+		String getContentType();
 	}
 }
 

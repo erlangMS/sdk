@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+
 namespace br.erlangms
 {
 	public class EmsValidationException : SystemException
@@ -7,13 +10,14 @@ namespace br.erlangms
 
 		public EmsValidationException() : base()
 		{
-			errors = new ArrayList<>();
+			
+			errors = new List<string>();
 		}
 
 		public EmsValidationException(String e) : base(e)
 		{
-			errors = new ArrayList<>();
-			errors.add(e);
+			errors = new List<string>();
+			errors.Add(e);
 		}
 
 
@@ -24,7 +28,7 @@ namespace br.erlangms
 
 		public void addError(String error)
 		{
-			errors.add(error);
+			errors.Add(error);
 		}
 
 		public List<String> getErrors()

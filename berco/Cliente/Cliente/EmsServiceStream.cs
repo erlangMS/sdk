@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+
 namespace br.erlangms
 {
 	public class EmsServiceStream
 	{
 		private String msg;
-		private Map<String, Object> queries;
+		private Dictionary<String, Object> queries;
 		private String response;
 
 		public EmsServiceStream()
@@ -22,13 +24,13 @@ namespace br.erlangms
 
 		public EmsServiceStream setParameter(int value)
 		{
-			msg = msg.replaceFirst(":id", value.ToString());
+			msg = msg.Replace(":id", value.ToString());
 			return this;
 		}
 
 		public EmsServiceStream setQuery(String key, Object value)
 		{
-			this.queries.put(key, value);
+			this.queries.Add(key, value);
 			return this;
 		}
 

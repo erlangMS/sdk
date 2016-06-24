@@ -79,7 +79,7 @@ namespace br.erlangms
 			{
 				hostName = InetAddress.getLocalHost().getHostName();
 			}
-			catch (UnknownHostException e)
+			catch (Exception e)
 			{
 				Console.WriteLine("Não foi possível obter o hostname da máquina onde está o node.");
 			}
@@ -207,7 +207,7 @@ namespace br.erlangms
                 	msg_task.append(request.getMetodo()).append(" ").append(request.getModulo())
 						.append(".").append(request.getFunction()).append(" [RID: ")
 						.append(request.getRID()).append(", ").append(request.getUrl()).append("]");
-					logger.info(msg_task.toString());
+					logger.Info(msg_task.ToString());
                 	pool.submit(new Task(dispatcherPid, request, myMbox));
 				} catch(OtpErlangExit e) {
 					break;
@@ -217,6 +217,7 @@ namespace br.erlangms
 
 		public void close()
 		{
+			
 			if (myNode != null)
 			{
 				try
@@ -244,6 +245,7 @@ namespace br.erlangms
 			try
 			{
 				Class <?> Classe = facade.getClass();
+				var classe = facade.GetType();
 				try
 				{
 					m = Classe.getMethod(metodo, IEmsRequest.class);   
@@ -358,14 +360,14 @@ namespace br.erlangms
 	
 		} 
 
+
 		private class Task : Callable<Boolean> {
 			private OtpErlangPid from;
 			private IEmsRequest request;
 			private OtpMbox myMbox;
 
-			public Task(final OtpErlangPid from, final IEmsRequest request, final OtpMbox myMbox)
+			public Task(OtpErlangPid from, IEmsRequest request,OtpMbox myMbox)
 			{
-				super();
 				this.from = from;
 				this.request = request;
 				this.myMbox = myMbox;

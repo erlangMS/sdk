@@ -4,8 +4,7 @@ namespace br.erlangms
 	public interface EmsJsonModelAdapter
 	{
 
-		public Object findById(Class<T> classOfModel, int id);
+		Object findById(Type classOfModel, int id);
 
 	}
 }
-
