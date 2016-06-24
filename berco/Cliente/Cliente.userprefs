@@ -3,10 +3,10 @@
   <MonoDevelop.Ide.Workbench ActiveDocument="Cliente/EmsConnection.cs">
     <Files>
       <File FileName="Cliente/lib/OtpCookedConnection.cs" Line="1" Column="1" />
-      <File FileName="Cliente/Program.cs" Line="19" Column="66" />
-      <File FileName="Cliente/EmsConnection.cs" Line="48" Column="27" />
-      <File FileName="Cliente/IEmsServiceFacade.cs" Line="5" Column="36" />
-      <File FileName="Cliente/EmsUtil.cs" Line="9" Column="6" />
+      <File FileName="Cliente/Program.cs" Line="1" Column="1" />
+      <File FileName="Cliente/EmsConnection.cs" Line="42" Column="41" />
+      <File FileName="Cliente/IEmsServiceFacade.cs" Line="1" Column="1" />
+      <File FileName="Cliente/EmsUtil.cs" Line="1" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>

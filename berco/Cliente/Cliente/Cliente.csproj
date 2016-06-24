@@ -98,6 +98,17 @@
     <Compile Include="EmsConnection.cs" />
     <Compile Include="IEmsServiceFacade.cs" />
     <Compile Include="EmsUtil.cs" />
+    <Compile Include="EmsJsonModelAdapter.cs" />
+    <Compile Include="EmsNotFoundException.cs" />
+    <Compile Include="EmsRepository.cs" />
+    <Compile Include="EmsRequest.cs" />
+    <Compile Include="EmsRequestException.cs" />
+    <Compile Include="EmsResponse.cs" />
+    <Compile Include="EmsServiceProxy.cs" />
+    <Compile Include="EmsServiceStream.cs" />
+    <Compile Include="EmsValidationException.cs" />
+    <Compile Include="IEmsRequest.cs" />
+    <Compile Include="EmsServiceFacade.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
