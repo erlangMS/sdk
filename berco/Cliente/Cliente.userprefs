@@ -1,22 +1,22 @@
 ﻿<Properties StartupItem="Cliente/Cliente.csproj">
-  <MonoDevelop.Ide.Workbench ActiveDocument="Cliente/EmsConnection.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Cliente/EmsRequest.cs">
     <Files>
       <File FileName="Cliente/lib/OtpCookedConnection.cs" Line="1" Column="1" />
-      <File FileName="Cliente/Program.cs" Line="1" Column="1" />
-      <File FileName="Cliente/EmsConnection.cs" Line="241" Column="11" />
-      <File FileName="Cliente/IEmsServiceFacade.cs" Line="11" Column="1" />
+      <File FileName="Cliente/Program.cs" Line="22" Column="34" />
+      <File FileName="Cliente/EmsConnection.cs" Line="247" Column="11" />
+      <File FileName="Cliente/IEmsServiceFacade.cs" Line="11" Column="2" />
       <File FileName="Cliente/EmsUtil.cs" Line="1" Column="1" />
-      <File FileName="Cliente/EmsJsonModelAdapter.cs" Line="12" Column="1" />
+      <File FileName="Cliente/EmsJsonModelAdapter.cs" Line="11" Column="1" />
       <File FileName="Cliente/EmsNotFoundException.cs" Line="14" Column="1" />
       <File FileName="Cliente/EmsRepository.cs" Line="6" Column="3" />
-      <File FileName="Cliente/EmsRequest.cs" Line="4" Column="32" />
+      <File FileName="Cliente/EmsRequest.cs" Line="4" Column="39" />
       <File FileName="Cliente/EmsRequestException.cs" Line="13" Column="1" />
       <File FileName="Cliente/EmsResponse.cs" Line="16" Column="1" />
       <File FileName="Cliente/EmsServiceProxy.cs" Line="7" Column="4" />
-      <File FileName="Cliente/EmsServiceStream.cs" Line="64" Column="15" />
-      <File FileName="Cliente/EmsValidationException.cs" Line="29" Column="3" />
-      <File FileName="Cliente/IEmsRequest.cs" Line="25" Column="9" />
-      <File FileName="Cliente/EmsServiceFacade.cs" Line="25" Column="15" />
+      <File FileName="Cliente/EmsServiceStream.cs" Line="54" Column="3" />
+      <File FileName="Cliente/EmsValidationException.cs" Line="25" Column="4" />
+      <File FileName="Cliente/IEmsRequest.cs" Line="7" Column="2" />
+      <File FileName="Cliente/EmsServiceFacade.cs" Line="25" Column="23" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />

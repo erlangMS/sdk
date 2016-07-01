@@ -1,0 +1,5 @@
+/Users/willianpinho/Projects/sdk/berco/Thread/ThreadBerco/ThreadBerco/obj/x86/Debug/.NETFramework,Version=v4.5.AssemblyAttribute.cs
+/Users/willianpinho/Projects/sdk/berco/Thread/ThreadBerco/ThreadBerco/bin/Debug/ThreadBerco.exe.mdb
+/Users/willianpinho/Projects/sdk/berco/Thread/ThreadBerco/ThreadBerco/bin/Debug/ThreadBerco.exe
+/Users/willianpinho/Projects/sdk/berco/Thread/ThreadBerco/ThreadBerco/obj/x86/Debug/ThreadBerco.exe
+/Users/willianpinho/Projects/sdk/berco/Thread/ThreadBerco/ThreadBerco/obj/x86/Debug/ThreadBerco.exe.mdb
