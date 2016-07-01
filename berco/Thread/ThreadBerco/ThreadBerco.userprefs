@@ -1,1 +1,14 @@
-﻿<Properties StartupItem="ThreadBerco/ThreadBerco.csproj" />
+﻿<Properties StartupItem="ThreadBerco/ThreadBerco.csproj">
+  <MonoDevelop.Ide.Workbench ActiveDocument="ThreadBerco/Program.cs">
+    <Files>
+      <File FileName="ThreadBerco/Program.cs" Line="13" Column="4" />
+      <File FileName="ThreadBerco/Worker.cs" Line="8" Column="3" />
+    </Files>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
+  <MonoDevelop.Ide.ItemProperties.ThreadBerco PreferredExecutionTarget="MonoDevelop.Default" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+</Properties>

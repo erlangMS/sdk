@@ -1,0 +1,5 @@
+/Users/willianpinho/Projects/sdk/berco/DynamicMethod/DynamicMethod/DynamicMethod/obj/x86/Debug/.NETFramework,Version=v4.5.AssemblyAttribute.cs
+/Users/willianpinho/Projects/sdk/berco/DynamicMethod/DynamicMethod/DynamicMethod/bin/Debug/DynamicMethod.exe.mdb
+/Users/willianpinho/Projects/sdk/berco/DynamicMethod/DynamicMethod/DynamicMethod/bin/Debug/DynamicMethod.exe
+/Users/willianpinho/Projects/sdk/berco/DynamicMethod/DynamicMethod/DynamicMethod/obj/x86/Debug/DynamicMethod.exe
+/Users/willianpinho/Projects/sdk/berco/DynamicMethod/DynamicMethod/DynamicMethod/obj/x86/Debug/DynamicMethod.exe.mdb
