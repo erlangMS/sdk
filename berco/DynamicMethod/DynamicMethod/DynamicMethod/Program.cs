@@ -13,15 +13,15 @@ namespace DynamicMethod
 			Object obj = new MainClass();
 
 			Object[] parameters = { "teste" }; 
-	
-			m.Invoke(obj, parameters);
-
+			Object result = m.Invoke(obj, parameters);
+			Console.WriteLine(result);
 		}
 
-		public void HelloWorld(String msg)
+		public object HelloWorld(String msg)
 		{
 			
 			Console.WriteLine(msg);
+			return 10;
 
 		}
 			
