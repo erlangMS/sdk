@@ -16,9 +16,11 @@ import java.util.Map;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
+import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangMap;
 import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangRangeException;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
@@ -93,9 +95,9 @@ public class EmsRequest implements IEmsRequest {
 			if (getParamsCount() > 0){
 				OtpErlangMap params = ((OtpErlangMap) otp_request.elementAt(3));
 				OtpErlangBinary OtpNomeParam = new OtpErlangBinary(nome.getBytes());
-				OtpErlangBinary otp_result = (OtpErlangBinary) params.get(OtpNomeParam);
+				OtpErlangLong otp_result = (OtpErlangLong) params.get(OtpNomeParam);
 				if (otp_result != null){
-					String result = new String(otp_result.binaryValue());
+					String result = Integer.toString(otp_result.intValue());
 					return result;
 				}else{
 					return null;
@@ -110,10 +112,13 @@ public class EmsRequest implements IEmsRequest {
 
 	@Override
 	public int getParamAsInt(final String nome) {
-		try{
-			return Integer.parseInt(getParam(nome));
-		}catch (Exception e){
-			throw new EmsRequestException("Não foi possível converter o parâmetro "+ nome + " no tipo int do request.");
+		OtpErlangMap params = ((OtpErlangMap) otp_request.elementAt(3));
+		OtpErlangBinary OtpNomeParam = new OtpErlangBinary(nome.getBytes());
+		OtpErlangLong otp_result = (OtpErlangLong) params.get(OtpNomeParam);
+		try {
+			return otp_result.intValue();
+		} catch (OtpErlangRangeException e) {
+			throw new EmsRequestException("Parâmetro "+ nome + " não é inteiro.");				
 		}
 	}
 	

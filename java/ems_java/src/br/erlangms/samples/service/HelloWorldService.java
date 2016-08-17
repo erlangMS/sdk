@@ -15,7 +15,7 @@ public class HelloWorldService extends EmsServiceFacade {
 	}
 
 	public String helloWorld(IEmsRequest request) {
-		return "Hello World Java!!!";
+		return "{\"message\":\"Hello World Java!!!\"}";
 	}
 
 }
