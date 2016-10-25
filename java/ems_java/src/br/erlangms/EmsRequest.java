@@ -16,7 +16,6 @@ import java.util.Map;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
-import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangMap;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -193,7 +192,7 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public String getPayload(){
-		return ((OtpErlangString)otp_request.elementAt(5)).stringValue();
+		return new String(((OtpErlangBinary)otp_request.elementAt(5)).binaryValue());
 	}
 
 	/**

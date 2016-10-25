@@ -946,14 +946,18 @@ public final class EmsUtil {
 	 * @author Everton de Vargas Agilar
 	 */
 	public static Enum<?> intToEnum(int value, @SuppressWarnings("rawtypes") Class<Enum> clazz) {
-		if (value >= 0 && clazz != null){
-			for(Enum<?> t : clazz.getEnumConstants()) {
-		        if(t.ordinal() == value) {
-		            return t;
-		        }
-		    }
+		if (clazz != null){
+			if (value >= 0 && clazz != null){
+				for(Enum<?> t : clazz.getEnumConstants()) {
+			        if(t.ordinal() == value) {
+			            return t;
+			        }
+			    }
+			}
+			throw new EmsValidationException("Valor inválido para o campo "+ clazz.getSimpleName());
+		}else{
+			throw new IllegalArgumentException("clazz não deve ser null.");
 		}
-	    throw new EmsValidationException("Valor inválido para o campo "+ clazz.getSimpleName());
 	}
 
 	/**
@@ -964,14 +968,16 @@ public final class EmsUtil {
 	 * @author Everton de Vargas Agilar
 	 */
 	public static Enum<?> StrToEnum(String value, @SuppressWarnings("rawtypes") Class<Enum> clazz) {
-		if (value != null && value != "" && clazz != null){
+		if (value != null && !value.isEmpty() && clazz != null){
 			for(Enum<?> t : clazz.getEnumConstants()) {
 		        if(t.name().equalsIgnoreCase(value)) {
 		            return t;
 		        }
 		    }
+			throw new EmsValidationException("Valor inválido para o campo "+ clazz.getSimpleName());
+		}else{
+			throw new IllegalArgumentException("clazz e value não devem ser null.");
 		}
-	    throw new EmsValidationException("Valor inválido para o campo "+ clazz.getSimpleName());
 	}
 
 	/**

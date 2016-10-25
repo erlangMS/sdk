@@ -64,7 +64,7 @@ public class EmsConnection
 	 * Exemplo: 
 	 *    -Dcookie=erlangms
 	 *    -Dems_node=node01
-	 *    -Dems_msbus=http://localhost:2301
+	 *    -Dems_emsbus=http://localhost:2301
 	 *    -Dems_cookie=erlangms
 	 *    -Dems_max_thread_pool_by_agent=10
 	 *    -Dems_user=xxxxxxx 
@@ -99,7 +99,7 @@ public class EmsConnection
 	   if (tmp_nodeName != null){
 		   nodeName = tmp_nodeName;
 	   }else{
-		   nodeName = "node01";
+		   nodeName = "node1";
 	   }
 	   String tmp_msbusHost = System.getProperty("ems_msbus");
 	   if (tmp_msbusHost != null){
@@ -250,7 +250,7 @@ public class EmsConnection
 		} catch (NoSuchMethodException e) {  
 	        // Essa exceção ocorre se o getMethod() não encontrar o método
 	    	String erro = "Método de negócio não encontrado: " + metodo + ".";
-	    	msg_json = "{\"erro\":\"service\", \"message\" : \"" + erro + "\"}"; 
+	    	msg_json = "{\"error\":\"service\", \"message\" : \"" + erro + "\"}"; 
 	    	logger.error(erro);
 	    	return new EmsResponse(400, msg_json); 
 	    } catch (IllegalAccessException e) {  
@@ -259,7 +259,7 @@ public class EmsConnection
 	        // acessível fazendo:  
 	        // antes do seu invoke.
 	    	String erro = "Acesso ilegal ao método de negócio: " + metodo + ".";
-	    	msg_json = "{\"erro\":\"service\", \"message\" : \"" + erro + "\"}"; 
+	    	msg_json = "{\"error\":\"service\", \"message\" : \"" + erro + "\"}"; 
 	    	logger.error(erro);
 	    	return new EmsResponse(400, msg_json); 
 	    } catch (InvocationTargetException e) {  
@@ -272,19 +272,19 @@ public class EmsConnection
 	    		String msg = null;
 		    	if (errors.size() > 1){
 		    		msg = EmsUtil.toJson(errors);
-		    		msg_json = "{\"erro\":\"validation\", \"message\" : " + msg + "}";
+		    		msg_json = "{\"error\":\"validation\", \"message\" : " + msg + "}";
 		    	}else if (errors.size() == 1){
 		    		msg = EmsUtil.toJson(errors.get(0));
-		    		msg_json = "{\"erro\":\"validation\", \"message\" : " + msg + "}";
+		    		msg_json = "{\"error\":\"validation\", \"message\" : " + msg + "}";
 		    	}else{
-		    		msg_json = "{\"erro\":\"validation\", \"message\" : \"\"}";
+		    		msg_json = "{\"error\":\"validation\", \"message\" : \"\"}";
 		    	}
 		    	return new EmsResponse(400, msg_json);
 	    	}else if (cause instanceof EmsRequestException){
-	    		msg_json = "{\"erro\":\"service\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
-	    		return new EmsResponse(400, msg_json);
+	    		msg_json = "{\"error\":\"service\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
+	    		return new EmsResponse(400, msg_json);	
 	    	}else if (cause instanceof EmsNotFoundException){
-	    		msg_json = "{\"erro\":\"notfound\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
+	    		msg_json = "{\"error\":\"enoent\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
 	    		return new EmsResponse(404, msg_json);
 	    	}else if (cause instanceof javax.ejb.EJBException){
 	    		try{
@@ -302,17 +302,17 @@ public class EmsConnection
 		    				motivo = cause.getMessage();	
 			    		}
 	    			}
-		    		msg_json = "{\"erro\":\"validation\", \"message\" : " + EmsUtil.toJson(motivo) + "}";
+		    		msg_json = "{\"error\":\"validation\", \"message\" : " + EmsUtil.toJson(motivo) + "}";
 		    		return new EmsResponse(400, msg_json);
 	    		}catch (Exception ex){
 			    	String erro = "O método "+ modulo + "." + metodo + " gerou uma excessão: " + e.getCause() + "."; 
-			    	msg_json = "{\"erro\":\"service\", \"message\" : \"" + erro + "\"}"; 
+			    	msg_json = "{\"error\":\"service\", \"message\" : \"" + erro + "\"}"; 
 			    	logger.error(erro);
 			    	return new EmsResponse(400, msg_json); 
 	    		}
 	    	}else{
 		    	String erro = "O método "+ modulo + "." + metodo + " gerou uma excessão: " + e.getCause() + "."; 
-		    	msg_json = "{\"erro\":\"service\", \"message\" : " + EmsUtil.toJson(erro) + "}";
+		    	msg_json = "{\"error\":\"service\", \"message\" : " + EmsUtil.toJson(erro) + "}";
 		    	logger.error(erro);
 		    	return new EmsResponse(400, msg_json);
 	    	}
