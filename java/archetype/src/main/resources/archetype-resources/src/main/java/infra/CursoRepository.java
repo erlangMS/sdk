@@ -7,22 +7,22 @@ import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import br.erlangms.EmsRepository;
-import ${package}.model.Documentacao;
+import ${package}.model.Curso;
 
 @Stateless
-public class DocumentacaoRepository extends EmsRepository<Documentacao> {
+public class CursoRepository extends EmsRepository<Curso> {
 
 	@PersistenceContext(unitName = "service_context")
-	public EntityManager saeContext;
+	public EntityManager serviceContext;
 
 	@Override
 	public EntityManager getEntityManager() {
-		return saeContext;
+		return serviceContext;
 	}
 
 	@Override
-	public Class<Documentacao> getClassOfModel() {
-		return Documentacao.class;
+	public Class<Curso> getClassOfModel() {
+		return Curso.class;
 	}
 
 }

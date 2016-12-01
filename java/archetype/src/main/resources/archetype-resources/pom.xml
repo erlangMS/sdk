@@ -14,7 +14,7 @@
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<project.buildNumber>${maven.build.timestamp}</project.buildNumber>
-		<sonar.goal.phase>install</sonar.goal.phase
+		<sonar.goal.phase>install</sonar.goal.phase>
 	</properties>
 
 	<dependencies>

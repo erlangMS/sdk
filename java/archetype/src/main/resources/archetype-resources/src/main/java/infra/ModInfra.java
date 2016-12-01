@@ -11,31 +11,28 @@ import javax.persistence.PersistenceContext;
 
 @Singleton
 @Startup
-public class SaeInfra {
-	private static SaeInfra instance;
-	public static SaeInfra getInstance(){ return instance; }
- 
-	@EJB private DocumentacaoRepository documentacaoRepository;
+public class ModInfra {
+	private static ModInfra instance;
+	public static ModInfra getInstance(){ return instance; }
+ 	
+	@EJB private CursoRepository cursoRepository;
 	//@EJB inclua aqui outros EJBs...
 
 
-	public SaeInfra(){
+	public ModInfra(){
 		instance = this;
 	}
 	
-	
 
 	@PersistenceContext(unitName = "service_context")
-	public EntityManager saeContext;
+	public EntityManager serviceContext;
 
+	public EntityManager getServiceContext() {
+		return serviceContext;
 	}
 
-	public EntityManager getSaeContext() {
-		return saeContext;
-	}
-
-	public DocumentacaoRepository getDocumentacaoRepository() {
-		return documentacaoRepository;
+	public CursoRepository getCursoRepository() {
+		return cursoRepository;
 	}
 
 
