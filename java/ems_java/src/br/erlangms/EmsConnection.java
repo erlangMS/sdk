@@ -1,8 +1,7 @@
 /*********************************************************************
  * @title Módulo EmsConnection
  * @version 1.0.0
- * @doc Classe para conectar com o barramento msbus. Cada conexão representa um 
- *      agente e pode receber e enviar mensagens.  
+ * @doc Classe para conectar com o barramento ems_bus.
  * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
  * @copyright ErlangMS Team
  *********************************************************************/
@@ -66,7 +65,7 @@ public class EmsConnection
 	 *    -Dems_node=node01
 	 *    -Dems_emsbus=http://localhost:2301
 	 *    -Dems_cookie=erlangms
-	 *    -Dems_max_thread_pool_by_agent=10
+	 *    -Dems_max_thread_pool_by_agent=100
 	 *    -Dems_user=xxxxxxx 
 	 *    -Dems_password=xxxxxx 
 	 * @param from pid do agente
@@ -79,10 +78,10 @@ public class EmsConnection
 			try{
 				maxThreadPool = Integer.parseInt(tmp_thread_pool);
 			}catch (NumberFormatException e){
-				maxThreadPool = 12;
+				maxThreadPool = 100;
 			}
 		}else{
-			maxThreadPool = 128;
+			maxThreadPool = 100;
 		}
 		String tmp_cookie = System.getProperty("ems_cookie");
 		if (tmp_cookie != null){
@@ -99,11 +98,11 @@ public class EmsConnection
 	   if (tmp_nodeName != null){
 		   nodeName = tmp_nodeName;
 	   }else{
-		   nodeName = "node1";
+		   nodeName = "node01";
 	   }
-	   String tmp_msbusHost = System.getProperty("ems_msbus");
-	   if (tmp_msbusHost != null){
-		   msbusHost = tmp_msbusHost;
+	   String tmp_emsbusHost = System.getProperty("ems_msbus");
+	   if (tmp_emsbusHost != null){
+		   msbusHost = tmp_emsbusHost;
 	   }else{
 		   msbusHost = "http://localhost:2301";
 	   }
@@ -111,20 +110,19 @@ public class EmsConnection
 	   if (tmp_user != null){
 		   nodeUser = tmp_user;
 	   }else{
-		   nodeUser = "";
+		   nodeUser = "geral";
 	   }
 	   String tmp_password = System.getProperty("ems_password");
 	   if (tmp_password != null){
 		   nodePassword = tmp_password;
 	   }else{
-		   nodePassword = "";
+		   nodePassword = "123456";
 	   }
 	   
        String usernameAndPassword = nodeUser + ":" + nodePassword;
        authorizationHeaderName = "Authorization";
        authorizationHeaderValue = "Basic " + java.util.Base64.getEncoder()
     		   .encodeToString(usernameAndPassword.getBytes());
-	   
 	}
 
 	public String getNomeAgente(){
