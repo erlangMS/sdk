@@ -470,7 +470,8 @@ public final class EmsUtil {
 	}
 
 	/**
-	 * Serializa um objeto a partir de uma string json
+	 * Serializa um objeto a partir de uma string json.
+	 * Quando a string json é vazio, apenas instância um objeto da classe.
 	 * @param jsonString String json
 	 * @param classOfObj	Classe do objeto que será serializado
 	 * @param jsonModelAdapter adaptador para permitir obter atributos de modelo 
@@ -478,28 +479,37 @@ public final class EmsUtil {
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T> T fromJson(final String jsonString, Class<T> classOfObj, EmsJsonModelAdapter jsonModelAdapter) {
-		if (jsonString != null && !jsonString.isEmpty() && classOfObj != null){
-			if (classOfObj == List.class || classOfObj == ArrayList.class){
-				List<Object> values = gson.fromJson(jsonString, List.class);
-				return (T) values;
-			}else if (classOfObj == java.util.HashMap.class || classOfObj == Map.class){
-				Map<String, Object> values = gson.fromJson(jsonString, Map.class);
-				return (T) values;
-			}else{
-				Map<String, Object> values = gson.fromJson(jsonString, Map.class);
-				T obj = null;
-				try {
-					obj = classOfObj.getConstructor().newInstance();
-				} catch (InstantiationException | IllegalAccessException
-						| EmsValidationException | InvocationTargetException
-						| NoSuchMethodException | SecurityException e) {
-					throw new EmsValidationException("Não suporta conversão do json para "+ classOfObj.getSimpleName() + ". Json: "+ jsonString);
+		if (classOfObj != null){
+			if (jsonString != null && !jsonString.isEmpty()){
+				if (classOfObj == List.class || classOfObj == ArrayList.class){
+					List<Object> values = gson.fromJson(jsonString, List.class);
+					return (T) values;
+				}else if (classOfObj == java.util.HashMap.class || classOfObj == Map.class){
+					Map<String, Object> values = gson.fromJson(jsonString, Map.class);
+					return (T) values;
+				}else{
+					Map<String, Object> values = gson.fromJson(jsonString, Map.class);
+					T obj = null;
+					try {
+						obj = classOfObj.getConstructor().newInstance();
+					} catch (InstantiationException | IllegalAccessException
+							| EmsValidationException | InvocationTargetException
+							| NoSuchMethodException | SecurityException e) {
+						throw new EmsValidationException("Não suporta conversão do json da classe "+ classOfObj.getSimpleName() + ". Json: "+ jsonString);
+					}
+					setValuesFromMap(obj, values, jsonModelAdapter);
+					return obj;
 				}
-				setValuesFromMap(obj, values, jsonModelAdapter);
-				return obj;
 			}
+			try {
+				return classOfObj.getConstructor().newInstance();
+			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+					| InvocationTargetException | NoSuchMethodException | SecurityException e) {
+				throw new EmsValidationException("Não suporta instânciar objeto para a classe "+ classOfObj.getSimpleName());
+			}
+		}else{
+			throw new IllegalArgumentException("classOfObj não deve ser null.");
 		}
-		return null;
 	}
 
 	/**
@@ -513,7 +523,7 @@ public final class EmsUtil {
 	}
 	
 	/**
-	 * Obtém uma lista a partir de um json
+	 * Obtém uma lista a partir de um json. Se o json estiver vazio, retorna apenas uma lista vazia.
 	 * @param jsonString String json
 	 * @param classOfObj	Classe do objeto que será serializado
  	 * @param jsonModelAdapter adaptador para permitir obter atributos de modelo 
@@ -521,21 +531,24 @@ public final class EmsUtil {
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T> List<T> fromListJson(String jsonString, Class<T> classOfObj, EmsJsonModelAdapter jsonModelAdapter) {
-		if (jsonString != null && classOfObj != null){
-			List<Object> values = gson.fromJson(jsonString, List.class);
+		if (classOfObj != null) {
 			ArrayList<T> newList = new ArrayList<T>();
-			for (Object value : values){
-				try {
-					T obj = classOfObj.getConstructor().newInstance();
-					setValuesFromMap(obj, (Map<String, Object>) value, jsonModelAdapter);
-					newList.add(obj);
-				} catch (Exception e) {
-					throw new EmsValidationException("Não suporta conversão do json para "+ classOfObj.getSimpleName() + ". Json: "+ jsonString);
+			if (jsonString != null && !jsonString.isEmpty()){
+				List<Object> values = gson.fromJson(jsonString, List.class);
+				for (Object value : values){
+					try {
+						T obj = classOfObj.getConstructor().newInstance();
+						setValuesFromMap(obj, (Map<String, Object>) value, jsonModelAdapter);
+						newList.add(obj);
+					} catch (Exception e) {
+						throw new EmsValidationException("Não suporta conversão do json para "+ classOfObj.getSimpleName() + ". Json: "+ jsonString);
+					}
 				}
 			}
 			return newList;
+		}else{
+			throw new IllegalArgumentException("classOfObj não deve ser null.");
 		}
-		return null;
 	}
 	
 	/**
