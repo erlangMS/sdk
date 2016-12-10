@@ -181,7 +181,7 @@ public class EmsRequest implements IEmsRequest {
 				throw new EmsRequestException("Não foi possível obter a query "+ nome + " do request.");
 			}
 		}else{
-			throw new EmsRequestException("Não existe nenhuma query para o request.");
+			throw new EmsRequestException("Não existe a query " + nome + " do request.");
 		}
 	}
 
