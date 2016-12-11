@@ -46,7 +46,7 @@ public abstract class EmsRepository<Model> {
 	 * @return  stream para pesquisa
 	 * @author Everton de Vargas Agilar
 	 */
-	public <T> JPAJinqStream<T> getStreams(Class<T> classOfModel){
+	public <T> JPAJinqStream<T> getStreams(final Class<T> classOfModel){
 		EntityManager em = getEntityManager();
 		JinqJPAStreamProvider streams = new JinqJPAStreamProvider(em.getMetamodel());
 		return streams.streamAll(em, classOfModel);
@@ -63,7 +63,7 @@ public abstract class EmsRepository<Model> {
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
-	public List<Model> find(String filtro, String fields, int limit_ini, int limit_fim, String sort){
+	public List<Model> find(final String filtro, final String fields, int limit_ini, int limit_fim, final String sort){
 		Query query = null;
 		StringBuilder field_smnt = null;
 		StringBuilder where = null;
@@ -186,7 +186,7 @@ public abstract class EmsRepository<Model> {
 	 * @return objeto ou EmsNotFoundException se não existe o id
 	 * @author Everton de Vargas Agilar
 	 */
-	public Model findById(Integer id){
+	public Model findById(final Integer id){
 		if (id != null && id >= 0){
 			Class<Model> classOfModel = getClassOfModel();
 			Model obj = getEntityManager().find(classOfModel, id);
@@ -206,7 +206,7 @@ public abstract class EmsRepository<Model> {
 	 * @return objeto ou EmsNotFoundException se não existe o id
 	 * @author Everton de Vargas Agilar
 	 */
-	public <T> T findById(Class<T> classOfModel, Integer id){
+	public <T> T findById(final Class<T> classOfModel, final Integer id){
 		if (classOfModel != null && id != null && id >= 0){
 			T obj = getEntityManager().find(classOfModel, id);
 			if (obj == null){
@@ -310,7 +310,7 @@ public abstract class EmsRepository<Model> {
 	 * @author Everton de Vargas Agilar
 	 * @param <T>
 	 */
-	public <T> boolean delete(Class<T> classOfModel, Integer id) {
+	public <T> boolean delete(final Class<T> classOfModel, final Integer id) {
 		if (classOfModel != null && id != null && id >= 0){
 			String idFieldName = EmsUtil.findFieldByAnnotation(classOfModel, Id.class).getName();
 			String sql = new StringBuilder("delete from ")

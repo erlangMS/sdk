@@ -5,28 +5,28 @@ import java.util.List;
 
 import javax.ejb.ApplicationException;
 
-@ApplicationException(rollback = false)
+@ApplicationException(rollback = true)
 public class EmsValidationException extends RuntimeException {
 	private static final long serialVersionUID = -8316509235178192483L;
 	private List<String> errors;
 	
 	public EmsValidationException () {
 		super();
-		errors = new ArrayList<>();
+		errors = new ArrayList<>(); 
 	}
 	
-	public EmsValidationException (String e) {
+	public EmsValidationException (final String e) {
 		super(e);
 		errors = new ArrayList<>();
 		errors.add(e);
 	}
 	
 	
-	public EmsValidationException (List <String> l) {
+	public EmsValidationException (final List <String> l) {
 		errors = l;
 	}
 	
-	public void addError(String error) {
+	public void addError(final String error) {
 		errors.add(error);
 	}
 	

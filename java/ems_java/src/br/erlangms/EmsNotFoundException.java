@@ -2,10 +2,10 @@ package br.erlangms;
 
 import javax.ejb.ApplicationException;
 
-@ApplicationException(rollback = false)
+@ApplicationException(rollback = true)
 public class EmsNotFoundException extends RuntimeException {
 
-	public EmsNotFoundException(String message) {
+	public EmsNotFoundException(final String message) {
         super(message);
     }
 		

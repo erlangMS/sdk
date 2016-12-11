@@ -1,7 +1,7 @@
 package br.erlangms;
 
 public final class EmsResponse {
-	public EmsResponse(int code, String content) {
+	public EmsResponse(int code, final String content) {
 		this.code = code;
 		this.content = content;
 	}

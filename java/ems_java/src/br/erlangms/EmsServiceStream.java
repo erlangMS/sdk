@@ -15,16 +15,20 @@ public class EmsServiceStream {
 	}
 	
 	public EmsServiceStream from(final String msg){
+		if (msg == null || msg.isEmpty()) 
+			throw new EmsValidationException("Parâmetro from do EmsServiceStream.from não pode ser nulo.");
 		this.msg = msg;
 		return this;
 	}
 
-	public EmsServiceStream setParameter(Integer value) {
+	public EmsServiceStream setParameter(final Integer value) {
+		if (value == null) 
+			throw new EmsValidationException("Parâmetro value do EmsServiceStream.setParameter não pode ser nulo.");
 		msg = msg.replaceFirst(":id", value.toString());
 		return this;
 	}
 
-	public EmsServiceStream setQuery(String key, Object value) {
+	public EmsServiceStream setQuery(final String key, final Object value) {
 		this.queries.put(key, value);
 		return this;
 	}
@@ -38,14 +42,12 @@ public class EmsServiceStream {
 		return this;
 	}
 
-	public <T> List<T> toList(Class<T> classOfModel) {
-		System.out.println(response);
+	public <T> List<T> toList(final Class<T> classOfModel) {
 		return EmsUtil.fromListJson(response.toString(), classOfModel, null);
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<Object> toList() {
-		System.out.println(response);
 		return (List<Object>) EmsUtil.fromJson(response.toString(), List.class);
 	}
 

@@ -1012,7 +1012,7 @@ public final class EmsUtil {
 	 * @return OtpErlangTuple
 	 * @author Everton de Vargas Agilar
 	 */
-	public static OtpErlangTuple serializeObjectToErlangResponse(Object ret, IEmsRequest request){
+	public static OtpErlangTuple serializeObjectToErlangResponse(final Object ret, IEmsRequest request){
 	    OtpErlangObject[] otp_result = new OtpErlangObject[3];
 		OtpErlangObject[] reply = new OtpErlangObject[2];
 	    boolean isEmsResponse = ret instanceof EmsResponse;
@@ -1078,7 +1078,7 @@ public final class EmsUtil {
 	 * @return OtpErlangTuple
 	 * @author Everton de Vargas Agilar
 	 */
-	public static OtpErlangTuple serializeObjectToErlangRequest(Object ret, OtpErlangPid from){
+	public static OtpErlangTuple serializeObjectToErlangRequest(final Object ret, final OtpErlangPid from){
 	    OtpErlangObject[] otp_result = new OtpErlangObject[3];
 		OtpErlangObject reply = null;
 	    if (ret != null){
@@ -1130,36 +1130,36 @@ public final class EmsUtil {
 		return props;
 	}
 
-	public static boolean isDateValid(Date field){
+	public static boolean isDateValid(final Date field){
 		return (field != null ? true :  false);
 	}
 
-	public static boolean isDateFinalAfterOrEqualDateInitial(Date dataIni, Date dataFinal){
+	public static boolean isDateFinalAfterOrEqualDateInitial(final Date dataIni, final Date dataFinal){
 		return (dataFinal != null && dataIni != null && (dataFinal.equals(dataIni) || dataFinal.after(dataIni)) ? true :  false);
 	}
 	
-	public static boolean isDateFinalAfterDateInitial(Date dataIni, Date dataFinal){
+	public static boolean isDateFinalAfterDateInitial(final Date dataIni, final Date dataFinal){
 		return (dataFinal != null && dataIni != null && dataFinal.after(dataIni) ? true :  false);
 	}
 
-	public static boolean isFieldStrValid(String field){
-		return (field!=null && !field.isEmpty() ? true : false);
+	public static boolean isFieldStrValid(final String field){
+		return (field != null && !field.isEmpty() ? true : false);
 	}
 	
-	public static boolean isFieldStrValid(String field, int maxLength){
-		return (field!=null && !field.isEmpty() && field.length() <= maxLength ? true : false);
+	public static boolean isFieldStrValid(final String field, int maxLength){
+		return (field != null && !field.isEmpty() && field.length() <= maxLength ? true : false);
 	}
 
-	public static boolean isFieldObjectValid(Object obj){
+	public static boolean isFieldObjectValid(final Object obj){
 		return (obj != null  ? true : false);
 		
 	}
 
-	public static Object mergeObjects(Object obj1, Object obj2){
+	public static Object mergeObjects(final Object obj1, final Object obj2){
 		return mergeObjects(obj1, obj2, null);
 	}
 
-	public static Object mergeObjects(Object obj1, Object obj2, EmsJsonModelAdapter jsonModelAdapter){
+	public static Object mergeObjects(final Object obj1, final Object obj2, final EmsJsonModelAdapter jsonModelAdapter){
 		Map<String, Object> values = ObjectFieldsToMap(obj2);
 		return setValuesFromMap(obj1, values, jsonModelAdapter);
 	}
