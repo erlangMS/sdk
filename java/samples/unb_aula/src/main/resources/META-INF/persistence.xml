@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<persistence xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd"
+  version="2.0" xmlns="http://java.sun.com/xml/ns/persistence">
+  <persistence-unit name="service_context" transaction-type="JTA">
+	<provider>org.hibernate.ejb.HibernatePersistence</provider>	
+    <properties>
+      <property name="javax.persistence.jdbc.driver" value="org.apache.derby.jdbc.EmbeddedDriver" />
+      <property name="javax.persistence.jdbc.url" value="jdbc:derby://localhost:1527/database;create=true" />
+      <property name="javax.persistence.jdbc.user" value="test" />
+      <property name="javax.persistence.jdbc.password" value="test" />
+
+	  <!-- <property name="jboss.entity.manager.factory.jndi.name" value="java:/service_context" /> -->
+	  <property name="hibernate.show_sql" value="true" />	
+  	  <property name="hibernate.format_sql" value="false"/>
+  	  <property name="hibernate.jdbc.use_scrollable_resultset" value="false"/>	
+  	  <property name="hibernate.hbm2ddl.auto" value="create" /> 
+    </properties>
+  </persistence-unit>
+</persistence>
