@@ -15,7 +15,7 @@ import javax.annotation.PreDestroy;
 /**
  * Classe de fachada para os serviços ErlangMS
  */
-public abstract class EmsServiceFacade implements IEmsServiceFacade {
+public abstract class EmsServiceFacade {
 	private EmsConnection connection = null;
 	private DaemonThread daemon = null;
 	public enum States {BEFORESTARTED, STARTED, PAUSED, SHUTTINGDOWN};

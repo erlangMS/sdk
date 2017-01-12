@@ -31,14 +31,14 @@ public class EmsConnection
 {
 	private static int maxThreadPool;
 	private static String cookie;
-	private static String msbusHost;
+	private static String ESB_URL;
 	private static String hostName;
 	private static String nodeName;
 	private final String nomeAgente;
 	private final String nomeService;
 	private static final OtpErlangBinary result_ok; 
 	private static final Logger logger;
-	private final IEmsServiceFacade facade;
+	private final EmsServiceFacade facade;
     private static OtpErlangPid dispatcherPid;
 	private static String nodeUser;
 	private static String nodePassword;
@@ -52,7 +52,7 @@ public class EmsConnection
     	getSystemProperties();
     }
     
-	public EmsConnection(final String nomeAgente, final String nomeService, final IEmsServiceFacade facade){
+	public EmsConnection(final String nomeAgente, final String nomeService, final EmsServiceFacade facade){
 		this.nomeAgente = nomeAgente;
 		this.nomeService = nomeService;
 		this.facade = facade;
@@ -100,11 +100,11 @@ public class EmsConnection
 	   }else{
 		   nodeName = "node01";
 	   }
-	   String tmp_emsbusHost = System.getProperty("ems_msbus");
-	   if (tmp_emsbusHost != null){
-		   msbusHost = tmp_emsbusHost;
+	   String tmp_ESB_URL = System.getProperty("ems_bus");
+	   if (tmp_ESB_URL != null){
+		   ESB_URL = tmp_ESB_URL;
 	   }else{
-		   msbusHost = "http://localhost:2301";
+		   ESB_URL = "http://localhost:2301";
 	   }
 	   String tmp_user = System.getProperty("ems_user");
 	   if (tmp_user != null){
@@ -145,8 +145,8 @@ public class EmsConnection
 		return hostName;
 	}
 	
-	public static String getMsbusHost(){
-		return msbusHost;
+	public static String getESB_URL(){
+		return ESB_URL;
 	}
 	
 	public static String getNodeUser() {
@@ -278,9 +278,6 @@ public class EmsConnection
 		    		msg_json = "{\"error\":\"validation\", \"message\" : \"\"}";
 		    	}
 		    	return new EmsResponse(400, msg_json);
-	    	}else if (cause instanceof EmsRequestException){
-	    		msg_json = "{\"error\":\"service\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
-	    		return new EmsResponse(400, msg_json);	
 	    	}else if (cause instanceof EmsNotFoundException){
 	    		msg_json = "{\"error\":\"enoent\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
 	    		return new EmsResponse(404, msg_json);

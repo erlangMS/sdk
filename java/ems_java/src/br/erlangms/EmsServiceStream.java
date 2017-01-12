@@ -4,27 +4,27 @@ import java.util.List;
 import java.util.Map;
 
 public class EmsServiceStream {
-	private String msg;
+	private String url;
 	private Map<String, Object> queries;
 	private String response;
 	
 	public EmsServiceStream(){
-		this.msg = null;
+		this.url = null;
 		this.queries = new java.util.HashMap<>();
 		this.response = null;
 	}
 	
-	public EmsServiceStream from(final String msg){
-		if (msg == null || msg.isEmpty()) 
-			throw new EmsValidationException("Parâmetro from do EmsServiceStream.from não pode ser nulo.");
-		this.msg = msg;
+	public EmsServiceStream from(final String url){
+		if (url == null || url.isEmpty()) 
+			throw new EmsValidationException("Parâmetro do método EmsServiceStream.from(final String url) não pode ser nulo.");
+		this.url = url;
 		return this;
 	}
 
 	public EmsServiceStream setParameter(final Integer value) {
 		if (value == null) 
 			throw new EmsValidationException("Parâmetro value do EmsServiceStream.setParameter não pode ser nulo.");
-		msg = msg.replaceFirst(":id", value.toString());
+		url = url.replaceFirst(":id", value.toString());
 		return this;
 	}
 
@@ -35,7 +35,7 @@ public class EmsServiceStream {
 
 	public EmsServiceStream request() {
 		this.response = EmsUtil.getRestStream()
-					   		.target(EmsConnection.getMsbusHost() + msg)
+					   		.target(EmsConnection.getESB_URL() + url)
 					   		.request("application/json")
 					   		.header(EmsConnection.getAuthorizationHeaderName(), EmsConnection.getAuthorizationHeaderValue())
 					   		.get(String.class);

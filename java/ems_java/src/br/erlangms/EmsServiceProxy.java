@@ -17,5 +17,4 @@ public abstract class EmsServiceProxy extends EmsServiceFacade {
 		return new EmsServiceStream();
 	}
 	
-
 }

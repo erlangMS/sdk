@@ -465,7 +465,7 @@ public final class EmsUtil {
 	 * @param classOfObj	Classe do objeto que será serializado
 	 * @author Everton de Vargas Agilar
 	 */
-	public static <T> T fromJson(final String jsonString, Class<T> classOfObj) {
+	public static <T> T fromJson(final String jsonString, final Class<T> classOfObj) {
 		return (T) fromJson(jsonString, classOfObj, null);
 	}
 
@@ -478,7 +478,7 @@ public final class EmsUtil {
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> T fromJson(final String jsonString, Class<T> classOfObj, EmsJsonModelAdapter jsonModelAdapter) {
+	public static <T> T fromJson(final String jsonString, final Class<T> classOfObj, final EmsJsonModelAdapter jsonModelAdapter) {
 		if (classOfObj != null){
 			if (jsonString != null && !jsonString.isEmpty()){
 				if (classOfObj == List.class || classOfObj == ArrayList.class){
@@ -508,7 +508,7 @@ public final class EmsUtil {
 				throw new EmsValidationException("Não suporta instânciar objeto para a classe "+ classOfObj.getSimpleName());
 			}
 		}else{
-			throw new IllegalArgumentException("classOfObj não deve ser null.");
+			throw new IllegalArgumentException("Parâmetro classOfObj do método EmsUtil.fromJson não deve ser null.");
 		}
 	}
 
@@ -518,10 +518,10 @@ public final class EmsUtil {
 	 * @param classOfObj	Classe do objeto que será serializado
 	 * @author Everton de Vargas Agilar
 	 */
-	public static <T> List<T> fromListJson(String jsonString, Class<T> classOfObj) {
+	public static <T> List<T> fromListJson(final String jsonString, final Class<T> classOfObj) {
 		return fromListJson(jsonString, classOfObj, null);
 	}
-	
+	 
 	/**
 	 * Obtém uma lista a partir de um json. Se o json estiver vazio, retorna apenas uma lista vazia.
 	 * @param jsonString String json
@@ -530,7 +530,7 @@ public final class EmsUtil {
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> List<T> fromListJson(String jsonString, Class<T> classOfObj, EmsJsonModelAdapter jsonModelAdapter) {
+	public static <T> List<T> fromListJson(final String jsonString, final Class<T> classOfObj, final EmsJsonModelAdapter jsonModelAdapter) {
 		if (classOfObj != null) {
 			ArrayList<T> newList = new ArrayList<T>();
 			if (jsonString != null && !jsonString.isEmpty()){
@@ -547,7 +547,7 @@ public final class EmsUtil {
 			}
 			return newList;
 		}else{
-			throw new IllegalArgumentException("classOfObj não deve ser null.");
+			throw new IllegalArgumentException("Parâmetro classOfObj do método EmsUtil.fromListJson não deve ser null.");
 		}
 	}
 	
@@ -557,12 +557,28 @@ public final class EmsUtil {
 	 * @param values	Map com chave/valor dos dados que serão aplicados na query
 	 * @author Everton de Vargas Agilar
 	 */
-	public static void setQueryParameterFromMap(Query query, Map<String, Object> values){
+	public static void setQueryParameterFromMap(final Query query, final Map<String, Object> values){
 		if (query != null && values != null && values.size() > 0){
 			int p = 1;
-			for (String field_name : values.keySet()){
+			for (String field : values.keySet()){
 				try{
-					Object value_field = values.get(field_name);
+					String[] field_defs = field.split("__");
+					String field_name;
+					String field_op;
+					int field_len = field_defs.length;
+					if (field_len == 1){
+						field_name = field_defs[0];
+						field_op = "=";
+					}else if (field_len == 2){
+						field_name = field_defs[0];
+						field_op = field_defs[1];
+						if (field_op.equals("isnull")){
+							continue;
+						}
+					}else{
+						throw new EmsValidationException("Campo de pesquisa "+ field + " inválido");
+					}
+					Object value_field = values.get(field);
 					Class<?> paramType = query.getParameter(p).getParameterType();
 					if (paramType == Integer.class){
 						if (value_field instanceof String){
@@ -578,49 +594,35 @@ public final class EmsUtil {
 						}else{
 							query.setParameter(p++,  BigDecimal.valueOf((double) value_field));
 						}
+					}else if (paramType == Double.class || paramType == double.class){
+						double valueDouble = parseAsDouble(value_field);
+						query.setParameter(p++, Double.valueOf(valueDouble));
 					}else if (paramType == String.class){
-						if (value_field instanceof String){
-							query.setParameter(p++, value_field);
-						}else if (value_field instanceof Double){
+						String valueString;
+						if (value_field instanceof Double){
 							// Parece um inteiro? (termina com .0)
 							if (value_field.toString().endsWith(".0")){
-								query.setParameter(p++, Integer.toString(((Double)value_field).intValue()));
+								valueString = Integer.toString(((Double)value_field).intValue());
 							}else{
-								query.setParameter(p++, value_field.toString());	
+								valueString = value_field.toString();
 							}
 						}else{
-							query.setParameter(p++, value_field.toString());
+							valueString = value_field.toString();
 						}
+						if (field_op.equals("contains")){
+							valueString = "%"+ valueString + "%";
+						}else if (field_op.equals("icontains")){
+							valueString = "%"+ valueString.toLowerCase() + "%";
+						}else if (field_op.equals("like")){
+							valueString = valueString.toLowerCase() + "%";
+						}else if (field_op.equals("ilike")){
+							valueString = valueString.toLowerCase() + "%";
+						}
+
+						query.setParameter(p++, valueString);	
 					}else if (paramType == Boolean.class){
-						if (value_field instanceof String){
-							if (((String) value_field).equalsIgnoreCase("true")){
-								query.setParameter(p++, true);	
-							}else if  (((String) value_field).equalsIgnoreCase("false")){
-								query.setParameter(p++, false);
-							}else if  (((String) value_field).equalsIgnoreCase("1")){
-								query.setParameter(p++, true);
-							}else if  (((String) value_field).equalsIgnoreCase("0")){
-								query.setParameter(p++, false);
-							}else if  (((String) value_field).equalsIgnoreCase("sim")){
-								query.setParameter(p++, true);
-							}else if  (((String) value_field).equalsIgnoreCase("1.0")){
-								query.setParameter(p++, true);
-							}else if  (((String) value_field).equalsIgnoreCase("yes")){
-								query.setParameter(p++, true);
-							}else{
-								query.setParameter(p++, false);
-							}
-						}else if (value_field instanceof Double){
-							if (value_field.toString().equals("1.0")){
-								query.setParameter(p++, true);
-							}else{
-								query.setParameter(p++, false);
-							}
-						}else if (value_field instanceof Boolean){
-							query.setParameter(p++, value_field);
-						}else{
-							query.setParameter(p++, false);
-						}
+						boolean value_boolean = parseAsBoolean(value_field);
+						query.setParameter(p++, value_boolean);
 					}else if (paramType == java.util.Date.class){
 						final String m_erro = field_name + " não é uma data válida.";
 						if (value_field instanceof String){
@@ -653,7 +655,7 @@ public final class EmsUtil {
 	
 	
 	@SuppressWarnings({ "unchecked" })
-	private static Map<String, Object> ObjectFieldsToMap(Object obj){
+	private static Map<String, Object> ObjectFieldsToMap(final Object obj){
 		if (obj != null){
 			if (obj instanceof Map){
 				return (Map<String, Object>) obj;
@@ -682,7 +684,7 @@ public final class EmsUtil {
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public static Object setValuesFromMap(Object obj, Map<String, Object> values, EmsJsonModelAdapter jsonModelAdapter){
+	public static Object setValuesFromMap(final Object obj, final Map<String, Object> values, final EmsJsonModelAdapter jsonModelAdapter){
 		if (obj != null && values != null && values.size() > 0){
 			Class<? extends Object> class_obj = obj.getClass();
 			for (String field_name : values.keySet()){
@@ -906,7 +908,7 @@ public final class EmsUtil {
 	 * @return campo
 	 * @author Everton de Vargas Agilar
 	 */
-	public static Field findFieldByAnnotation(Class<?> clazz, Class<? extends Annotation> ann) {
+	public static Field findFieldByAnnotation(final Class<?> clazz, final Class<? extends Annotation> ann) {
 	    if (clazz != null && ann != null){
 			Class<?> c = clazz;
 		    while (c != null) {
@@ -928,7 +930,7 @@ public final class EmsUtil {
 	 * @return campo
 	 * @author Everton de Vargas Agilar
 	 */
-	public static Integer getIdFromObject(Object obj) {
+	public static Integer getIdFromObject(final Object obj) {
 	    if (obj != null){
 	    	Field idField = findFieldByAnnotation(obj.getClass(), Id.class);
 			if (idField != null){
@@ -947,7 +949,7 @@ public final class EmsUtil {
 				throw new EmsValidationException("Objeto não tem id.");
 			}
 	    }else{
-	    	throw new EmsValidationException("Obj não pode ser null em EmsUtil.getIdFromObject.");
+	    	throw new EmsValidationException("Parâmetro Obj do método EmsUtil.getIdFromObject não deve ser null.");
 	    }
 	}	
 
@@ -958,7 +960,7 @@ public final class EmsUtil {
 	 * @return enumeração
 	 * @author Everton de Vargas Agilar
 	 */
-	public static Enum<?> intToEnum(int value, @SuppressWarnings("rawtypes") Class<Enum> clazz) {
+	public static Enum<?> intToEnum(int value, @SuppressWarnings("rawtypes") final Class<Enum> clazz) {
 		if (clazz != null){
 			if (value >= 0 && clazz != null){
 				for(Enum<?> t : clazz.getEnumConstants()) {
@@ -969,7 +971,7 @@ public final class EmsUtil {
 			}
 			throw new EmsValidationException("Valor inválido para o campo "+ clazz.getSimpleName());
 		}else{
-			throw new IllegalArgumentException("clazz não deve ser null.");
+			throw new IllegalArgumentException("Parâmetro clazz do método EmsUtil.intToEnum não deve ser null.");
 		}
 	}
 
@@ -980,7 +982,7 @@ public final class EmsUtil {
 	 * @return enumeração
 	 * @author Everton de Vargas Agilar
 	 */
-	public static Enum<?> StrToEnum(String value, @SuppressWarnings("rawtypes") Class<Enum> clazz) {
+	public static Enum<?> StrToEnum(final String value, @SuppressWarnings("rawtypes") final Class<Enum> clazz) {
 		if (value != null && !value.isEmpty() && clazz != null){
 			for(Enum<?> t : clazz.getEnumConstants()) {
 		        if(t.name().equalsIgnoreCase(value)) {
@@ -989,7 +991,7 @@ public final class EmsUtil {
 		    }
 			throw new EmsValidationException("Valor inválido para o campo "+ clazz.getSimpleName());
 		}else{
-			throw new IllegalArgumentException("clazz e value não devem ser null.");
+			throw new IllegalArgumentException("Parâmetros clazz e value do método EmsUtil.StrToEnum não devem ser null.");
 		}
 	}
 
@@ -1012,7 +1014,7 @@ public final class EmsUtil {
 	 * @return OtpErlangTuple
 	 * @author Everton de Vargas Agilar
 	 */
-	public static OtpErlangTuple serializeObjectToErlangResponse(final Object ret, IEmsRequest request){
+	public static OtpErlangTuple serializeObjectToErlangResponse(final Object ret, final IEmsRequest request){
 	    OtpErlangObject[] otp_result = new OtpErlangObject[3];
 		OtpErlangObject[] reply = new OtpErlangObject[2];
 	    boolean isEmsResponse = ret instanceof EmsResponse;
@@ -1162,6 +1164,65 @@ public final class EmsUtil {
 	public static Object mergeObjects(final Object obj1, final Object obj2, final EmsJsonModelAdapter jsonModelAdapter){
 		Map<String, Object> values = ObjectFieldsToMap(obj2);
 		return setValuesFromMap(obj1, values, jsonModelAdapter);
+	}
+
+	public static String fieldOperatorToSqlOperator(final String fieldOperator){
+		switch (fieldOperator){
+			case "contains": return " like ";  
+			case "icontains": return " like ";
+			case "like": return " like "; 
+			case "ilike": return " like "; 
+			case "gt": return " > "; 
+			case "gte": return " >= ";
+			case "lt": return " < "; 
+			case "lte": return " <= ";  
+			case "e": return " = ";
+			case "ne": return " != ";
+			case "isnull": return " is null ";
+		}
+		throw new EmsValidationException("Operador do campo de pesquisa "+ fieldOperator + " inválido");
+	}
+	
+	public static boolean parseAsBoolean(final Object value_field){
+		if (value_field instanceof String){
+			if (((String) value_field).equalsIgnoreCase("true")){
+				return true;	
+			}else if  (((String) value_field).equalsIgnoreCase("false")){
+				return false;
+			}else if  (((String) value_field).equalsIgnoreCase("1")){
+				return true;
+			}else if  (((String) value_field).equalsIgnoreCase("0")){
+				return false;
+			}else if  (((String) value_field).equalsIgnoreCase("sim")){
+				return true;
+			}else if  (((String) value_field).equalsIgnoreCase("1.0")){
+				return true;
+			}else if  (((String) value_field).equalsIgnoreCase("yes")){
+				return true;
+			}else{
+				return false;
+			}
+		}else if (value_field instanceof Double){
+			if (value_field.toString().equals("1.0")){
+				return true;
+			}else{
+				return false;
+			}
+		}else if (value_field instanceof Boolean){
+			return ((Boolean) value_field).booleanValue();
+		}else{
+			return false;
+		}
+	}
+
+	public static Double parseAsDouble(final Object value_field){
+		if (value_field instanceof String){
+			return Double.parseDouble((String) value_field);
+		}else if (value_field instanceof Double){
+			return ((Double) value_field).doubleValue();
+		}else{
+			return ((Float) value_field).doubleValue();
+		}
 	}
 	
 }

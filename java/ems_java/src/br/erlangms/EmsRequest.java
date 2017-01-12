@@ -78,7 +78,7 @@ public class EmsRequest implements IEmsRequest {
 				return 0;
 			}
 		}catch (Exception e){
-			throw new EmsRequestException("Não foi possível obter a quantidade de parâmetros do request.");
+			throw new EmsValidationException("Não foi possível obter a quantidade de parâmetros do request.");
 		}
 	}
 
@@ -105,7 +105,7 @@ public class EmsRequest implements IEmsRequest {
 				return null;
 			}
 		}catch (Exception e){
-			throw new EmsRequestException("Não foi possível obter o parâmetro "+ nome + " do request.");
+			throw new EmsValidationException("Não foi possível obter o parâmetro "+ nome + " do request.");
 		}
 	}
 
@@ -117,7 +117,7 @@ public class EmsRequest implements IEmsRequest {
 		try {
 			return otp_result.intValue();
 		} catch (OtpErlangRangeException e) {
-			throw new EmsRequestException("Parâmetro "+ nome + " não é inteiro.");				
+			throw new EmsValidationException("Parâmetro "+ nome + " não é inteiro.");				
 		}
 	}
 	
@@ -126,7 +126,7 @@ public class EmsRequest implements IEmsRequest {
 		try{
 			return Double.parseDouble(getParam(nome));
 		}catch (Exception e){
-			throw new EmsRequestException("Não foi possível converter o parâmetro "+ nome + " no tipo double do request.");
+			throw new EmsValidationException("Não foi possível converter o parâmetro "+ nome + " no tipo double do request.");
 		}
 	}
 
@@ -135,7 +135,7 @@ public class EmsRequest implements IEmsRequest {
 		try{
 			return new SimpleDateFormat("dd/mm/yyyy").parse(getParam(nome));
 		}catch (Exception e){
-			throw new EmsRequestException("Não foi possível converter o parâmetro "+ nome + " no tipo Date do request.");
+			throw new EmsValidationException("Não foi possível converter o parâmetro "+ nome + " no tipo Date do request.");
 		}
 	}
 
@@ -154,7 +154,7 @@ public class EmsRequest implements IEmsRequest {
 				return 0;
 			}
 		}catch (Exception e){
-			throw new EmsRequestException("Não foi possível obter a quantidade de queries do request.");
+			throw new EmsValidationException("Não foi possível obter a quantidade de queries do request.");
 		}
 	}
 
@@ -178,10 +178,10 @@ public class EmsRequest implements IEmsRequest {
 					return null;
 				}
 			}catch (Exception e){
-				throw new EmsRequestException("Não foi possível obter a query "+ nome + " do request.");
+				throw new EmsValidationException("Não foi possível obter a query "+ nome + " do request.");
 			}
 		}else{
-			throw new EmsRequestException("Não existe a query " + nome + " do request.");
+			throw new EmsValidationException("Não existe a query " + nome + " do request.");
 		}
 	}
 
@@ -211,7 +211,7 @@ public class EmsRequest implements IEmsRequest {
 		try{
 			return EmsUtil.fromJson(getPayload(), classOfObj, jsonModelAdapter);
 		}catch (Exception e){
-			throw new EmsRequestException(e.getMessage());
+			throw new EmsValidationException(e.getMessage());
 		}
 	}
 	
@@ -260,7 +260,7 @@ public class EmsRequest implements IEmsRequest {
 		try{
 			return (Map<String, Object>) EmsUtil.fromJson(getPayload(), HashMap.class);
 		}catch (Exception e){
-			throw new EmsRequestException("Não foi possível converter o payload do request em um objeto da interface java.util.Map. Erro interno: "+ e.getMessage());
+			throw new EmsValidationException("Não foi possível converter o payload do request em um objeto da interface java.util.Map. Erro interno: "+ e.getMessage());
 		}
 	}
 
@@ -315,7 +315,7 @@ public class EmsRequest implements IEmsRequest {
 		try{
 			return Integer.parseInt(getQuery(nome));
 		}catch (Exception e){
-			throw new EmsRequestException("Não foi possível converter a query "+ nome + " para int do request.");
+			throw new EmsValidationException("Não foi possível converter a query "+ nome + " para int do request.");
 		}
 	}
 
@@ -330,7 +330,7 @@ public class EmsRequest implements IEmsRequest {
 		try{
 			return Double.parseDouble(getQuery(nome));
 		}catch (Exception e){
-			throw new EmsRequestException("Não foi possível converter a query "+ nome + " para double do request.");
+			throw new EmsValidationException("Não foi possível converter a query "+ nome + " para double do request.");
 		}
 	}
 

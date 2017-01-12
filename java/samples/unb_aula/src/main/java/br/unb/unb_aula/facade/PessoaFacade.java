@@ -23,14 +23,14 @@ public class PessoaFacade extends EmsServiceFacade {
 	}
 	
 	public List<Pessoa> find(IEmsRequest request){
-		String filtro = request.getQuery("filtro");
+		String filter = request.getQuery("filter");
 		String fields = request.getQuery("fields");
-		int limit_ini = request.getQueryAsInt("limit_ini");
-		int limit_fim = request.getQueryAsInt("limit_fim");
+		int limit = request.getQueryAsInt("limit");
+		int offset = request.getQueryAsInt("offset");
 		String sort = request.getQuery("sort");
 		return ModApplication.getInstance()
 			.getPessoaService()
-			.find(filtro, fields, limit_ini, limit_fim, sort);
+			.find(filter, fields, limit, offset, sort);
 	}
 
 	public Pessoa insert(IEmsRequest request){

@@ -54,42 +54,83 @@ public abstract class EmsRepository<Model> {
 	
 	/**
 	 * Pesquisa um objeto a partir de um filtro
-	 * @param filtro objeto json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
+	 * @param filter objeto json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
 	 * @param fields lista de campos que devem retornar ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
-	 * @param limit_ini Paginador inicial dos registros 
-	 * @param limit_ini Paginador final dos registros
+	 * @param limit Quantidade objetos trazer na pesquisa
+	 * @param offset A partir de que posição. Iniciando em 1
 	 * @param sort trazer ordenado por quais campos o conjunto de dados
 	 * @return lista dos objetos
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
-	public List<Model> find(final String filtro, final String fields, int limit_ini, int limit_fim, final String sort){
+	public List<Model> find(final String filter, final String fields, int limit, int offset, final String sort){
 		Query query = null;
 		StringBuilder field_smnt = null;
 		StringBuilder where = null;
 		StringBuilder sort_smnt = null;
 		Map<String, Object> filtro_obj = null;		
-		Field idField = EmsUtil.findFieldByAnnotation(getClassOfModel(), Id.class);
+		Field idField = null;
 
 		// Define o filtro da query se foi informado
-		if (filtro != null && filtro.length() > 5){
+		if (filter != null && filter.length() > 5){
 			try{
 				boolean useAnd = false; 
-				filtro_obj = (Map<String, Object>) EmsUtil.fromJson(filtro, HashMap.class);
+				filtro_obj = (Map<String, Object>) EmsUtil.fromJson(filter, HashMap.class);
 				where = new StringBuilder("where ");
 				for (String field : filtro_obj.keySet()){
 					if (useAnd){
 						where.append(" and ");
 					}
-					if (field.equals("pk")){
-						where.append("this.").append(idField.getName()).append("=?");
+					String[] field_defs = field.split("__");
+					String fieldName;
+					String fieldOperator;
+					String sqlOperator;
+					int field_len = field_defs.length; 
+					if (field_len == 1){
+						fieldName = field;
+						fieldOperator = "=";
+						sqlOperator = "=";
+					} else if (field_len == 2){
+						fieldName = field_defs[0];
+						fieldOperator = field_defs[1];
+						sqlOperator = EmsUtil.fieldOperatorToSqlOperator(fieldOperator);
 					}else{
-						where.append("this.").append(field).append("=?");
+						throw new EmsValidationException("Campo de pesquisa "+ field + " inválido");
+					}
+					if (fieldName.equals("pk")){
+						idField = EmsUtil.findFieldByAnnotation(getClassOfModel(), Id.class);
+						fieldName = idField.getName();
+					}else{
+						try{
+							// Verifica se o campo existe. Uma excessão ocorre se não existir
+							getClassOfModel().getDeclaredField(fieldName);
+						}catch (Exception ex){
+							throw new EmsValidationException("Campo de pesquisa " + fieldName + " não existe");
+						}
+					}
+					if (field_len == 2){
+						if (fieldOperator.equals("isnull")){
+							boolean fieldBoolean = EmsUtil.parseAsBoolean(filtro_obj.get(field)); 
+							if (fieldBoolean){
+								where.append(fieldName).append(" is null ");
+							}else{
+								where.append(fieldName).append(" is not null ");
+							}
+						} else if(fieldOperator.equals("icontains") || fieldOperator.equals("ilike")){
+							fieldName = String.format("lower(this.%s)", fieldName);
+							where.append(fieldName).append(sqlOperator).append("?");
+						}else{
+							fieldName = String.format("this.%s", fieldName);
+							where.append(fieldName).append(sqlOperator).append("?");
+						}
+					}else{
+						fieldName = String.format("this.%s", fieldName);
+						where.append(fieldName).append(sqlOperator).append("?");
 					}
 					useAnd = true;
 				}
 			}catch (Exception e){
-				throw new IllegalArgumentException("Filtro da pesquisa inválido. Erro interno: "+ e.getMessage());
+				throw new EmsValidationException("Filtro da pesquisa inválido. Erro interno: "+ e.getMessage());
 			}
 		}
 
@@ -111,7 +152,7 @@ public abstract class EmsRepository<Model> {
 					useVirgula = true;
 				}
 			}catch (Exception e){
-				throw new IllegalArgumentException("Lista de campos da pesquisa inválido. Erro interno: "+ e.getMessage());
+				throw new EmsValidationException("Lista de campos da pesquisa inválido. Erro interno: "+ e.getMessage());
 			}
 		}
 
@@ -142,7 +183,7 @@ public abstract class EmsRepository<Model> {
 					useVirgula = true;
 				}
 			}catch (Exception e){
-				throw new IllegalArgumentException("Definição sort inválido. Erro interno: "+ e.getMessage());
+				throw new EmsValidationException("Sort da pesquisa inválido. Erro interno: "+ e.getMessage());
 			}
 		}
 		
@@ -160,7 +201,7 @@ public abstract class EmsRepository<Model> {
 			}	
 			query = getEntityManager().createQuery(sql.toString());
 		}catch (Exception e){
-			throw new IllegalArgumentException("Não foi possível criar a query da pesquisa. Erro interno: "+ e.getMessage());
+			throw new EmsValidationException("Não foi possível criar a query da pesquisa. Erro interno: "+ e.getMessage());
 		}
 
 		// Seta os parâmetros da query para cada campo do filtro
@@ -168,14 +209,16 @@ public abstract class EmsRepository<Model> {
 			EmsUtil.setQueryParameterFromMap(query, filtro_obj);
 		}
 
-		// Define o limite inicial e final do resultado
-		if (limit_ini >= 0 && limit_fim >= limit_ini && limit_fim <= 999999999){
-			query.setFirstResult(limit_ini);
-			query.setMaxResults(limit_fim-limit_ini+1);
-		}else{
-			throw new IllegalArgumentException("Limite final para pesquisa deve ser maior que limite inicial.");
+		if (!(limit > 0 && limit <= 999999999)){
+			throw new EmsValidationException("Parâmetro limit da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor ou igual que 999999999");
 		}
-		
+
+		if (!(offset >= 0 && offset < 999999999)){
+			throw new EmsValidationException("Parâmetro offset da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor que 999999999");
+		}
+
+		query.setFirstResult(offset);
+		query.setMaxResults(limit);
 		List<Model> result = query.getResultList();
 		return result;
 	}
@@ -195,7 +238,7 @@ public abstract class EmsRepository<Model> {
 			}
 			return obj;
 		}else{
-			throw new IllegalArgumentException("Argumento id não pode ser null para EmsRepository.findById.");
+			throw new EmsValidationException("Parâmetro id não pode ser null para EmsRepository.findById.");
 		}
 	}
 
@@ -214,7 +257,7 @@ public abstract class EmsRepository<Model> {
 			}
 			return obj;
 		}else{
-			throw new IllegalArgumentException("Argumentos classOfModel e id não podem ser null para EmsRepository.findById.");
+			throw new EmsValidationException("Parâmetros classOfModel e id não podem ser null para EmsRepository.findById.");
 		}
 	}
 	
@@ -236,7 +279,7 @@ public abstract class EmsRepository<Model> {
 			em.flush();
 			return obj;
 		}else{
-			throw new IllegalArgumentException("Argumento obj não pode ser null para EmsRepository.update.");
+			throw new EmsValidationException("Parâmetro obj não pode ser null para EmsRepository.update.");
 		}
 	}
 	
@@ -258,7 +301,7 @@ public abstract class EmsRepository<Model> {
 			em.flush();
 			return obj;
 		}else{
-			throw new IllegalArgumentException("Argumento obj não pode ser null para EmsRepository.insert.");
+			throw new EmsValidationException("Parâmetro obj não pode ser null para EmsRepository.insert.");
 		}
 	}
 
@@ -281,7 +324,7 @@ public abstract class EmsRepository<Model> {
 			em.flush();
 			return obj;
 		}else{
-			throw new IllegalArgumentException("Argumento obj não pode ser null para EmsRepository.insertOrUpdate.");
+			throw new EmsValidationException("Parâmetro obj não pode ser null para EmsRepository.insertOrUpdate.");
 		}
 	}
 	
@@ -298,7 +341,7 @@ public abstract class EmsRepository<Model> {
 				.setParameter("pId", id)
 				.executeUpdate() > 0;
 		}else{
-			throw new IllegalArgumentException("Argumento id deve ser maior que zero para EmsRepository.delete.");
+			throw new EmsValidationException("Parâmetro id deve ser maior que zero para EmsRepository.delete.");
 		}
 	}
 
@@ -322,7 +365,7 @@ public abstract class EmsRepository<Model> {
 					.setParameter("pId", id)
 					.executeUpdate() > 0;
 		}else{
-			throw new IllegalArgumentException("Argumentos classOfModel e id não podem ser null para EmsRepository.delete.");
+			throw new EmsValidationException("Parâmetros classOfModel e id do método EmsRepository.delete não podem ser null");
 		}
 	}
 

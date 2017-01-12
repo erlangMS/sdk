@@ -22,14 +22,14 @@ public class CursoFacade extends EmsServiceFacade {
 	}
 	
 	public List<Curso> find(IEmsRequest request){
-		String filtro = request.getQuery("filtro");
+		String filter = request.getQuery("filter");
 		String fields = request.getQuery("fields");
-		int limit_ini = request.getQueryAsInt("limit_ini");
-		int limit_fim = request.getQueryAsInt("limit_fim");
+		int limit = request.getQueryAsInt("limit");
+		int offset = request.getQueryAsInt("offset");
 		String sort = request.getQuery("sort");
 		return ModApplication.getInstance()
 			.getCursoService()
-			.find(filtro, fields, limit_ini, limit_fim, sort);
+			.find(filter, fields, limit, offset, sort);
 	}
 
 	public Curso insert(IEmsRequest request){
