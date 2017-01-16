@@ -60,6 +60,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
@@ -480,35 +481,37 @@ public final class EmsUtil {
 	@SuppressWarnings("unchecked")
 	public static <T> T fromJson(final String jsonString, final Class<T> classOfObj, final EmsJsonModelAdapter jsonModelAdapter) {
 		if (classOfObj != null){
-			if (jsonString != null && !jsonString.isEmpty()){
-				if (classOfObj == List.class || classOfObj == ArrayList.class){
-					List<Object> values = gson.fromJson(jsonString, List.class);
-					return (T) values;
-				}else if (classOfObj == java.util.HashMap.class || classOfObj == Map.class){
-					Map<String, Object> values = gson.fromJson(jsonString, Map.class);
-					return (T) values;
-				}else{
-					Map<String, Object> values = gson.fromJson(jsonString, Map.class);
-					T obj = null;
-					try {
-						obj = classOfObj.getConstructor().newInstance();
-					} catch (InstantiationException | IllegalAccessException
-							| EmsValidationException | InvocationTargetException
-							| NoSuchMethodException | SecurityException e) {
-						throw new EmsValidationException("Não suporta conversão do json da classe "+ classOfObj.getSimpleName() + ". Json: "+ jsonString);
-					}
-					setValuesFromMap(obj, values, jsonModelAdapter);
-					return obj;
-				}
-			}
 			try {
+				if (jsonString != null && !jsonString.isEmpty()){
+					if (classOfObj == List.class || classOfObj == ArrayList.class){
+						List<Object> values = gson.fromJson(jsonString, List.class);
+						return (T) values;
+					}else if (classOfObj == java.util.HashMap.class || classOfObj == Map.class){
+						Map<String, Object> values = gson.fromJson(jsonString, Map.class);
+						return (T) values;
+					}else{
+						Map<String, Object> values = gson.fromJson(jsonString, Map.class);
+						T obj = null;
+						try {
+							obj = classOfObj.getConstructor().newInstance();
+						} catch (InstantiationException | IllegalAccessException
+								| EmsValidationException | InvocationTargetException
+								| NoSuchMethodException | SecurityException e) {
+							throw new EmsValidationException("Não suporta conversão do json da classe "+ classOfObj.getSimpleName() + ". Json: "+ jsonString);
+						}
+						setValuesFromMap(obj, values, jsonModelAdapter);
+						return obj;
+					}
+				}
 				return classOfObj.getConstructor().newInstance();
+			}catch (JsonSyntaxException e) {
+				throw new EmsValidationException("Sintáxe do JSON inválida.");
 			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 					| InvocationTargetException | NoSuchMethodException | SecurityException e) {
 				throw new EmsValidationException("Não suporta instânciar objeto para a classe "+ classOfObj.getSimpleName());
 			}
 		}else{
-			throw new IllegalArgumentException("Parâmetro classOfObj do método EmsUtil.fromJson não deve ser null.");
+			throw new EmsValidationException("Parâmetro classOfObj do método EmsUtil.fromJson não deve ser null.");
 		}
 	}
 
@@ -534,7 +537,12 @@ public final class EmsUtil {
 		if (classOfObj != null) {
 			ArrayList<T> newList = new ArrayList<T>();
 			if (jsonString != null && !jsonString.isEmpty()){
-				List<Object> values = gson.fromJson(jsonString, List.class);
+				List<Object> values;
+				try{
+					values = gson.fromJson(jsonString, List.class);
+				}catch (JsonSyntaxException e) {
+					throw new EmsValidationException("Sintáxe do JSON inválida.");
+				} 
 				for (Object value : values){
 					try {
 						T obj = classOfObj.getConstructor().newInstance();
@@ -547,7 +555,7 @@ public final class EmsUtil {
 			}
 			return newList;
 		}else{
-			throw new IllegalArgumentException("Parâmetro classOfObj do método EmsUtil.fromListJson não deve ser null.");
+			throw new EmsValidationException("Parâmetro classOfObj do método EmsUtil.fromListJson não deve ser null.");
 		}
 	}
 	
