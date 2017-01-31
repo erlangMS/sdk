@@ -1048,6 +1048,8 @@ public final class EmsUtil {
 	            	reply[1] = new OtpErlangBinary(((String) ret).getBytes());
 	        	}else if (ret instanceof List && ((List<?>) ret).isEmpty()){
 	        		reply[1] = result_list_empty; 
+	        	}else if (ret instanceof byte[]){
+	        		reply[1] = new OtpErlangBinary(ret);
 	        	}else if (ret instanceof Object){
 	            	reply[1] = new OtpErlangBinary(EmsUtil.toJson(ret).getBytes());
 	            }else if (ret.getClass().getName().equals(ArrayList.class.getName())){
