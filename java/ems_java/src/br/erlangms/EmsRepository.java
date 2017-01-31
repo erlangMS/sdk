@@ -369,17 +369,31 @@ public abstract class EmsRepository<Model> {
 		}
 	}
 
+	/**
+	 * Um método para criar as contantes de sql internas do repositóro
+	 * @author Everton de Vargas Agilar
+	 */
 	private void doCreateCacheSQL(){
-		String idFieldName = EmsUtil.findFieldByAnnotation(getClassOfModel(), Id.class).getName();
-		SQL_DELETE = new StringBuilder("delete from ")
-								.append(getClassOfModel().getSimpleName())
-								.append(" where ")
-								.append(idFieldName).append("=:pId").toString();
+		Class<Model> classOfModel = getClassOfModel();
+		if (classOfModel != null){
+			Field IdField = EmsUtil.findFieldByAnnotation(classOfModel, Id.class);
+			if (IdField != null){
+				String idFieldName = IdField.getName();
+				SQL_DELETE = new StringBuilder("delete from ")
+										.append(getClassOfModel().getSimpleName())
+										.append(" where ")
+										.append(idFieldName).append("=:pId").toString();
+			}else{
+				throw new EmsValidationException("O modelo "+ classOfModel.getSimpleName() + " não possui nenhum campo com a anotação @Id.");
+			}
+		}else{
+			throw new EmsValidationException("Não foi implementado getClassOfModel() para a classe "+ getClass().getSimpleName());
+		}
 		createCacheSQL();
 	}
 	
 	/**
-	 * Um método para criar as contantes de sql necessários para o repositório
+	 * Um método para criar as contantes de sql
 	 * @author Everton de Vargas Agilar
 	 */
 	protected void createCacheSQL() {
