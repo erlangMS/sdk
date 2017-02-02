@@ -222,7 +222,54 @@ public abstract class EmsRepository<Model> {
 		List<Model> result = query.getResultList();
 		return result;
 	}
-
+	
+	/**
+	 * Recupera uma lista de objeto a partir de um objeto pai, utilizando os filtros. Variação do método find, acrescentando o objeto pai. 
+	 * @param filter objeto json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
+	 * @param fields lista de campos que devem retornar ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
+	 * @param limit Quantidade objetos trazer na pesquisa
+	 * @param offset A partir de que posição. Iniciando em 1
+	 * @param sort trazer ordenado por quais campos o conjunto de dados
+	 * @param owner Objeto pai
+	 * @return lista dos objetos
+	 * @author André Luciano Claret
+	 */
+	@SuppressWarnings("unchecked")
+	public List<Model> find(final String filter, final String fields, int limit, int offset, final String sort, final Object owner){
+		String new_filter = null;
+		String fieldName = null;
+		Integer idOwner;
+		Map<String,Object> filtro_obj = new HashMap<String, Object>();
+		if (owner != null){
+			idOwner = EmsUtil.getIdFromObject(owner);
+			fieldName = "id" + owner.getClass().getSimpleName();			
+		} else {
+			throw new EmsValidationException("Objeto pai não pode ser nulo!");
+		}	
+		filtro_obj = EmsUtil.fromJson(filter, HashMap.class);
+		filtro_obj.put(fieldName, idOwner);
+		new_filter = EmsUtil.toJson(filtro_obj);
+		return find(new_filter, fields, limit, offset, sort);
+	}
+	
+	/**
+	 * Recupera uma lista de objeto a partir de um filtro por HashMap. Variação do método find, para consultas internas. 
+	 * @param filter_map HashMap com os campos do filtro. Ex:/ {idAluno = 12345678, idDisciplina = 321654}
+	 * @param fields lista de campos que devem retornar ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
+	 * @param limit Quantidade objetos trazer na pesquisa
+	 * @param offset A partir de que posição. Iniciando em 1
+	 * @param sort trazer ordenado por quais campos o conjunto de dados
+	 * @return lista dos objetos
+	 * @author André Luciano Claret
+	 */
+	public List<Model> find(final Map<String,Object> filter_map, final String fields, int limit, int offset, final String sort){
+		String filter = null;
+		if (!filter_map.isEmpty()){
+			filter = EmsUtil.toJson(filter_map);
+		}
+		return find(filter, fields, limit, offset, sort);
+	}
+	
 	/**
 	 * Recuperar um objeto pelo seu id
 	 * @param id identificador do objeto
