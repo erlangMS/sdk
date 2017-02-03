@@ -1193,6 +1193,23 @@ public final class EmsUtil {
 		throw new EmsValidationException("Operador do campo de pesquisa "+ fieldOperator + " inválido");
 	}
 	
+	public static String listFunctionToSqlFunction(final List<String> listFunction){
+		if (listFunction.isEmpty() || (listFunction.size() != 2)){
+			throw new EmsValidationException("Função SQL precisa de um operador e de uma coluna.");
+		}
+		String function = listFunction.get(0);
+		switch (function){
+			case "avg": return " avg (" + listFunction.get(1) + ") ";  
+			case "count": return " count (" + listFunction.get(1) + ") ";
+			case "first": return " first (" + listFunction.get(1) + ") ";
+			case "last": return " last (" + listFunction.get(1) + ") "; 
+			case "max": return " max (" + listFunction.get(1) + ") "; 
+			case "min": return " min (" + listFunction.get(1) + ") ";
+			case "sum": return " sum (" + listFunction.get(1) + ") ";
+		}
+			throw new EmsValidationException("Função SQL "+ function + " inválido");
+	}
+	
 	public static boolean parseAsBoolean(final Object value_field){
 		if (value_field instanceof String){
 			if (((String) value_field).equalsIgnoreCase("true")){

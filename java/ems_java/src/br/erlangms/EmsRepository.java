@@ -9,12 +9,14 @@
 package br.erlangms;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Id;
+import javax.persistence.NoResultException;
 import javax.persistence.Query;
 
 import org.jinq.jpa.JPAJinqStream;
@@ -24,6 +26,7 @@ public abstract class EmsRepository<Model> {
 	public abstract Class<Model> getClassOfModel();
 	public abstract EntityManager getEntityManager();
 	private String SQL_DELETE;
+	private String SQL_EXISTS;
 
 	public EmsRepository(){
 		doCreateCacheSQL();
@@ -65,158 +68,9 @@ public abstract class EmsRepository<Model> {
 	@SuppressWarnings("unchecked")
 	public List<Model> find(final String filter, final String fields, int limit, int offset, final String sort){
 		Query query = null;
-		StringBuilder field_smnt = null;
-		StringBuilder where = null;
-		StringBuilder sort_smnt = null;
-		Map<String, Object> filtro_obj = null;		
-		Field idField = null;
-
-		// Define o filtro da query se foi informado
-		if (filter != null && filter.length() > 5){
-			try{
-				boolean useAnd = false; 
-				filtro_obj = (Map<String, Object>) EmsUtil.fromJson(filter, HashMap.class);
-				where = new StringBuilder("where ");
-				for (String field : filtro_obj.keySet()){
-					if (useAnd){
-						where.append(" and ");
-					}
-					String[] field_defs = field.split("__");
-					String fieldName;
-					String fieldOperator;
-					String sqlOperator;
-					int field_len = field_defs.length; 
-					if (field_len == 1){
-						fieldName = field;
-						fieldOperator = "=";
-						sqlOperator = "=";
-					} else if (field_len == 2){
-						fieldName = field_defs[0];
-						fieldOperator = field_defs[1];
-						sqlOperator = EmsUtil.fieldOperatorToSqlOperator(fieldOperator);
-					}else{
-						throw new EmsValidationException("Campo de pesquisa "+ field + " inválido");
-					}
-					if (fieldName.equals("pk")){
-						idField = EmsUtil.findFieldByAnnotation(getClassOfModel(), Id.class);
-						fieldName = idField.getName();
-					}else{
-						try{
-							// Verifica se o campo existe. Uma excessão ocorre se não existir
-							getClassOfModel().getDeclaredField(fieldName);
-						}catch (Exception ex){
-							throw new EmsValidationException("Campo de pesquisa " + fieldName + " não existe");
-						}
-					}
-					if (field_len == 2){
-						if (fieldOperator.equals("isnull")){
-							boolean fieldBoolean = EmsUtil.parseAsBoolean(filtro_obj.get(field)); 
-							if (fieldBoolean){
-								where.append(fieldName).append(" is null ");
-							}else{
-								where.append(fieldName).append(" is not null ");
-							}
-						} else if(fieldOperator.equals("icontains") || fieldOperator.equals("ilike")){
-							fieldName = String.format("lower(this.%s)", fieldName);
-							where.append(fieldName).append(sqlOperator).append("?");
-						}else{
-							fieldName = String.format("this.%s", fieldName);
-							where.append(fieldName).append(sqlOperator).append("?");
-						}
-					}else{
-						fieldName = String.format("this.%s", fieldName);
-						where.append(fieldName).append(sqlOperator).append("?");
-					}
-					useAnd = true;
-				}
-			}catch (Exception e){
-				throw new EmsValidationException("Filtro da pesquisa inválido. Erro interno: "+ e.getMessage());
-			}
-		}
-
-		// Formata a lista de campos 
-		if (fields != null && !fields.isEmpty()){
-			try{
-				field_smnt = new StringBuilder();
-				String[] field_list = fields.split(",");
-				boolean useVirgula = false;
-				for (String field_name : field_list){
-					if (useVirgula){
-						field_smnt.append(",");
-					}
-					if (field_name.equals("pk")){
-						field_smnt.append("this.").append(idField.getName()); 
-					}else{
-						field_smnt.append("this.").append(field_name);
-					}
-					useVirgula = true;
-				}
-			}catch (Exception e){
-				throw new EmsValidationException("Lista de campos da pesquisa inválido. Erro interno: "+ e.getMessage());
-			}
-		}
-
-		// Define o sort se foi informado
-		if (sort != null && !sort.isEmpty()){
-			try{
-				boolean useVirgula = false;
-				sort_smnt = new StringBuilder(" order by");
-				String[] sort_list = sort.split(",");
-				String sort_field = null;
-				for (String s : sort_list){
-					if (useVirgula){
-						sort_smnt.append(",");
-					}
-					if (s.startsWith("-")){
-						sort_field = s.substring(1);
-						if (sort_field.equals("pk")){
-							sort_field =  idField.getName();
-						}
-						sort_smnt.append(" this.").append(sort_field).append(" desc");
-					}else{
-						sort_field = s;	
-						if (sort_field.equals("pk")){
-							sort_field =  idField.getName();
-						}
-						sort_smnt.append(" this.").append(sort_field);
-					}
-					useVirgula = true;
-				}
-			}catch (Exception e){
-				throw new EmsValidationException("Sort da pesquisa inválido. Erro interno: "+ e.getMessage());
-			}
-		}
 		
+		query = createQuery(filter, fields, limit, offset, sort, null);
 		
-		try{
-			// formata o sql
-			StringBuilder sql = new StringBuilder("select ")
-				.append(field_smnt == null ? " this " : field_smnt.toString())
-				.append(" from ").append(getClassOfModel().getSimpleName()).append(" this ");
-			if (where != null){
-				sql.append(where.toString());
-			}	
-			if (sort_smnt != null){
-				sql.append(sort_smnt.toString());
-			}	
-			query = getEntityManager().createQuery(sql.toString());
-		}catch (Exception e){
-			throw new EmsValidationException("Não foi possível criar a query da pesquisa. Erro interno: "+ e.getMessage());
-		}
-
-		// Seta os parâmetros da query para cada campo do filtro
-		if (where != null){
-			EmsUtil.setQueryParameterFromMap(query, filtro_obj);
-		}
-
-		if (!(limit > 0 && limit <= 999999999)){
-			throw new EmsValidationException("Parâmetro limit da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor ou igual que 999999999");
-		}
-
-		if (!(offset >= 0 && offset < 999999999)){
-			throw new EmsValidationException("Parâmetro offset da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor que 999999999");
-		}
-
 		query.setFirstResult(offset);
 		query.setMaxResults(limit);
 		List<Model> result = query.getResultList();
@@ -254,7 +108,7 @@ public abstract class EmsRepository<Model> {
 	
 	/**
 	 * Recupera uma lista de objeto a partir de um filtro por HashMap. Variação do método find, para consultas internas. 
-	 * @param filter_map HashMap com os campos do filtro. Ex:/ {idAluno = 12345678, idDisciplina = 321654}
+	 * @param filter_map HashMap com os campos do filtro. Ex:/ {"idAluno" = 12345678, "idDisciplina" = 321654}
 	 * @param fields lista de campos que devem retornar ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param limit Quantidade objetos trazer na pesquisa
 	 * @param offset A partir de que posição. Iniciando em 1
@@ -287,6 +141,60 @@ public abstract class EmsRepository<Model> {
 		}else{
 			throw new EmsValidationException("Parâmetro id não pode ser null para EmsRepository.findById.");
 		}
+	}
+	
+	/**
+	 * Verifica se o objeto existe, passando um mapa com os nomes dos atributos e seus valores 
+	 * @param filter_map Mapa com os nomes dos atributos e seus valores
+	 * @return true se o objeto foi encontrado 
+	 * @author André Luciano Claret
+	 */
+	public boolean exists(final Map<String, Object> filter_map){
+		boolean anyMatch = false;
+		Query query = null;
+		String fieldName = null;
+		String filter = null;
+		List<String> listFunction = new ArrayList<String>(); 
+		if (!filter_map.isEmpty()){
+			for (String field: filter_map.keySet()){
+				fieldName = field;
+				break;
+			}
+			listFunction.add(0, "count");
+			listFunction.add(1, fieldName);
+			filter = EmsUtil.toJson(filter_map);
+			query = createQuery(filter, null, 1, 0, null, listFunction);
+		} else{
+			throw new EmsValidationException("É necessário informar parâmetros para a pesquisa!");
+		}
+		long result = (long) query.getSingleResult();
+		if (result >= 1){
+			anyMatch = true;
+		}			
+		return anyMatch;
+	}
+	
+	/**
+	 * Verifica se o objeto existe, passando o id do objeto 
+	 * @param id Id do objeto
+	 * @return true se o objeto foi encontrado 
+	 * @author André Luciano Claret
+	 */
+	public boolean exists(final Integer id){
+		boolean anyMatch = false;
+		if (id != null && id >= 0){
+			try{
+				anyMatch = (int) getEntityManager()			
+						.createQuery(SQL_EXISTS)
+						.setParameter("pId", id)
+						.getSingleResult() > 0;
+			} catch (NoResultException e) {
+				anyMatch = false;				
+			}
+		}else {
+			throw new EmsValidationException("É necessário informar o id do objeto!");
+		}
+		return anyMatch;
 	}
 
 	/**
@@ -417,7 +325,7 @@ public abstract class EmsRepository<Model> {
 	}
 
 	/**
-	 * Um método para criar as contantes de sql internas do repositóro
+	 * Um método para criar as constantes de sql internas do repositóro
 	 * @author Everton de Vargas Agilar
 	 */
 	private void doCreateCacheSQL(){
@@ -427,6 +335,10 @@ public abstract class EmsRepository<Model> {
 			if (IdField != null){
 				String idFieldName = IdField.getName();
 				SQL_DELETE = new StringBuilder("delete from ")
+										.append(getClassOfModel().getSimpleName())
+										.append(" where ")
+										.append(idFieldName).append("=:pId").toString();
+				SQL_EXISTS = new StringBuilder("select 1 from ")
 										.append(getClassOfModel().getSimpleName())
 										.append(" where ")
 										.append(idFieldName).append("=:pId").toString();
@@ -440,10 +352,191 @@ public abstract class EmsRepository<Model> {
 	}
 	
 	/**
-	 * Um método para criar as contantes de sql
+	 * Um método para criar as constantes de sql
 	 * @author Everton de Vargas Agilar
 	 */
 	protected void createCacheSQL() {
+	}	
+	
+	/**
+	 * Cria uma query a partir de um filtro e a partir de uma função sql
+	 * @param filter objeto json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
+	 * @param fields lista de campos que devem retornar ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
+	 * @param limit Quantidade objetos trazer na pesquisa
+	 * @param offset A partir de que posição. Iniciando em 1
+	 * @param sort Trazer ordenado por quais campos o conjunto de dados
+	 * @param listFunction Lista com a funçao sql e o nome do atributo, nesta ordem. Ex:/ {"count", "idObjeto"}
+	 * @return query com o filtro e a função sql
+	 * @author Everton de Vargas Agilar
+	 */
+	@SuppressWarnings("unchecked")
+	public Query createQuery(final String filter, final String fields, int limit, int offset, final String sort, final List<String> listFunction){
+		Query query = null;
+		StringBuilder field_smnt = null;
+		StringBuilder where = null;
+		StringBuilder sort_smnt = null;
+		String sqlFunction = null;
+		Map<String, Object> filtro_obj = null;		
+		Field idField = null;
+
+		// Define o filtro da query se foi informado
+		if (filter != null && filter.length() > 5){
+			try{
+				boolean useAnd = false; 
+				filtro_obj = (Map<String, Object>) EmsUtil.fromJson(filter, HashMap.class);
+				where = new StringBuilder("where ");
+				for (String field : filtro_obj.keySet()){
+					if (useAnd){
+						where.append(" and ");
+					}
+					String[] field_defs = field.split("__");
+					String fieldName;
+					String fieldOperator;
+					String sqlOperator;
+					int field_len = field_defs.length; 
+					if (field_len == 1){
+						fieldName = field;
+						fieldOperator = "=";
+						sqlOperator = "=";
+					} else if (field_len == 2){
+						fieldName = field_defs[0];
+						fieldOperator = field_defs[1];
+						sqlOperator = EmsUtil.fieldOperatorToSqlOperator(fieldOperator);
+					}else{
+						throw new EmsValidationException("Campo de pesquisa "+ field + " inválido");
+					}
+					if (fieldName.equals("pk")){
+						idField = EmsUtil.findFieldByAnnotation(getClassOfModel(), Id.class);
+						fieldName = idField.getName();
+					}else{
+						try{
+							// Verifica se o campo existe. Uma excessão ocorre se não existir
+							getClassOfModel().getDeclaredField(fieldName);
+						}catch (Exception ex){
+							throw new EmsValidationException("Campo de pesquisa " + fieldName + " não existe");
+						}
+					}
+					if (field_len == 2){
+						if (fieldOperator.equals("isnull")){
+							boolean fieldBoolean = EmsUtil.parseAsBoolean(filtro_obj.get(field)); 
+							if (fieldBoolean){
+								where.append(fieldName).append(" is null ");
+							}else{
+								where.append(fieldName).append(" is not null ");
+							}
+						} else if(fieldOperator.equals("icontains") || fieldOperator.equals("ilike")){
+							fieldName = String.format("lower(this.%s)", fieldName);
+							where.append(fieldName).append(sqlOperator).append("?");
+						}else{
+							fieldName = String.format("this.%s", fieldName);
+							where.append(fieldName).append(sqlOperator).append("?");
+						}
+					}else{
+						fieldName = String.format("this.%s", fieldName);
+						where.append(fieldName).append(sqlOperator).append("?");
+					}
+					useAnd = true;
+				}
+			}catch (Exception e){
+				throw new EmsValidationException("Filtro da pesquisa inválido. Erro interno: "+ e.getMessage());
+			}
+		}
+
+		// Formata a lista de campos 
+		if (fields != null && !fields.isEmpty()){
+			try{
+				field_smnt = new StringBuilder();
+				String[] field_list = fields.split(",");
+				boolean useVirgula = false;
+				for (String field_name : field_list){
+					if (useVirgula){
+						field_smnt.append(",");
+					}
+					if (field_name.equals("pk")){
+						field_smnt.append("this.").append(idField.getName()); 
+					}else{
+						field_smnt.append("this.").append(field_name);
+					}
+					useVirgula = true;
+				}
+			}catch (Exception e){
+				throw new EmsValidationException("Lista de campos da pesquisa inválido. Erro interno: "+ e.getMessage());
+			}
+		}
+
+		// Define o sort se foi informado
+		if (sort != null && !sort.isEmpty()){
+			try{
+				boolean useVirgula = false;
+				sort_smnt = new StringBuilder(" order by");
+				String[] sort_list = sort.split(",");
+				String sort_field = null;
+				for (String s : sort_list){
+					if (useVirgula){
+						sort_smnt.append(",");
+					}
+					if (s.startsWith("-")){
+						sort_field = s.substring(1);
+						if (sort_field.equals("pk")){
+							sort_field =  idField.getName();
+						}
+						sort_smnt.append(" this.").append(sort_field).append(" desc");
+					}else{
+						sort_field = s;	
+						if (sort_field.equals("pk")){
+							sort_field =  idField.getName();
+						}
+						sort_smnt.append(" this.").append(sort_field);
+					}
+					useVirgula = true;
+				}
+			}catch (Exception e){
+				throw new EmsValidationException("Sort da pesquisa inválido. Erro interno: "+ e.getMessage());
+			}
+		}
+		
+		//verifica se a função sql passada existe 
+		if (!listFunction.isEmpty()){
+			sqlFunction = EmsUtil.listFunctionToSqlFunction(listFunction);		
+		}
+		
+		try{
+			// formata o sql
+			StringBuilder sql;
+			if (listFunction.isEmpty()){
+				 sql = new StringBuilder("select ")
+				.append(field_smnt == null ? " this " : field_smnt.toString())
+				.append(" from ").append(getClassOfModel().getSimpleName()).append(" this ");
+			} else {
+				 sql = new StringBuilder("select ")
+				.append(sqlFunction)
+				.append(" from ").append(getClassOfModel().getSimpleName()).append(" this ");
+			}
+			if (where != null){
+				sql.append(where.toString());
+			}	
+			if (sort_smnt != null){
+				sql.append(sort_smnt.toString());
+			}	
+			query = getEntityManager().createQuery(sql.toString());
+		}catch (Exception e){
+			throw new EmsValidationException("Não foi possível criar a query da pesquisa. Erro interno: "+ e.getMessage());
+		}
+
+		// Seta os parâmetros da query para cada campo do filtro
+		if (where != null){
+			EmsUtil.setQueryParameterFromMap(query, filtro_obj);
+		}
+
+		if (!(limit > 0 && limit <= 999999999)){
+			throw new EmsValidationException("Parâmetro limit da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor ou igual que 999999999");
+		}
+
+		if (!(offset >= 0 && offset < 999999999)){
+			throw new EmsValidationException("Parâmetro offset da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor que 999999999");
+		}
+		
+		return query;
 	}
 	
 }
