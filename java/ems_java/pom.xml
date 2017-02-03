@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>br.erlangms</groupId>
   <artifactId>ems_java</artifactId>
-  <version>1.0.1</version>
+  <version>1.0.3</version>
   <name>ems_java</name>
   <description>SDK ErlangMS by Everton de Vargas Agilar</description>
 
@@ -51,6 +51,12 @@
 	    <groupId>org.jinq</groupId>
 	    <artifactId>jinq-jpa</artifactId>
 	    <version>1.8.5</version>
+	</dependency>
+	
+	<dependency>
+	    <groupId>net.sf.jasperreports</groupId>
+	    <artifactId>jasperreports</artifactId>
+	    <version>6.4.0</version>
 	</dependency>
 </dependencies>
 

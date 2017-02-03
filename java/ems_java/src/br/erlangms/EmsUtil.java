@@ -11,6 +11,7 @@ package br.erlangms;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -66,6 +67,15 @@ import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+
+import net.sf.jasperreports.engine.JRDataSource;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperExportManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.engine.util.JRLoader;
 
 public final class EmsUtil {
 	private static final OtpErlangAtom ok_atom = new OtpErlangAtom("ok");
@@ -1233,6 +1243,43 @@ public final class EmsUtil {
 		}else{
 			return ((Float) value_field).doubleValue();
 		}
+	}
+	
+	/**
+	 * Gera relatório no formato pdf com base na lista de objetos passados (o serviço que chama esse método deve declarar no seu catalogo: "content_type" : "application/pdf")
+	 * @param parametrosJasper parâmetros hashmap passados para o relatório 
+	 * @param lista é a lista de objetos passados para preencher o conteúdo do relatório
+	 * @param templateJasper arquivo .jasper que contém o template criado no Ireport para organização dos dados passados (o .jasper deve ser armazenado na pasta /resources/relatorios/ do projeto que invoca esse método)
+	 * @param owner referência para objeto de quem invoca esse metodo
+	 * @return byte[] retorna um fluxo de bytes que deve ser tratado pelo frontend para geração do pdf
+	 * @author Fabiano Rodrigues de Paiva
+	 */
+	public static byte[] printPdf(HashMap<String, Object> parametrosJasper, List<? extends Object> lista, String templateJasper, final Object owner){
+
+		final String m_erro = "ERRO ao gerar relatorio PDF.";
+		
+		if( (parametrosJasper!=null || (lista!=null && lista.size()>0)) && (templateJasper!=null && !templateJasper.equals("")) && owner!=null ){
+
+			try {		
+				final InputStream streamTemplateJasper = owner.getClass().getResourceAsStream("/relatorios/"+ templateJasper);	//com ajuda do owner recupero o caminho onde está o relatório no projeto de quem invocou esse método	
+				final JasperReport jr = (JasperReport)JRLoader.loadObject(streamTemplateJasper);						
+				final JRDataSource datasourceList = new JRBeanCollectionDataSource(lista);			
+				final JasperPrint jasperPrint_ = JasperFillManager.fillReport(jr, parametrosJasper, datasourceList);			
+
+				return JasperExportManager.exportReportToPdf(jasperPrint_);  
+
+			} catch (JRException e) {
+				e.printStackTrace();
+				throw new EmsValidationException(m_erro) ;
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new EmsValidationException(m_erro) ;
+			}
+
+		}else{
+			throw new EmsValidationException("ParametrosJasper ou lista deve ser preenchido, juntamente com o template e owner");
+		}
+
 	}
 	
 }
