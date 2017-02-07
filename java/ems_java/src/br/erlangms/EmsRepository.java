@@ -496,14 +496,14 @@ public abstract class EmsRepository<Model> {
 		}
 		
 		//verifica se a função sql passada existe 
-		if (!listFunction.isEmpty()){
+		if (listFunction != null && !listFunction.isEmpty()){
 			sqlFunction = EmsUtil.listFunctionToSqlFunction(listFunction);		
 		}
 		
 		try{
 			// formata o sql
 			StringBuilder sql;
-			if (listFunction.isEmpty()){
+			if (listFunction == null){
 				 sql = new StringBuilder("select ")
 				.append(field_smnt == null ? " this " : field_smnt.toString())
 				.append(" from ").append(getClassOfModel().getSimpleName()).append(" this ");
