@@ -67,10 +67,7 @@ public abstract class EmsRepository<Model> {
 	 */
 	@SuppressWarnings("unchecked")
 	public List<Model> find(final String filter, final String fields, int limit, int offset, final String sort){
-		Query query = null;
-		
-		query = createQuery(filter, fields, limit, offset, sort, null);
-		
+		Query query = createQuery(filter, fields, limit, offset, sort, null);
 		query.setFirstResult(offset);
 		query.setMaxResults(limit);
 		List<Model> result = query.getResultList();
@@ -150,28 +147,32 @@ public abstract class EmsRepository<Model> {
 	 * @author André Luciano Claret
 	 */
 	public boolean exists(final Map<String, Object> filter_map){
-		boolean anyMatch = false;
-		Query query = null;
-		String fieldName = null;
-		String filter = null;
-		List<String> listFunction = new ArrayList<String>(); 
-		if (!filter_map.isEmpty()){
-			for (String field: filter_map.keySet()){
-				fieldName = field;
-				break;
+		if (filter_map != null) {
+			boolean anyMatch = false;
+			Query query = null;
+			String fieldName = null;
+			String filter = null;
+			List<String> listFunction = new ArrayList<String>(); 
+			if (!filter_map.isEmpty()){
+				for (String field: filter_map.keySet()){
+					fieldName = field;
+					break;
+				}
+				listFunction.add(0, "count");
+				listFunction.add(1, fieldName);
+				filter = EmsUtil.toJson(filter_map);
+				query = createQuery(filter, null, 1, 0, null, listFunction);
+			} else{
+				throw new EmsValidationException("É necessário informar parâmetros para a pesquisa.");
 			}
-			listFunction.add(0, "count");
-			listFunction.add(1, fieldName);
-			filter = EmsUtil.toJson(filter_map);
-			query = createQuery(filter, null, 1, 0, null, listFunction);
-		} else{
-			throw new EmsValidationException("É necessário informar parâmetros para a pesquisa!");
+			long result = (long) query.getSingleResult();
+			if (result >= 1){
+				anyMatch = true;
+			}			
+			return anyMatch;
+		}else {
+			throw new EmsValidationException("filer_map não pode ser null para EmsRepository.exists.");
 		}
-		long result = (long) query.getSingleResult();
-		if (result >= 1){
-			anyMatch = true;
-		}			
-		return anyMatch;
 	}
 	
 	/**
@@ -357,6 +358,15 @@ public abstract class EmsRepository<Model> {
 	 */
 	protected void createCacheSQL() {
 	}	
+
+	public Query createQuery(final String filter, 
+							 final String fields, 
+							 int limit, 
+							 int offset, 
+							 final String sort, 
+							 final List<String> listFunction){
+		return createQuery(filter, fields, limit, offset, sort, listFunction, getClassOfModel());
+	}
 	
 	/**
 	 * Cria uma query a partir de um filtro e a partir de uma função sql
@@ -370,7 +380,13 @@ public abstract class EmsRepository<Model> {
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
-	public Query createQuery(final String filter, final String fields, int limit, int offset, final String sort, final List<String> listFunction){
+	public Query createQuery(final String filter, 
+							 final String fields, 
+							 int limit, 
+							 int offset, 
+							 final String sort, 
+							 final List<String> listFunction,
+							 final Class<Model> classOfModel){
 		Query query = null;
 		StringBuilder field_smnt = null;
 		StringBuilder where = null;
@@ -403,17 +419,20 @@ public abstract class EmsRepository<Model> {
 						fieldOperator = field_defs[1];
 						sqlOperator = EmsUtil.fieldOperatorToSqlOperator(fieldOperator);
 					}else{
-						throw new EmsValidationException("Campo de pesquisa "+ field + " inválido");
+						throw new EmsValidationException("Campo de pesquisa "+ field + " inválido.");
 					}
 					if (fieldName.equals("pk")){
-						idField = EmsUtil.findFieldByAnnotation(getClassOfModel(), Id.class);
+						idField = EmsUtil.findFieldByAnnotation(classOfModel, Id.class);
+						if (idField == null) {
+							throw new EmsValidationException("Classe " + classOfModel.getSimpleName() + " não tem id.");
+						}
 						fieldName = idField.getName();
 					}else{
 						try{
 							// Verifica se o campo existe. Uma excessão ocorre se não existir
-							getClassOfModel().getDeclaredField(fieldName);
+							classOfModel.getDeclaredField(fieldName);
 						}catch (Exception ex){
-							throw new EmsValidationException("Campo de pesquisa " + fieldName + " não existe");
+							throw new EmsValidationException("Campo de pesquisa " + fieldName + " não existe.");
 						}
 					}
 					if (field_len == 2){
@@ -500,17 +519,18 @@ public abstract class EmsRepository<Model> {
 			sqlFunction = EmsUtil.listFunctionToSqlFunction(listFunction);		
 		}
 		
+	
 		try{
 			// formata o sql
 			StringBuilder sql;
 			if (listFunction == null){
 				 sql = new StringBuilder("select ")
 				.append(field_smnt == null ? " this " : field_smnt.toString())
-				.append(" from ").append(getClassOfModel().getSimpleName()).append(" this ");
+				.append(" from ").append(classOfModel.getSimpleName()).append(" this ");
 			} else {
 				 sql = new StringBuilder("select ")
 				.append(sqlFunction)
-				.append(" from ").append(getClassOfModel().getSimpleName()).append(" this ");
+				.append(" from ").append(classOfModel.getSimpleName()).append(" this ");
 			}
 			if (where != null){
 				sql.append(where.toString());
