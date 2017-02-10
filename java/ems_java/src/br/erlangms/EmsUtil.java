@@ -8,8 +8,6 @@
  
 package br.erlangms;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
@@ -27,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 
 import javax.persistence.FetchType;
 import javax.persistence.Id;
@@ -107,6 +104,11 @@ public final class EmsUtil {
 			        if(src == src.longValue())
 			            return new JsonPrimitive(src.longValue());          
 			        return new JsonPrimitive(src);
+			    }})
+			.registerTypeAdapter(String.class,  new JsonSerializer<String>() {   
+			    @Override
+			    public JsonElement serialize(String value, Type typeOfSrc, JsonSerializationContext context) {
+			        return new JsonPrimitive(value.trim());
 			    }})
 			.registerTypeAdapter(Integer.class,  new JsonSerializer<Integer>() {   
 			    @Override
@@ -212,7 +214,7 @@ public final class EmsUtil {
             .create();		
 
 		gson2 = new GsonBuilder()
-    	.setExclusionStrategies(new SerializeStrategy2())
+    	.setExclusionStrategies(new SerializeStrategy())
     	.setDateFormat("dd/MM/yyyy")
     	//.serializeNulls() <-- uncomment to serialize NULL fields as well
     	.registerTypeAdapter(BigDecimal.class, new JsonSerializer<BigDecimal>()  { 
@@ -228,6 +230,11 @@ public final class EmsUtil {
 		        if(src == src.longValue())
 		            return new JsonPrimitive(src.longValue());          
 		        return new JsonPrimitive(src);
+		    }})
+		.registerTypeAdapter(String.class,  new JsonSerializer<String>() {   
+		    @Override
+		    public JsonElement serialize(String value, Type typeOfSrc, JsonSerializationContext context) {
+		        return new JsonPrimitive(value.trim());
 		    }})
 		.registerTypeAdapter(Integer.class,  new JsonSerializer<Integer>() {   
 		    @Override
@@ -382,15 +389,6 @@ public final class EmsUtil {
         }
     }
 	
-	private static class SerializeStrategy2 implements ExclusionStrategy {
-        public boolean shouldSkipClass(Class<?> c) {
-        	return false;
-        }
-        public boolean shouldSkipField(FieldAttributes f) {
-        	return (f.getAnnotation(OneToMany.class) != null);
-        }
-    }
-
 	/**
 	 * This TypeAdapter unproxies Hibernate proxied objects, and serializes them
 	 * through the registered (or default) TypeAdapter of the base class.
@@ -672,7 +670,13 @@ public final class EmsUtil {
 	}
 	
 	
-	@SuppressWarnings({ "unchecked" })
+	/**
+	 * Passando um objeto, retorna um Map<String, Object> com os campos do objeto
+	 * @param obj Instância de um objeto
+	 * @param values	Map com chave/valor dos campos do objeto
+	 * @author Everton de Vargas Agilar
+	 */
+	@SuppressWarnings("unchecked")
 	private static Map<String, Object> ObjectFieldsToMap(final Object obj){
 		if (obj != null){
 			if (obj instanceof Map){
@@ -690,7 +694,6 @@ public final class EmsUtil {
 			}
 		}
 		return null;
-		
 	}
 	
 		
@@ -942,7 +945,7 @@ public final class EmsUtil {
 	}
 	
 	/**
-	 * Obtém o id de um objeto
+	 * Obtém o id de um objeto. O id é um campo que tenha a anotação @Id
 	 * @param clazz Classe pojo. Ex.: OrgaoInterno.class
 	 * @param ann	anotação que será pesquisada. Ex.: Id.class
 	 * @return campo
@@ -1146,12 +1149,6 @@ public final class EmsUtil {
 	    return myTuple;
 	}
 
-	public static Properties getConfig() throws FileNotFoundException, IOException{
-		Properties props = new Properties();
-		props.load(new FileInputStream("erlangms.conf"));
-		return props;
-	}
-
 	public static boolean isDateValid(final Date field){
 		return (field != null ? true :  false);
 	}
@@ -1263,7 +1260,8 @@ public final class EmsUtil {
 	}
 	
 	/**
-	 * Gera relatório no formato pdf com base na lista de objetos passados (o serviço que chama esse método deve declarar no seu catalogo: "content_type" : "application/pdf")
+	 * Gera relatório no formato pdf com base na lista de objetos passados 
+	 * (o serviço que chama esse método deve declarar no seu catalogo: "content_type" : "application/pdf")
 	 * @param parametrosJasper parâmetros hashmap passados para o relatório 
 	 * @param lista é a lista de objetos passados para preencher o conteúdo do relatório
 	 * @param templateJasper arquivo .jasper que contém o template criado no Ireport para organização dos dados passados (o .jasper deve ser armazenado na pasta /resources/relatorios/ do projeto que invoca esse método)
@@ -1272,11 +1270,8 @@ public final class EmsUtil {
 	 * @author Fabiano Rodrigues de Paiva
 	 */
 	public static byte[] printPdf(HashMap<String, Object> parametrosJasper, List<? extends Object> lista, String templateJasper, final Object owner){
-
 		final String m_erro = "ERRO ao gerar relatorio PDF.";
-		
 		if( (parametrosJasper!=null || (lista!=null && lista.size()>0)) && (templateJasper!=null && !templateJasper.equals("")) && owner!=null ){
-
 			try {		
 				final InputStream streamTemplateJasper = owner.getClass().getResourceAsStream("/relatorios/"+ templateJasper);	//com ajuda do owner recupero o caminho onde está o relatório no projeto de quem invocou esse método	
 				final JasperReport jr = (JasperReport)JRLoader.loadObject(streamTemplateJasper);						
@@ -1292,11 +1287,9 @@ public final class EmsUtil {
 				e.printStackTrace();
 				throw new EmsValidationException(m_erro) ;
 			}
-
 		}else{
-			throw new EmsValidationException("ParametrosJasper ou lista deve ser preenchido, juntamente com o template e owner");
+			throw new EmsValidationException("Argumentos ParametrosJasper ou lista deve ser preenchido, juntamente com o template e owner para o método EmsUtil.printPdf");
 		}
-
 	}
 	
 }

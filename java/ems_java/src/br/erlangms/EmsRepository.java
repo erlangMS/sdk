@@ -1,7 +1,7 @@
 /*********************************************************************
- * @title EmsDao
+ * @title EmsRepository
  * @version 1.0.0
- * @doc Classe de dao simples
+ * @doc Classe de repositório para persistência de objetos
  * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
  * @copyright ErlangMS Team
  *********************************************************************/
@@ -13,10 +13,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
+import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.persistence.Id;
 import javax.persistence.NoResultException;
+import javax.persistence.NonUniqueResultException;
 import javax.persistence.Query;
 
 import org.jinq.jpa.JPAJinqStream;
@@ -25,11 +29,41 @@ import org.jinq.jpa.JinqJPAStreamProvider;
 public abstract class EmsRepository<Model> {
 	public abstract Class<Model> getClassOfModel();
 	public abstract EntityManager getEntityManager();
-	private String SQL_DELETE;
-	private String SQL_EXISTS;
+	private Class<Model> classOfModel = null;
+	private EntityManager entityManager = null;
+	private EntityManagerFactory entityManagerFactory = null;
+	private Field IdField = null;
+	private String idFieldName = null;
+	private String NAMED_QUERY_DELETE;
+	private String NAMED_QUERY_EXISTS;
+	private Logger logger = Logger.getLogger("erlangms");
+	private List<String> cachedNamedQuery = new ArrayList<String>();
+	private List<String> cachedNativeNamedQuery = new ArrayList<String>();
 
 	public EmsRepository(){
-		doCreateCacheSQL();
+
+	}
+	
+	@PostConstruct
+	private void postConstruct(){
+		classOfModel = getClassOfModel();
+		if (classOfModel != null){
+			entityManager = getEntityManager();
+			if (entityManager != null){
+				entityManagerFactory = entityManager.getEntityManagerFactory();
+				IdField = EmsUtil.findFieldByAnnotation(classOfModel, Id.class);
+				if (IdField != null){
+					idFieldName = IdField.getName();
+					doCreateCachedNamedQueries();
+				}else{
+					throw new EmsValidationException("O modelo "+ classOfModel.getSimpleName() + " não possui nenhum campo com a anotação @Id.");
+				}
+			}else{
+				throw new EmsValidationException("Não foi implementado getEntityManager() para a classe "+ getClass().getSimpleName());
+			}
+		}else{
+			throw new EmsValidationException("Não foi implementado getClassOfModel() para a classe "+ getClass().getSimpleName());
+		}
 	}
 
 	/**
@@ -67,7 +101,7 @@ public abstract class EmsRepository<Model> {
 	 */
 	@SuppressWarnings("unchecked")
 	public List<Model> find(final String filter, final String fields, int limit, int offset, final String sort){
-		Query query = createQuery(filter, fields, limit, offset, sort, null);
+		Query query = parseQuery(filter, fields, limit, offset, sort, null);
 		query.setFirstResult(offset);
 		query.setMaxResults(limit);
 		List<Model> result = query.getResultList();
@@ -124,13 +158,12 @@ public abstract class EmsRepository<Model> {
 	/**
 	 * Recuperar um objeto pelo seu id
 	 * @param id identificador do objeto
-	 * @return objeto ou EmsNotFoundException se não existe o id
+	 * @return objeto ou EmsNotFoundException se não existe um objeto com o id
 	 * @author Everton de Vargas Agilar
 	 */
 	public Model findById(final Integer id){
 		if (id != null && id >= 0){
-			Class<Model> classOfModel = getClassOfModel();
-			Model obj = getEntityManager().find(classOfModel, id);
+			Model obj = entityManager.find(classOfModel, id);
 			if (obj == null){
 				throw new EmsNotFoundException(classOfModel.getSimpleName() + " não encontrado: "+ id.toString());
 			}
@@ -140,6 +173,37 @@ public abstract class EmsRepository<Model> {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
+	public Model findFirstOwner(final Integer idOwner, final String foreignKeyFieldName){
+		if (idOwner != null && idOwner >= 0){
+			String sqlFindByOwner =  new StringBuilder("select this from ")
+												.append(classOfModel.getSimpleName())
+												.append(" where this.")
+												.append(foreignKeyFieldName).append("=:pIdOwner").toString();
+			return (Model) createNamedQuery(sqlFindByOwner, sqlFindByOwner)
+				.setParameter("pIdOwner", idOwner)
+				.setMaxResults(1)
+				.getSingleResult();
+		}else{
+			throw new EmsValidationException("Parâmetro owner não pode ser null para EmsRepository.findByOwner.");
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Model> findByOwner(final Integer idOwner, final String foreignKeyFieldName){
+		if (idOwner != null && idOwner >= 0){
+			String sqlFindByOwner =  new StringBuilder("select this from ")
+												.append(classOfModel.getSimpleName())
+												.append(" where ")
+												.append(foreignKeyFieldName).append("=:pIdOwner").toString();
+			return createNamedQuery(sqlFindByOwner, sqlFindByOwner)
+				.setParameter("pIdOwner", idOwner)
+				.getResultList();
+		}else{
+			throw new EmsValidationException("Parâmetro owner não pode ser null para EmsRepository.findByOwner.");
+		}
+	}
+
 	/**
 	 * Verifica se o objeto existe, passando um mapa com os nomes dos atributos e seus valores 
 	 * @param filter_map Mapa com os nomes dos atributos e seus valores
@@ -161,7 +225,7 @@ public abstract class EmsRepository<Model> {
 				listFunction.add(0, "count");
 				listFunction.add(1, fieldName);
 				filter = EmsUtil.toJson(filter_map);
-				query = createQuery(filter, null, 1, 0, null, listFunction);
+				query = parseQuery(filter, null, 1, 0, null, listFunction);
 			} else{
 				throw new EmsValidationException("É necessário informar parâmetros para a pesquisa.");
 			}
@@ -182,32 +246,32 @@ public abstract class EmsRepository<Model> {
 	 * @author André Luciano Claret
 	 */
 	public boolean exists(final Integer id){
-		boolean anyMatch = false;
 		if (id != null && id >= 0){
 			try{
-				anyMatch = (int) getEntityManager()			
-						.createQuery(SQL_EXISTS)
-						.setParameter("pId", id)
-						.getSingleResult() > 0;
+				getNamedQuery(NAMED_QUERY_EXISTS)
+					.setParameter("pId", id)
+					.getSingleResult();
+				return true;
 			} catch (NoResultException e) {
-				anyMatch = false;				
+				return false;				
+			} catch (NonUniqueResultException e){
+				return true;
 			}
 		}else {
 			throw new EmsValidationException("É necessário informar o id do objeto!");
 		}
-		return anyMatch;
 	}
 
 	/**
 	 * Recuperar um objeto pelo seu id
 	 * @param classOfModel classe do objeto
 	 * @param id identificador do objeto
-	 * @return objeto ou EmsNotFoundException se não existe o id
+	 * @return objeto ou EmsNotFoundException se não existe o objeto com o id
 	 * @author Everton de Vargas Agilar
 	 */
 	public <T> T findById(final Class<T> classOfModel, final Integer id){
 		if (classOfModel != null && id != null && id >= 0){
-			T obj = getEntityManager().find(classOfModel, id);
+			T obj = entityManager.find(classOfModel, id);
 			if (obj == null){
 				throw new EmsNotFoundException(classOfModel.getSimpleName() + " não encontrado: "+ id.toString());
 			}
@@ -225,14 +289,13 @@ public abstract class EmsRepository<Model> {
 	 */
 	public <T> T update(final T obj){
 		if (obj != null){
-			EntityManager em = getEntityManager();
 			Integer idValue = EmsUtil.getIdFromObject(obj);
 			if (idValue != null && idValue >= 0){
-				em.merge(obj);
+				entityManager.merge(obj);
 			}else{
 				throw new EmsValidationException("Não é possível atualizar objeto sem id em EmsRepository.update.");
 			}
-			em.flush();
+			entityManager.flush();
 			return obj;
 		}else{
 			throw new EmsValidationException("Parâmetro obj não pode ser null para EmsRepository.update.");
@@ -247,14 +310,13 @@ public abstract class EmsRepository<Model> {
 	 */
 	public <T> T insert(final T obj){
 		if (obj != null){
-			EntityManager em = getEntityManager();
 			Integer idValue = EmsUtil.getIdFromObject(obj);
 			if (idValue != null && idValue >= 0){
 				throw new EmsValidationException("Não é possível incluir objeto que já possui id em EmsRepository.insert.");
 			}else{
-				em.persist(obj);
+				entityManager.persist(obj);
 			}
-			em.flush();
+			entityManager.flush();
 			return obj;
 		}else{
 			throw new EmsValidationException("Parâmetro obj não pode ser null para EmsRepository.insert.");
@@ -270,14 +332,13 @@ public abstract class EmsRepository<Model> {
 	 */
 	public <T> T insertOrUpdate(final T obj){
 		if (obj != null){
-			EntityManager em = getEntityManager();
 			Integer idValue = EmsUtil.getIdFromObject(obj);
 			if (idValue != null && idValue >= 0){
-				em.merge(obj);
+				entityManager.merge(obj);
 			}else{
-				em.persist(obj);
+				entityManager.persist(obj);
 			}
-			em.flush();
+			entityManager.flush();
 			return obj;
 		}else{
 			throw new EmsValidationException("Parâmetro obj não pode ser null para EmsRepository.insertOrUpdate.");
@@ -292,8 +353,7 @@ public abstract class EmsRepository<Model> {
 	 */
 	public boolean delete(final Integer id) {
 		if (id != null && id >= 0){
-			return getEntityManager()
-				.createQuery(SQL_DELETE)
+			return getNamedQuery(NAMED_QUERY_DELETE)
 				.setParameter("pId", id)
 				.executeUpdate() > 0;
 		}else{
@@ -311,13 +371,17 @@ public abstract class EmsRepository<Model> {
 	 */
 	public <T> boolean delete(final Class<T> classOfModel, final Integer id) {
 		if (classOfModel != null && id != null && id >= 0){
-			String idFieldName = EmsUtil.findFieldByAnnotation(classOfModel, Id.class).getName();
+			Field field = EmsUtil.findFieldByAnnotation(classOfModel, Id.class);
+			if (field == null){
+				throw new EmsValidationException(classOfModel.getSimpleName() + " não possui campo id.");
+			}
+			String idFieldName = field.getName();
 			String sql = new StringBuilder("delete from ")
 								.append(classOfModel.getSimpleName())
 								.append(" where ")
 								.append(idFieldName).append("=:pId").toString();
-			return getEntityManager()
-					.createQuery(sql)
+			String namedQuery = classOfModel.getSimpleName() + ".EmsRepository.delete";
+			return createNamedQuery(namedQuery, sql)
 					.setParameter("pId", id)
 					.executeUpdate() > 0;
 		}else{
@@ -326,46 +390,45 @@ public abstract class EmsRepository<Model> {
 	}
 
 	/**
-	 * Um método para criar as constantes de sql internas do repositóro
+	 * Um método interno para criar as queries utilizadas pelo EmsRepository
 	 * @author Everton de Vargas Agilar
 	 */
-	private void doCreateCacheSQL(){
-		Class<Model> classOfModel = getClassOfModel();
-		if (classOfModel != null){
-			Field IdField = EmsUtil.findFieldByAnnotation(classOfModel, Id.class);
-			if (IdField != null){
-				String idFieldName = IdField.getName();
-				SQL_DELETE = new StringBuilder("delete from ")
-										.append(getClassOfModel().getSimpleName())
-										.append(" where ")
-										.append(idFieldName).append("=:pId").toString();
-				SQL_EXISTS = new StringBuilder("select 1 from ")
-										.append(getClassOfModel().getSimpleName())
-										.append(" where ")
-										.append(idFieldName).append("=:pId").toString();
-			}else{
-				throw new EmsValidationException("O modelo "+ classOfModel.getSimpleName() + " não possui nenhum campo com a anotação @Id.");
-			}
-		}else{
-			throw new EmsValidationException("Não foi implementado getClassOfModel() para a classe "+ getClass().getSimpleName());
-		}
-		createCacheSQL();
+	private void doCreateCachedNamedQueries(){
+		// create query delete
+		NAMED_QUERY_DELETE = classOfModel + ".delete";
+		String sqlDelete = new StringBuilder("delete from ")
+											.append(classOfModel.getSimpleName())
+											.append(" where ")
+											.append(idFieldName).append("=:pId").toString();
+		Query queryDelete = entityManager.createQuery(sqlDelete);
+		entityManagerFactory.addNamedQuery(NAMED_QUERY_DELETE, queryDelete);
+		
+		// create query exists
+		NAMED_QUERY_EXISTS = classOfModel + ".exists";
+		String sqlExists =  new StringBuilder("select 1 from ")
+											.append(classOfModel.getSimpleName())
+											.append(" where ")
+											.append(idFieldName).append("=:pId").toString();
+		Query queryExits = entityManager.createQuery(sqlExists);
+		entityManagerFactory.addNamedQuery(NAMED_QUERY_EXISTS, queryExits);
+
+		createCachedNamedQueries();
 	}
 	
 	/**
-	 * Um método para criar as constantes de sql
+	 * Um método protected para as classes herdadas criarem as queries
 	 * @author Everton de Vargas Agilar
 	 */
-	protected void createCacheSQL() {
+	protected void createCachedNamedQueries() {
 	}	
 
-	public Query createQuery(final String filter, 
+	public Query parseQuery(final String filter, 
 							 final String fields, 
 							 int limit, 
 							 int offset, 
 							 final String sort, 
 							 final List<String> listFunction){
-		return createQuery(filter, fields, limit, offset, sort, listFunction, getClassOfModel());
+		return parseQuery(filter, fields, limit, offset, sort, listFunction, this.classOfModel);
 	}
 	
 	/**
@@ -380,7 +443,7 @@ public abstract class EmsRepository<Model> {
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
-	public Query createQuery(final String filter, 
+	public Query parseQuery(final String filter, 
 							 final String fields, 
 							 int limit, 
 							 int offset, 
@@ -395,6 +458,14 @@ public abstract class EmsRepository<Model> {
 		Map<String, Object> filtro_obj = null;		
 		Field idField = null;
 
+		if (!(limit > 0 && limit <= 999999999)){
+			throw new EmsValidationException("Parâmetro limit da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor ou igual que 999999999");
+		}
+
+		if (!(offset >= 0 && offset < 999999999)){
+			throw new EmsValidationException("Parâmetro offset da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor que 999999999");
+		}
+		
 		// Define o filtro da query se foi informado
 		if (filter != null && filter.length() > 5){
 			try{
@@ -422,9 +493,13 @@ public abstract class EmsRepository<Model> {
 						throw new EmsValidationException("Campo de pesquisa "+ field + " inválido.");
 					}
 					if (fieldName.equals("pk")){
-						idField = EmsUtil.findFieldByAnnotation(classOfModel, Id.class);
-						if (idField == null) {
-							throw new EmsValidationException("Classe " + classOfModel.getSimpleName() + " não tem id.");
+						if (classOfModel != this.classOfModel){
+							idField = EmsUtil.findFieldByAnnotation(classOfModel, Id.class);
+							if (idField == null) {
+								throw new EmsValidationException("Classe " + classOfModel.getSimpleName() + " não tem id.");
+							}
+						}else{
+							idField = this.IdField;
 						}
 						fieldName = idField.getName();
 					}else{
@@ -522,23 +597,24 @@ public abstract class EmsRepository<Model> {
 	
 		try{
 			// formata o sql
-			StringBuilder sql;
+			StringBuilder sqlBuilder;
 			if (listFunction == null){
-				 sql = new StringBuilder("select ")
+				 sqlBuilder = new StringBuilder("select ")
 				.append(field_smnt == null ? " this " : field_smnt.toString())
 				.append(" from ").append(classOfModel.getSimpleName()).append(" this ");
 			} else {
-				 sql = new StringBuilder("select ")
+				 sqlBuilder = new StringBuilder("select ")
 				.append(sqlFunction)
 				.append(" from ").append(classOfModel.getSimpleName()).append(" this ");
 			}
 			if (where != null){
-				sql.append(where.toString());
+				sqlBuilder.append(where.toString());
 			}	
 			if (sort_smnt != null){
-				sql.append(sort_smnt.toString());
+				sqlBuilder.append(sort_smnt.toString());
 			}	
-			query = getEntityManager().createQuery(sql.toString());
+			String sql = sqlBuilder.toString();
+			query = createNamedQuery(sql, sql);
 		}catch (Exception e){
 			throw new EmsValidationException("Não foi possível criar a query da pesquisa. Erro interno: "+ e.getMessage());
 		}
@@ -547,17 +623,42 @@ public abstract class EmsRepository<Model> {
 		if (where != null){
 			EmsUtil.setQueryParameterFromMap(query, filtro_obj);
 		}
-
-		if (!(limit > 0 && limit <= 999999999)){
-			throw new EmsValidationException("Parâmetro limit da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor ou igual que 999999999");
-		}
-
-		if (!(offset >= 0 && offset < 999999999)){
-			throw new EmsValidationException("Parâmetro offset da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor que 999999999");
-		}
 		
 		return query;
 	}
 	
+	
+	protected Query createNamedQuery(final String namedQuery, final String sql) {
+		Query query = null;
+		if (cachedNamedQuery.contains(namedQuery)){
+			query = entityManager.createNamedQuery(namedQuery);	
+		}else{
+			cachedNamedQuery.add(namedQuery);
+			query = entityManager.createQuery(sql); 
+			entityManagerFactory.addNamedQuery(namedQuery, query);
+			logger.info("Build named query: "+ namedQuery);
+			logger.info("\tSQL: "+ sql);
+		}
+		return query;
+	}
+	
+	protected <T> Query createNativeNamedQuery(final String namedQuery, final String sql, final Class<T> resultClass) {
+		Query query = null;
+		if (cachedNativeNamedQuery.contains(namedQuery)){
+			query = entityManager.createNamedQuery(namedQuery);
+		} else{
+			cachedNativeNamedQuery.add(namedQuery);
+			query = entityManager.createNativeQuery(sql, resultClass); 
+			entityManagerFactory.addNamedQuery(namedQuery, query);
+			logger.info("Build native named query: "+ namedQuery);
+			logger.info("\tSQL: "+ sql);
+		}
+		return query;
+	}
+
+	protected Query getNamedQuery(final String namedQuery) {
+		return entityManager.createNamedQuery(namedQuery);
+	}
 }
+
 

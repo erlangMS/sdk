@@ -16,8 +16,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import org.apache.log4j.Logger;
+import java.util.logging.Logger;
 
 import com.ericsson.otp.erlang.OtpErlangBinary;
 import com.ericsson.otp.erlang.OtpErlangExit;
@@ -47,7 +46,7 @@ public class EmsConnection
 	private OtpNode myNode = null;
 	private OtpMbox myMbox = null;
 	static{
-		logger = Logger.getLogger(EmsConnection.class);
+		logger = Logger.getLogger("erlangms");
 		result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
     	getSystemProperties();
     }
@@ -247,18 +246,18 @@ public class EmsConnection
 	    	return result;
 		} catch (NoSuchMethodException e) {  
 	        // Essa exceção ocorre se o getMethod() não encontrar o método
-	    	String erro = "Método de negócio não encontrado: " + metodo + ".";
-	    	msg_json = "{\"error\":\"service\", \"message\" : \"" + erro + "\"}"; 
-	    	logger.error(erro);
+	    	String erro = "Método da camada de serviço não encontrado: " + metodo + ".";
+	    	msg_json = "{\"error\":\"validation\", \"message\" : \"" + erro + "\"}"; 
+	    	logger.info(erro);
 	    	return new EmsResponse(400, msg_json); 
 	    } catch (IllegalAccessException e) {  
 	        // Pode ocorrer se o método que você está invocando não for  
 	        // acessível. Você pode forçar que um método (mesmo privado!) seja  
 	        // acessível fazendo:  
 	        // antes do seu invoke.
-	    	String erro = "Acesso ilegal ao método de negócio: " + metodo + ".";
-	    	msg_json = "{\"error\":\"service\", \"message\" : \"" + erro + "\"}"; 
-	    	logger.error(erro);
+	    	String erro = "Acesso ilegal ao método da camada de serviço: " + metodo + ".";
+	    	msg_json = "{\"error\":\"validation\", \"message\" : \"" + erro + "\"}"; 
+	    	logger.info(erro);
 	    	return new EmsResponse(400, msg_json); 
 	    } catch (InvocationTargetException e) {  
 	        // Essa exceção acontece se o método chamado gerar uma exceção.  
@@ -300,15 +299,15 @@ public class EmsConnection
 		    		msg_json = "{\"error\":\"validation\", \"message\" : " + EmsUtil.toJson(motivo) + "}";
 		    		return new EmsResponse(400, msg_json);
 	    		}catch (Exception ex){
-			    	String erro = "O método "+ modulo + "." + metodo + " gerou uma excessão: " + e.getCause() + "."; 
-			    	msg_json = "{\"error\":\"service\", \"message\" : \"" + erro + "\"}"; 
-			    	logger.error(erro);
+			    	String erro = "O método "+ modulo + "." + metodo + " gerou um erro: " + e.getCause() + "."; 
+			    	msg_json = "{\"error\":\"validation\", \"message\" : \"" + erro + "\"}"; 
+			    	logger.info(erro);
 			    	return new EmsResponse(400, msg_json); 
 	    		}
 	    	}else{
-		    	String erro = "O método "+ modulo + "." + metodo + " gerou uma excessão: " + e.getCause() + "."; 
-		    	msg_json = "{\"error\":\"service\", \"message\" : " + EmsUtil.toJson(erro) + "}";
-		    	logger.error(erro);
+		    	String erro = "O método "+ modulo + "." + metodo + " gerou um erro: " + e.getCause() + "."; 
+		    	msg_json = "{\"error\":\"validation\", \"message\" : " + EmsUtil.toJson(erro) + "}";
+		    	logger.info(erro);
 		    	return new EmsResponse(400, msg_json);
 	    	}
 	    }
