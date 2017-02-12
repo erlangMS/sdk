@@ -22,11 +22,14 @@ import javax.persistence.Id;
 import javax.persistence.NoResultException;
 import javax.persistence.NonUniqueResultException;
 import javax.persistence.Query;
+import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 
 import org.jinq.jpa.JPAJinqStream;
 import org.jinq.jpa.JinqJPAStreamProvider;
 
 public abstract class EmsRepository<Model> {
+
 	public abstract Class<Model> getClassOfModel();
 	public abstract EntityManager getEntityManager();
 	private Class<Model> classOfModel = null;
@@ -34,8 +37,9 @@ public abstract class EmsRepository<Model> {
 	private EntityManagerFactory entityManagerFactory = null;
 	private Field IdField = null;
 	private String idFieldName = null;
-	private String NAMED_QUERY_DELETE;
-	private String NAMED_QUERY_EXISTS;
+	private String NAMED_QUERY_DELETE = null;
+	private String NAMED_QUERY_EXISTS = null;
+	private String NAMED_QUERY_CHECK_CONTRAINS_ON_INSERT = null;
 	private Logger logger = Logger.getLogger("erlangms");
 	private List<String> cachedNamedQuery = new ArrayList<String>();
 	private List<String> cachedNativeNamedQuery = new ArrayList<String>();
@@ -389,32 +393,7 @@ public abstract class EmsRepository<Model> {
 		}
 	}
 
-	/**
-	 * Um método interno para criar as queries utilizadas pelo EmsRepository
-	 * @author Everton de Vargas Agilar
-	 */
-	private void doCreateCachedNamedQueries(){
-		// create query delete
-		NAMED_QUERY_DELETE = classOfModel + ".delete";
-		String sqlDelete = new StringBuilder("delete from ")
-											.append(classOfModel.getSimpleName())
-											.append(" where ")
-											.append(idFieldName).append("=:pId").toString();
-		Query queryDelete = entityManager.createQuery(sqlDelete);
-		entityManagerFactory.addNamedQuery(NAMED_QUERY_DELETE, queryDelete);
-		
-		// create query exists
-		NAMED_QUERY_EXISTS = classOfModel + ".exists";
-		String sqlExists =  new StringBuilder("select 1 from ")
-											.append(classOfModel.getSimpleName())
-											.append(" where ")
-											.append(idFieldName).append("=:pId").toString();
-		Query queryExits = entityManager.createQuery(sqlExists);
-		entityManagerFactory.addNamedQuery(NAMED_QUERY_EXISTS, queryExits);
 
-		createCachedNamedQueries();
-	}
-	
 	/**
 	 * Um método protected para as classes herdadas criarem as queries
 	 * @author Everton de Vargas Agilar
@@ -600,7 +579,7 @@ public abstract class EmsRepository<Model> {
 			StringBuilder sqlBuilder;
 			if (listFunction == null){
 				 sqlBuilder = new StringBuilder("select ")
-				.append(field_smnt == null ? " this " : field_smnt.toString())
+				.append(field_smnt == null ? "this" : field_smnt.toString())
 				.append(" from ").append(classOfModel.getSimpleName()).append(" this ");
 			} else {
 				 sqlBuilder = new StringBuilder("select ")
@@ -659,6 +638,70 @@ public abstract class EmsRepository<Model> {
 	protected Query getNamedQuery(final String namedQuery) {
 		return entityManager.createNamedQuery(namedQuery);
 	}
+
+	
+	/**
+	 * Um método interno para criar as named queries
+	 * @author Everton de Vargas Agilar
+	 */
+	private void doCreateCachedNamedQueries(){
+		// create query delete
+		NAMED_QUERY_DELETE = classOfModel + ".delete";
+		String sqlDelete = new StringBuilder("delete from ")
+											.append(classOfModel.getSimpleName())
+											.append(" where ")
+											.append(idFieldName).append("=:pId").toString();
+		Query queryDelete = entityManager.createQuery(sqlDelete);
+		entityManagerFactory.addNamedQuery(NAMED_QUERY_DELETE, queryDelete);
+		
+		// create query exists
+		NAMED_QUERY_EXISTS = classOfModel + ".exists";
+		String sqlExists =  new StringBuilder("select 1 from ")
+											.append(classOfModel.getSimpleName())
+											.append(" where ")
+											.append(idFieldName).append("=:pId").toString();
+		Query queryExits = entityManager.createQuery(sqlExists);
+		entityManagerFactory.addNamedQuery(NAMED_QUERY_EXISTS, queryExits);
+
+
+		// create query to check contraints on insert
+		Table tableAnnotation = classOfModel.getAnnotation(Table.class);
+		UniqueConstraint[] tableContrains = tableAnnotation.uniqueConstraints();
+		int contraintCount = tableContrains.length; 
+		StringBuilder sqlCheckContraintOnInsert = new StringBuilder();
+		sqlCheckContraintOnInsert.append("select 1 ")
+								 .append("from ").append(classOfModel.getSimpleName())
+								 .append(" this where ");
+		for (int i = 0; i < contraintCount; i++){
+			UniqueConstraint c = tableContrains[i];
+			String[] columnNames = c.columnNames();
+			int columnNamesCount = columnNames.length;
+			sqlCheckContraintOnInsert.append("(");
+			for (int j = 0; j < columnNamesCount; j++){
+				String f = columnNames[j];
+				sqlCheckContraintOnInsert.append("this.").append(f).append("=:").append(f);
+				if (j+1 < columnNamesCount){
+					sqlCheckContraintOnInsert.append(" and ");
+				}
+			}
+			sqlCheckContraintOnInsert.append(")");
+			if (i+1 < contraintCount){
+				sqlCheckContraintOnInsert.append(" and ");
+			}
+		}
+		Query queryCheckContraintOnInsert = entityManager.createQuery(sqlCheckContraintOnInsert.toString());
+		queryCheckContraintOnInsert.setMaxResults(1);
+		entityManagerFactory.addNamedQuery(NAMED_QUERY_CHECK_CONTRAINS_ON_INSERT, queryCheckContraintOnInsert);
+		
+		
+				
+		
+		
+		
+		createCachedNamedQueries();
+	}
+	
 }
+
 
 
