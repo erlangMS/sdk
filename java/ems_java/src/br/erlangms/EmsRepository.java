@@ -16,11 +16,13 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
+import javax.persistence.Column;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Id;
 import javax.persistence.NoResultException;
 import javax.persistence.NonUniqueResultException;
+import javax.persistence.Parameter;
 import javax.persistence.Query;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
@@ -39,10 +41,11 @@ public abstract class EmsRepository<Model> {
 	private String idFieldName = null;
 	private String NAMED_QUERY_DELETE = null;
 	private String NAMED_QUERY_EXISTS = null;
-	private String NAMED_QUERY_CHECK_CONTRAINS_ON_INSERT = null;
+	private String NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT = null;
 	private Logger logger = Logger.getLogger("erlangms");
 	private List<String> cachedNamedQuery = new ArrayList<String>();
 	private List<String> cachedNativeNamedQuery = new ArrayList<String>();
+	private boolean hasContraints = false;
 
 	public EmsRepository(){
 
@@ -316,8 +319,9 @@ public abstract class EmsRepository<Model> {
 		if (obj != null){
 			Integer idValue = EmsUtil.getIdFromObject(obj);
 			if (idValue != null && idValue >= 0){
-				throw new EmsValidationException("Não é possível incluir objeto que já possui id em EmsRepository.insert.");
+				throw new EmsValidationException("Não é possível incluir objeto que já possui identificador.");
 			}else{
+				if (hasContraints) checkInsertConstraints(obj);
 				entityManager.persist(obj);
 			}
 			entityManager.flush();
@@ -327,6 +331,45 @@ public abstract class EmsRepository<Model> {
 		}
 	}
 
+	/**
+	 * Verifica as constrains do objeto e levanta uma exception case houve violação
+	 * @param obj objeto que será inserido
+	 * @return objeto inserido
+	 * @author Everton de Vargas Agilar
+	 */
+	private <T> void checkInsertConstraints(final T obj) {
+		Query query = getNamedQuery(NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT);
+		Class<?> classObj = obj.getClass();
+		Field[] fields = classObj.getDeclaredFields();
+		for (Parameter<?> p : query.getParameters()){
+			String paramName = p.getName();
+			Field field = null;
+			Object value;
+			try {
+				for (int i = 0; i < fields.length; i++){
+					field = fields[i];
+					if (field.isAnnotationPresent(Column.class) && field.getAnnotation(Column.class).name().equals(paramName)){
+						break;
+					}
+				}
+				field.setAccessible(true);
+				value = field.get(obj);
+				query.setParameter(paramName, value);
+			} catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
+				throw new EmsValidationException("Não é possível checar as constraints na inserção do objeto. Erro interno: "+ e.getMessage());
+			}
+		}
+		
+		try{
+			query.getSingleResult();
+		}catch (NoResultException e){
+			return; // ok, registro não está duplicado
+		}catch (Exception e){
+			throw new EmsValidationException("Não é possível checar as constraints na inserção do objeto. Erro interno: "+ e.getMessage());
+		}
+		throw new EmsNotFoundException("Registro duplicado, verifique.");
+	}
+	
 	/**
 	 * Insere ou atualiza um objeto
 	 * @param obj objeto que será inserido ou atualizado
@@ -627,7 +670,11 @@ public abstract class EmsRepository<Model> {
 			query = entityManager.createNamedQuery(namedQuery);
 		} else{
 			cachedNativeNamedQuery.add(namedQuery);
-			query = entityManager.createNativeQuery(sql, resultClass); 
+			if (resultClass == null){
+				query = entityManager.createNativeQuery(sql);
+			}else{
+				query = entityManager.createNativeQuery(sql, resultClass);
+			}
 			entityManagerFactory.addNamedQuery(namedQuery, query);
 			logger.info("Build native named query: "+ namedQuery);
 			logger.info("\tSQL: "+ sql);
@@ -645,19 +692,22 @@ public abstract class EmsRepository<Model> {
 	 * @author Everton de Vargas Agilar
 	 */
 	private void doCreateCachedNamedQueries(){
+		String nameOfModel = classOfModel.getName();
+		String simpleNameOfModel = classOfModel.getSimpleName();
+
 		// create query delete
-		NAMED_QUERY_DELETE = classOfModel + ".delete";
+		NAMED_QUERY_DELETE = nameOfModel + ".delete";
 		String sqlDelete = new StringBuilder("delete from ")
-											.append(classOfModel.getSimpleName())
+											.append(simpleNameOfModel)
 											.append(" where ")
 											.append(idFieldName).append("=:pId").toString();
 		Query queryDelete = entityManager.createQuery(sqlDelete);
 		entityManagerFactory.addNamedQuery(NAMED_QUERY_DELETE, queryDelete);
 		
 		// create query exists
-		NAMED_QUERY_EXISTS = classOfModel + ".exists";
+		NAMED_QUERY_EXISTS = nameOfModel + ".exists";
 		String sqlExists =  new StringBuilder("select 1 from ")
-											.append(classOfModel.getSimpleName())
+											.append(simpleNameOfModel)
 											.append(" where ")
 											.append(idFieldName).append("=:pId").toString();
 		Query queryExits = entityManager.createQuery(sqlExists);
@@ -667,41 +717,61 @@ public abstract class EmsRepository<Model> {
 		// create query to check contraints on insert
 		Table tableAnnotation = classOfModel.getAnnotation(Table.class);
 		UniqueConstraint[] tableContrains = tableAnnotation.uniqueConstraints();
-		int contraintCount = tableContrains.length; 
-		StringBuilder sqlCheckContraintOnInsert = new StringBuilder();
-		sqlCheckContraintOnInsert.append("select 1 ")
-								 .append("from ").append(classOfModel.getSimpleName())
-								 .append(" this where ");
-		for (int i = 0; i < contraintCount; i++){
-			UniqueConstraint c = tableContrains[i];
-			String[] columnNames = c.columnNames();
-			int columnNamesCount = columnNames.length;
+		List<Field> fieldsConstraints = EmsUtil.getFieldsWithUniqueConstraint(classOfModel);
+		int tableConstraintsCount = tableContrains.length;
+		int fieldConstraintsCount = fieldsConstraints.size();
+		hasContraints = tableContrains.length > 0 || fieldConstraintsCount > 0;
+		if (hasContraints){
+			StringBuilder sqlCheckContraintOnInsert = new StringBuilder();
+			sqlCheckContraintOnInsert.append("select top(1) 1 ")
+									 .append("from ").append(tableAnnotation.name())
+									 .append(" this where ");
+			
+			// table constraints
+			for (int i = 0; i < tableConstraintsCount; i++){
+				UniqueConstraint c = tableContrains[i];
+				String[] columnNames = c.columnNames();
+				int columnNamesCount = columnNames.length;
+				sqlCheckContraintOnInsert.append("(");
+				for (int j = 0; j < columnNamesCount; j++){
+					String f = columnNames[j];
+					sqlCheckContraintOnInsert.append("this.").append(f).append("=:").append(f);
+					if (j+1 < columnNamesCount){
+						sqlCheckContraintOnInsert.append(" and ");
+					}
+				}
+				sqlCheckContraintOnInsert.append(")");
+				if (i+1 < tableConstraintsCount){
+					sqlCheckContraintOnInsert.append(" or ");
+				}
+			}
+			
+			// field constraints
+			if (tableConstraintsCount > 0){
+				sqlCheckContraintOnInsert.append(" or ");
+			}
 			sqlCheckContraintOnInsert.append("(");
-			for (int j = 0; j < columnNamesCount; j++){
-				String f = columnNames[j];
+			for (int i = 0; i < fieldConstraintsCount; i++){
+				Field field = fieldsConstraints.get(i);
+				String f = field.getAnnotation(Column.class).name();
 				sqlCheckContraintOnInsert.append("this.").append(f).append("=:").append(f);
-				if (j+1 < columnNamesCount){
-					sqlCheckContraintOnInsert.append(" and ");
+				if (i+1 < fieldConstraintsCount){
+					sqlCheckContraintOnInsert.append(" or ");
 				}
 			}
 			sqlCheckContraintOnInsert.append(")");
-			if (i+1 < contraintCount){
-				sqlCheckContraintOnInsert.append(" and ");
-			}
+			
+			// create query
+			NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT = nameOfModel + ".checkConstraintsIns";
+			createNativeNamedQuery(NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT, sqlCheckContraintOnInsert.toString(), null);
 		}
-		Query queryCheckContraintOnInsert = entityManager.createQuery(sqlCheckContraintOnInsert.toString());
-		queryCheckContraintOnInsert.setMaxResults(1);
-		entityManagerFactory.addNamedQuery(NAMED_QUERY_CHECK_CONTRAINS_ON_INSERT, queryCheckContraintOnInsert);
 		
-		
-				
-		
-		
-		
+		// create cached named queries of inherited class
 		createCachedNamedQueries();
 	}
 	
 }
+
 
 
 

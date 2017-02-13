@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import javax.persistence.Column;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.JoinTable;
@@ -33,6 +34,8 @@ import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Query;
+import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 import javax.ws.rs.client.ClientBuilder;
 
 import org.hibernate.Hibernate;
@@ -1291,5 +1294,34 @@ public final class EmsUtil {
 			throw new EmsValidationException("Argumentos ParametrosJasper ou lista deve ser preenchido, juntamente com o template e owner para o método EmsUtil.printPdf");
 		}
 	}
+
+	/**
+	 * Obter o array de unique constraints de um model  
+	 * @return array of UniqueConstraint[]
+	 * @author Everton de Vargas Agilar
+	 */
+	public static UniqueConstraint[] getTableUniqueConstraints(Class<?> classOfModel){
+		Table tableAnnotation = classOfModel.getAnnotation(Table.class);
+		return  tableAnnotation.uniqueConstraints();
+	}
+
+	/**
+	 * Obter a lista de fields com unique constraint de um model.
+	 * Obs.: Id não é retornado embora tenha a constraint unique  
+	 * @return list of Field[]
+	 * @author Everton de Vargas Agilar
+	 */
+	public static List<Field> getFieldsWithUniqueConstraint(Class<?> classOfModel){
+		Field[] fields = classOfModel.getDeclaredFields();
+		List<Field> result = new ArrayList<>();
+		for (int i = 0; i < fields.length; i++){
+			Field field = fields[i];
+			if (field.isAnnotationPresent(Column.class) && field.getAnnotation(Column.class).unique() && !field.isAnnotationPresent(Id.class)){
+				result.add(field);
+			}
+		}
+		return result;
+	}
+	
 	
 }
