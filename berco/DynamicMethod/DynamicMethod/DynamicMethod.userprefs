@@ -1,10 +1,6 @@
 ﻿<Properties StartupItem="DynamicMethod/DynamicMethod.csproj">
   <MonoDevelop.Ide.ItemProperties.DynamicMethod PreferredExecutionTarget="MonoDevelop.Default" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="DynamicMethod/Program.cs">
-    <Files>
-      <File FileName="DynamicMethod/Program.cs" Line="14" Column="1" />
-    </Files>
-  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.Workbench />
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
     <BreakpointStore />
