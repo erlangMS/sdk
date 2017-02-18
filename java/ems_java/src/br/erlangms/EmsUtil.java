@@ -16,6 +16,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -26,7 +28,24 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 
+import javax.activation.DataHandler;
+import javax.activation.DataSource;
+import javax.activation.FileDataSource;
+import javax.mail.Address;
+import javax.mail.Authenticator;
+import javax.mail.BodyPart;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 import javax.naming.Context;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
@@ -84,6 +103,8 @@ import net.sf.jasperreports.engine.JasperReport;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import net.sf.jasperreports.engine.util.JRLoader;
 
+
+
 public final class EmsUtil {
 	private static final OtpErlangAtom ok_atom = new OtpErlangAtom("ok");
 	private static final OtpErlangAtom request_msg_atom = new OtpErlangAtom("request");
@@ -93,7 +114,9 @@ public final class EmsUtil {
 	private static NumberFormat doubleFormatter = null;
 	private static Gson gson = null;
 	private static Gson gson2 = null;
+	public static EmsProperties properties = null;
 	static{
+		properties = getProperties();
 		doubleFormatter = NumberFormat.getInstance(Locale.US);
 		doubleFormatter.setMaximumFractionDigits(2); 
 		doubleFormatter.setMinimumFractionDigits(2);
@@ -955,7 +978,7 @@ public final class EmsUtil {
 	}
 	
 	/**
-	 * Obtém o id de um objeto. O id é um campo que tenha a anotação @Id
+	 * Retorna o id de um objeto. O id é um campo que tenha a anotação @Id
 	 * @param clazz Classe pojo. Ex.: OrgaoInterno.class
 	 * @param ann	anotação que será pesquisada. Ex.: Id.class
 	 * @return campo
@@ -1332,21 +1355,18 @@ public final class EmsUtil {
 
 	
 	/**
-	 * Permite fazer queries no barramento através do protocolo LDAP v3
+	 * Realiza uma pesquisa LDAP v3 para localizar um objeto pelo seu login
 	 * @param login do usuário. Ex: geral
-	 * @param adminPassd é a senha do administrador do LDAP (deve ser igual a que está no catálogo priv/catalog/emsbus/ems_ldap_server.json)
-	 * @param urlLdapServer é o endereço do servidor ems-bus. Ex.: ldap://localhost:2389  ou ldap://servicosssi.unb.br:2389
 	 * @return user object ou exception EmsValidationException
 	 * @author Everton de Vargas Agilar
-	 * 		   Renato Carauta 
 	 */
-	public static Object ldapSearch(final String login, final String adminPasswd, final String urlLdapServer) {
+	public static Object ldapSearch(final String login) {
 		Hashtable<String, String> env = new Hashtable<String, String>(11);
 		env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
-		env.put(Context.PROVIDER_URL, urlLdapServer);  
+		env.put(Context.PROVIDER_URL, properties.ldapUrl);  
 		env.put(Context.SECURITY_AUTHENTICATION, "simple");
-		env.put(Context.SECURITY_PRINCIPAL, "cn=admin,dc=unb,dc=br");
-		env.put(Context.SECURITY_CREDENTIALS, adminPasswd);  // Admin password in ems_ldap_server.json catalog
+		env.put(Context.SECURITY_PRINCIPAL, properties.ldapAdmin);
+		env.put(Context.SECURITY_CREDENTIALS, properties.ldapAdminPasswd);  // admin password in ems_ldap_server.json catalog
 		LdapContext ctx = null;
 		try{
 			ctx = new InitialLdapContext(env, null);
@@ -1359,11 +1379,445 @@ public final class EmsUtil {
 		} catch (javax.naming.AuthenticationException e) {
 			throw new EmsValidationException("Invalid ldap admin credentials.");
 		} catch (NamingException e){
-			throw new EmsValidationException("Could not connect to ldap server.");
+			throw new EmsValidationException("Não foi possível autentiar usuário no servidor LDAP "+ properties.ldapUrl);
 		}
 	}
 	
-	
+	/**
+	 * Classe que armazena as propriedades para os serviços. 
+	 * Essas informações são carregadas durante durante o deployment.
+	 * 
+	 * No servidor JBoss/Wildfly, estão definidas em configuration/standalone/standalone.conf
+	 *  
+	 * @author Everton de Vargas Agilar
+	 */
+    public static class EmsProperties{
+		public int maxThreadPool;		
+    	public String cookie;	 		   // Ex: erlangms
+    	public String ESB_URL;			   // Ex: http://localhost:2301
+    	public String hostName;	
+    	public  String nodeName;
+    	public String nodeUser;
+    	public String nodePasswd;
+        public String authorizationHeaderName;
+        public String authorizationHeaderValue;
+		
+        // smtp
+        public int smtpPort;			  // Ex: 25
+		public String smtp;				  // Ex: smtp.unb.br
+		public String smtpFrom;			  // Ex: evertonagilar@unb.br
+		public String smtpPasswd;		  
 
-	
+		// ldap
+    	public String ldapUrl;				// Ex: ldap://localhost:2389
+		public String ldapAdmin;			// Ex: cn=admin,dc=unb,dc=br
+		public String ldapAdminPasswd;		// Ex: 123456
+    }
+    
+	/**
+	 * Retorna as configurações do barramento de serviços ERLANGMS
+	 * Exemplo: 
+	 *    -Dcookie=erlangms
+	 *    -Dems_node=node01
+	 *    -Dems_emsbus=http://localhost:2301
+	 *    -Dems_cookie=erlangms
+	 *    -Dems_max_thread_pool_by_agent=100
+	 *    -Dems_user=xxxxxxx 
+	 * @author Everton de Vargas Agilar
+	 */
+	private static EmsProperties getProperties() {
+		properties = new EmsProperties();
+		String tmp_thread_pool = System.getProperty("ems_thread_pool");
+		if (tmp_thread_pool != null){
+			try{
+				properties.maxThreadPool = Integer.parseInt(tmp_thread_pool);
+			}catch (NumberFormatException e){
+				properties.maxThreadPool = 100;
+			}
+		}else{
+			properties.maxThreadPool = 100;
+		}
+		
+		String tmp_cookie = System.getProperty("ems_cookie");
+		if (tmp_cookie != null){
+		   properties.cookie = tmp_cookie;
+	   }else{
+		   properties.cookie = "erlangms";
+	   }
+
+	   String tmp_host = System.getProperty("ems_host");
+	   if (tmp_host != null){
+		   properties.hostName = tmp_host;
+	   }else{
+		   try {
+			   properties.hostName = InetAddress.getLocalHost().getHostName();
+			} catch (UnknownHostException e) {
+				properties.hostName = "localhost";
+				System.out.println("Não foi possível obter o hostname da máquina onde está o node. Usando localhost.");
+			}
+	   }
+
+	   String tmp_nodeName = System.getProperty("ems_node");
+	   if (tmp_nodeName != null){
+		   properties.nodeName = tmp_nodeName;
+	   }else{
+		   properties.nodeName = "node01";
+	   }
+	   
+	   String tmp_ESB_URL = System.getProperty("ems_bus");
+	   if (tmp_ESB_URL != null){
+		   if (tmp_ESB_URL.indexOf(":") == -1){
+			   tmp_ESB_URL = tmp_ESB_URL + ":2301";
+		   }
+		   properties.ESB_URL = tmp_ESB_URL;
+	   }else{
+		   properties.ESB_URL = "http://localhost:2301";
+	   }
+	   
+	   String tmp_user = System.getProperty("ems_user");
+	   if (tmp_user != null){
+		   properties.nodeUser = tmp_user;
+	   }else{
+		   properties.nodeUser = "geral";
+	   }
+	   
+	   String tmp_password = System.getProperty("ems_password");
+	   if (tmp_password != null){
+		   properties.nodePasswd = tmp_password;
+	   }else{
+		   properties.nodePasswd = "123456";
+	   }
+	   
+       String usernameAndPassword = properties.nodeUser + ":" + properties.nodePasswd;
+       properties.authorizationHeaderName = "Authorization";
+       properties.authorizationHeaderValue = "Basic " + java.util.Base64.getEncoder()
+    		   .encodeToString(usernameAndPassword.getBytes());
+
+       // SMTP properties
+       
+	   String tmp_smtp = System.getProperty("ems_smtp");
+	   if (tmp_smtp != null){
+		   properties.smtp = tmp_user;
+	   }else{
+		   properties.smtp = "smtp.unb.br";
+	   }
+
+	   String tmp_smtp_port = System.getProperty("ems_smtp_port");
+	   if (tmp_smtp_port != null){
+		   try{
+			   properties.smtpPort = Integer.parseInt(tmp_smtp_port);
+		   } catch(NumberFormatException e){
+			   properties.smtpPort = 25;
+		   }
+	   }else{
+		   properties.smtpPort = 25;
+	   }
+       
+	   String tmp_smtp_from = System.getProperty("ems_smtp_from");
+	   if (tmp_smtp_from != null){
+		   properties.smtpFrom = tmp_smtp_from;
+	   }else{
+		   properties.smtpFrom = "erlangms@unb.br";
+	   }
+
+	   String tmp_smtp_passwd = System.getProperty("ems_smtp_passwd");
+	   if (tmp_smtp_passwd != null){
+		   properties.smtpPasswd = tmp_smtp_passwd;
+	   }else{
+		   properties.smtpPasswd = "123456";
+	   }
+
+	   // LDAP properties
+	   
+	   String tmp_ldap_url = System.getProperty("ems_ldap_url");
+	   if (tmp_ldap_url != null){
+		   if (tmp_ldap_url.indexOf(":") == -1){
+			   tmp_ldap_url = tmp_ldap_url + ":2389";
+		   }
+		   if (!tmp_ldap_url.startsWith("ldap://")){
+			   tmp_ldap_url = "ldap://" + tmp_ldap_url;
+		   }
+		   properties.ldapUrl = tmp_ldap_url;
+	   }else{
+		   properties.ldapUrl = "ldap://localhost:2389";
+	   }
+
+	   String tmp_ldap_admin = System.getProperty("ems_ldap_admin");
+	   if (tmp_ldap_admin != null){
+		   properties.ldapAdmin = tmp_ldap_admin;
+	   }else{
+		   properties.ldapAdmin = "cn=admin,dc=unb,dc=br";
+	   }
+
+	   String tmp_ldap_admin_passwd = System.getProperty("ems_ldap_admin_passwd");
+	   if (tmp_ldap_admin_passwd != null){
+		   properties.ldapAdminPasswd = tmp_ldap_admin_passwd;
+	   }else{
+		   properties.ldapAdminPasswd = "123456";
+	   }
+
+	   return properties;
+	}
+
+
+    public static class MyAuthenticator  extends Authenticator{
+        String userName=null;
+        String password=null;
+
+        public MyAuthenticator(){
+        }
+        public MyAuthenticator(String username, String password) {
+            this.userName = username;
+            this.password = password;
+        }
+        protected PasswordAuthentication getPasswordAuthentication(){
+            return new PasswordAuthentication(userName, password);
+        }
+    }	
+    
+    public static class MailSenderInfo {
+        private String mailServerHost;
+        private String mailServerPort = "25";
+        // 邮件发送者的地址
+        private String fromAddress;
+        // 邮件接收者的地址
+        private String toAddress;
+        // 登陆邮件发送服务器的用户名和密码
+        private String userName;
+        private String password;
+        // 是否需要身份验证
+        private boolean validate = false;
+        // 邮件主题
+        private String subject;
+        // 邮件的文本内容
+        private String content;
+        // 邮件附件的文件名
+        private String[] attachFileNames={};
+
+        private boolean withAttachment=true;
+        public boolean isWithAttachment() {
+            return withAttachment;
+        }
+
+        public void setWithAttachment(boolean withAttachment) {
+            this.withAttachment = withAttachment;
+        }
+
+
+        public Properties getProperties(){
+            Properties p = new Properties();
+            p.put("mail.smtp.host", this.mailServerHost);
+            p.put("mail.smtp.port", this.mailServerPort);
+            p.put("mail.smtp.auth", validate ? "true" : "false");
+            return p;
+        }
+
+
+
+        public String getMailServerHost() {
+            return mailServerHost;
+        }
+
+        public void setMailServerHost(String mailServerHost) {
+            this.mailServerHost = mailServerHost;
+        }
+
+        public String getMailServerPort() {
+            return mailServerPort;
+        }
+
+        public void setMailServerPort(String mailServerPort) {
+            this.mailServerPort = mailServerPort;
+        }
+
+        public String getFromAddress() {
+            return fromAddress;
+        }
+
+        public void setFromAddress(String fromAddress) {
+            this.fromAddress = fromAddress;
+        }
+
+        public String getToAddress() {
+            return toAddress;
+        }
+
+        public void setToAddress(String toAddress) {
+            this.toAddress = toAddress;
+        }
+
+        public String getUserName() {
+            return userName;
+        }
+
+        public void setUserName(String userName) {
+            this.userName = userName;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+
+        public boolean isValidate() {
+            return validate;
+        }
+
+        public void setValidate(boolean validate) {
+            this.validate = validate;
+        }
+
+        public String getSubject() {
+            return subject;
+        }
+
+        public void setSubject(String subject) {
+            this.subject = subject;
+        }
+
+        public String getContent() {
+            return content;
+        }
+
+        public void setContent(String content) {
+            this.content = content;
+        }
+
+        public String[] getAttachFileNames() {
+            return attachFileNames;
+        }
+
+        public void setAttachFileNames(String[] attachFileNames) {
+            this.attachFileNames = attachFileNames;
+        }
+    }    
+
+
+	/**
+	 * Permite enviar um e-mail em formato texto com uma lista de anexos
+	 * @author Everton de Vargas Agilar
+	 */
+    public static void sendTextMail(final String to, 
+    								final String subject, 
+    								final String content,
+    								final String[] attachment) {
+    	MailSenderInfo mailInfo = new MailSenderInfo();
+        mailInfo.setMailServerHost(properties.smtp);
+        mailInfo.setMailServerPort(Integer.toString(properties.smtpPort));
+        mailInfo.setValidate(true);
+        mailInfo.setUserName(properties.smtpFrom);
+        mailInfo.setPassword(properties.smtpPasswd);
+        mailInfo.setFromAddress(properties.smtpFrom);
+        mailInfo.setToAddress(to);
+        mailInfo.setSubject(subject);
+        mailInfo.setContent(content);
+        if (attachment != null && attachment.length != 0){
+            mailInfo.setAttachFileNames(attachment);
+        }else{
+            mailInfo.setWithAttachment(false);
+        }
+        
+        MyAuthenticator authenticator = null;
+        Properties pro = mailInfo.getProperties();
+        if (mailInfo.isValidate()) {
+            authenticator = new MyAuthenticator(mailInfo.getUserName(), mailInfo.getPassword());
+        }
+
+        Session sendMailSession = Session.getDefaultInstance(pro,authenticator);
+        try {
+            Message mailMessage = new MimeMessage(sendMailSession);
+            Address from = new InternetAddress(mailInfo.getFromAddress());
+            mailMessage.setFrom(from);
+            Address addr = new InternetAddress(mailInfo.getToAddress());
+            mailMessage.setRecipient(Message.RecipientType.TO, addr);
+            mailMessage.setSubject(mailInfo.getSubject());
+            mailMessage.setSentDate(new Date());
+            String mailContent = mailInfo.getContent();
+            mailMessage.setText(mailContent);
+            Multipart multipart=new MimeMultipart();
+            if(mailInfo.isWithAttachment()){
+                for(int i=0;i<mailInfo.getAttachFileNames().length;i++) {
+                    DataSource source = new FileDataSource(mailInfo.getAttachFileNames()[i]);
+                    BodyPart bodyPart=new MimeBodyPart();
+                    bodyPart.setDataHandler(new DataHandler(source));
+                    String[]ss=mailInfo.getAttachFileNames()[i].split("/");
+                    bodyPart.setFileName(ss[ss.length-1]);
+                    multipart.addBodyPart(bodyPart);
+                }
+                BodyPart bodyPart=new MimeBodyPart();
+                bodyPart.setContent(mailInfo.getContent(),"text/html");
+                multipart.addBodyPart(bodyPart);
+                mailMessage.setContent(multipart);
+            }
+            Transport.send(mailMessage);
+        } catch (MessagingException ex) {
+        	throw new EmsValidationException("Não foi possível enviar e-mail para "+ to + ". Erro interno: "+ ex.getMessage());
+        }
+    }
+
+	/**
+	 * Permite enviar um e-mail em formato HTML com uma lista de anexos
+	 * @author Everton de Vargas Agilar
+	 */
+    public static void sendHtmlMail(final String to, 
+									final String subject, 
+									final String content,
+									final String[] attachment){
+    	MailSenderInfo mailInfo = new MailSenderInfo();
+        mailInfo.setMailServerHost(properties.smtp);
+        mailInfo.setMailServerPort(Integer.toString(properties.smtpPort));
+        mailInfo.setValidate(true);
+        mailInfo.setUserName(properties.smtpFrom);
+        mailInfo.setPassword(properties.smtpPasswd);
+        mailInfo.setFromAddress(properties.smtpFrom);
+        mailInfo.setToAddress(to);
+        mailInfo.setSubject(subject);
+        mailInfo.setContent(content);
+        if (attachment != null && attachment.length != 0){
+            mailInfo.setAttachFileNames(attachment);
+        }else{
+            mailInfo.setWithAttachment(false);
+        }
+
+    	
+        MyAuthenticator authenticator = null;
+        Properties pro = mailInfo.getProperties();
+        if (mailInfo.isValidate()) {
+        	authenticator = new MyAuthenticator(mailInfo.getUserName(), mailInfo.getPassword());
+        }
+        Session sendMailSession = Session.getDefaultInstance(pro,authenticator);
+        try {
+            Message mailMessage = new MimeMessage(sendMailSession);
+            Address from = new InternetAddress(mailInfo.getFromAddress());
+            mailMessage.setFrom(from);
+            Address addr = new InternetAddress(mailInfo.getToAddress());
+            mailMessage.setRecipient(Message.RecipientType.TO, addr);
+            mailMessage.setSubject(mailInfo.getSubject());
+            mailMessage.setSentDate(new Date());
+            Multipart mainPart = new MimeMultipart();
+            BodyPart html = new MimeBodyPart();
+            html.setContent(mailInfo.getContent(), "text/html; charset=utf-8");
+            mainPart.addBodyPart(html);
+            mailMessage.setContent(mainPart);
+
+            BodyPart bodyPart=new MimeBodyPart();
+            Multipart multipart=new MimeMultipart();
+            if(mailInfo.getAttachFileNames().length!=0){
+//                    for(int i=0;i<mailInfo.getAttachFileNames().length;i++) {
+                DataSource source = new FileDataSource(mailInfo.getAttachFileNames()[0]);
+                bodyPart.setDataHandler(new DataHandler(source));
+                bodyPart.setFileName(mailInfo.getAttachFileNames()[0]);
+                multipart.addBodyPart(bodyPart);
+//                    }
+            }
+            mailMessage.setContent(multipart);
+            Transport.send(mailMessage);
+        } catch (MessagingException ex) {
+        	throw new EmsValidationException("Não foi possível enviar e-mail para "+ to + ". Erro interno: "+ ex.getMessage());
+        }
+    }
+    
 }

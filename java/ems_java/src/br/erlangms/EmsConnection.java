@@ -11,8 +11,6 @@ package br.erlangms;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -27,13 +25,11 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.ericsson.otp.erlang.OtpMbox;
 import com.ericsson.otp.erlang.OtpNode;
 
+import br.erlangms.EmsUtil.EmsProperties;
+
 public class EmsConnection extends Thread{
-	private static int maxThreadPool;
+	private static EmsProperties properties;
 	private String otpNodeName;
-	private static String cookie;
-	private static String ESB_URL;
-	private static String hostName;
-	private static String nodeName;
 	private final String nomeAgente;
 	private final String nomeService;
 	private static final OtpErlangBinary result_ok; 
@@ -41,19 +37,13 @@ public class EmsConnection extends Thread{
 	private final EmsServiceFacade facade;
 	private Class<? extends EmsServiceFacade> classOfFacade;
 	private static OtpErlangPid dispatcherPid;
-	private static String nodeUser;
-	private static String nodePassword;
-    private static String authorizationHeaderName;
-    private static String authorizationHeaderValue;
-	private OtpNode myNode = null;
-	private OtpMbox myMbox = null;
 	private Method methods[];
 	private String method_names[];
 	private int method_count = 0;
 	static{
+		properties = EmsUtil.properties;
 		logger = Logger.getLogger("erlangms");
 		result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
-    	getSystemProperties();
     }
     
 	public EmsConnection( final EmsServiceFacade facade){
@@ -61,11 +51,7 @@ public class EmsConnection extends Thread{
 		this.classOfFacade = facade.getClass();
 		this.nomeAgente = classOfFacade.getSimpleName();
 		this.nomeService = classOfFacade.getName();
-		if (nodeName != null && !nodeName.isEmpty()){
-		   otpNodeName = nomeAgente + "_" + nodeName;
-	    }else{
-		   otpNodeName = nomeAgente;
-	    }
+		this.otpNodeName = nomeAgente + "_" + properties.nodeName;
 		getMethodNamesTable();
 	}
 	
@@ -90,116 +76,12 @@ public class EmsConnection extends Thread{
 		}
 	}
 
-	/**
-	 * Obtem as configurações necessárias para conexao com o barramento de servicos ERLANGMS
-	 * Exemplo: 
-	 *    -Dcookie=erlangms
-	 *    -Dems_node=node01
-	 *    -Dems_emsbus=http://localhost:2301
-	 *    -Dems_cookie=erlangms
-	 *    -Dems_max_thread_pool_by_agent=100
-	 *    -Dems_user=xxxxxxx 
-	 *    -Dems_password=xxxxxx 
-	 * @author Everton de Vargas Agilar
-	 */
-	private static void getSystemProperties() {
-		String tmp_thread_pool = System.getProperty("ems_thread_pool");
-		if (tmp_thread_pool != null){
-			try{
-				maxThreadPool = Integer.parseInt(tmp_thread_pool);
-			}catch (NumberFormatException e){
-				maxThreadPool = 100;
-			}
-		}else{
-			maxThreadPool = 100;
-		}
-		String tmp_cookie = System.getProperty("ems_cookie");
-		if (tmp_cookie != null){
-		   cookie = tmp_cookie;
-	   }else{
-		   cookie = "erlangms";
-	   }
-	   try {
-		   hostName = InetAddress.getLocalHost().getHostName();
-		} catch (UnknownHostException e) {
-			System.out.println("Não foi possível obter o hostname da máquina onde está o node.");
-		}
-	   String tmp_nodeName = System.getProperty("ems_node");
-	   if (tmp_nodeName != null){
-		   nodeName = tmp_nodeName;
-	   }else{
-		   nodeName = "node01";
-	   }
-	   String tmp_ESB_URL = System.getProperty("ems_bus");
-	   if (tmp_ESB_URL != null){
-		   ESB_URL = tmp_ESB_URL;
-	   }else{
-		   ESB_URL = "http://localhost:2301";
-	   }
-	   String tmp_user = System.getProperty("ems_user");
-	   if (tmp_user != null){
-		   nodeUser = tmp_user;
-	   }else{
-		   nodeUser = "geral";
-	   }
-	   String tmp_password = System.getProperty("ems_password");
-	   if (tmp_password != null){
-		   nodePassword = tmp_password;
-	   }else{
-		   nodePassword = "123456";
-	   }
-	   
-       String usernameAndPassword = nodeUser + ":" + nodePassword;
-       authorizationHeaderName = "Authorization";
-       authorizationHeaderValue = "Basic " + java.util.Base64.getEncoder()
-    		   .encodeToString(usernameAndPassword.getBytes());
-	}
-
-	public String getNomeAgente(){
-		return nomeAgente;
-	}
-
-	public OtpNode getNode(){
-		return myNode;
-	}
-	
-	public OtpMbox getMBox(){
-		return myMbox;
-	}
-
-	public static OtpErlangPid getDispatcherPid(){
-		return dispatcherPid;
-	}
-	
-	public static String getHostName(){
-		return hostName;
-	}
-	
-	public static String getESB_URL(){
-		return ESB_URL;
-	}
-	
-	public static String getNodeUser() {
-		return nodeUser;
-	}
-
-	public static String getNodePassword() {
-		return nodePassword;
-	}
-
-	public static String getAuthorizationHeaderName() {
-		return authorizationHeaderName;
-	}
-
-	public static String getAuthorizationHeaderValue() {
-		return authorizationHeaderValue;
-	}
-
-	
     @Override  
     public void run() {
     	try {
-   	   
+    		OtpNode myNode = null;
+    		OtpMbox myMbox = null;
+    		
     		// Fica nesse loop até consegui conexão com o barramento
     		while (true){
 	    		try{
@@ -218,7 +100,7 @@ public class EmsConnection extends Thread{
 	    		}
     		}
     	   
-    	   myNode.setCookie(cookie);
+    	   myNode.setCookie(properties.cookie);
            StringBuilder msg_node = new StringBuilder(nomeService)
     										.append(" node -> ").append(myNode.node())
     										.append(" port -> ").append(myNode.port());
@@ -229,7 +111,7 @@ public class EmsConnection extends Thread{
            OtpErlangTuple otp_request;
            IEmsRequest request;
            StringBuilder msg_task = new StringBuilder();
-           ExecutorService pool = Executors.newFixedThreadPool(maxThreadPool);
+           ExecutorService pool = Executors.newFixedThreadPool(properties.maxThreadPool);
            
            // Fica nesse loop aguardando mensagens do barramento
            while(true){ 
@@ -246,7 +128,7 @@ public class EmsConnection extends Thread{
     						.append(request.getRID()).append(", ").append(request.getUrl()).append("]");
                     logger.info(msg_task.toString());
                     
-                    // Submete o trabalho para um worker
+                    // Delega o trabalho para um worker
                     pool.submit(new Task(dispatcherPid, request, myMbox));
         	   
         	   } catch(OtpErlangExit e3) {
@@ -254,13 +136,17 @@ public class EmsConnection extends Thread{
     	       }
            }
     	} catch (InterruptedException e2) {
-    		logger.info(nomeService + " finalizado de maneira graciosa :)");
+    		logger.info(nomeService + " finalizado com sucesso.");
     	} catch (Exception e) {
-    		logger.warning(nomeService + " finalizado com erro. Reason: "+ e.getMessage());
+    		logger.warning(nomeService + " finalizado com erro. Motivo: "+ e.getMessage());
 		}
     }  
 	
 
+	/**
+	 * Permite invocar o método referente um web-service e realizar todo o tratamento necessário.
+	 * @author Everton de Vargas Agilar
+	 */
     private Object chamaMetodo(final String modulo, final String metodo, final IEmsRequest request)  {
     	Method m = null;
     	Object result = null;
@@ -358,6 +244,10 @@ public class EmsConnection extends Thread{
 	    }
 	}  	
 	
+	/**
+	 * Classe interna para realizar o trabalho enquanto o loop principal do web-service aguarda mensagens.
+	 * @author Everton de Vargas Agilar
+	 */
 	private final class Task implements Callable<Boolean>{
 		private OtpErlangPid from;
 		private IEmsRequest request;

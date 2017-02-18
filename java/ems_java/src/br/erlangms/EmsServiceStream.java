@@ -35,9 +35,9 @@ public class EmsServiceStream {
 
 	public EmsServiceStream request() {
 		this.response = EmsUtil.getRestStream()
-					   		.target(EmsConnection.getESB_URL() + url)
+					   		.target(EmsUtil.properties.ESB_URL + url)
 					   		.request("application/json")
-					   		.header(EmsConnection.getAuthorizationHeaderName(), EmsConnection.getAuthorizationHeaderValue())
+					   		.header(EmsUtil.properties.authorizationHeaderName, EmsUtil.properties.authorizationHeaderValue)
 					   		.get(String.class);
 		return this;
 	}
