@@ -1272,7 +1272,7 @@ public final class EmsUtil {
 	 * @return byte[] retorna um fluxo de bytes que deve ser tratado pelo frontend para geração do pdf
 	 * @author Fabiano Rodrigues de Paiva
 	 */
-	public static byte[] printPdf(HashMap<String, Object> parametrosJasper, List<? extends Object> lista, String templateJasper, final Object owner){
+	public static byte[] printPdf(final HashMap<String, Object> parametrosJasper, final List<? extends Object> lista, final String templateJasper, final Object owner){
 		final String m_erro = "ERRO ao gerar relatorio PDF.";
 		if( (parametrosJasper!=null || (lista!=null && lista.size()>0)) && (templateJasper!=null && !templateJasper.equals("")) && owner!=null ){
 			try {		
@@ -1300,7 +1300,7 @@ public final class EmsUtil {
 	 * @return array of UniqueConstraint[]
 	 * @author Everton de Vargas Agilar
 	 */
-	public static UniqueConstraint[] getTableUniqueConstraints(Class<?> classOfModel){
+	public static UniqueConstraint[] getTableUniqueConstraints(final Class<?> classOfModel){
 		Table tableAnnotation = classOfModel.getAnnotation(Table.class);
 		return  tableAnnotation.uniqueConstraints();
 	}
@@ -1308,10 +1308,10 @@ public final class EmsUtil {
 	/**
 	 * Obter a lista de fields com unique constraint de um model.
 	 * Obs.: Id não é retornado embora tenha a constraint unique  
-	 * @return list of Field[]
+	 * @return list of Field[] 
 	 * @author Everton de Vargas Agilar
 	 */
-	public static List<Field> getFieldsWithUniqueConstraint(Class<?> classOfModel){
+	public static List<Field> getFieldsWithUniqueConstraint(final Class<?> classOfModel){
 		Field[] fields = classOfModel.getDeclaredFields();
 		List<Field> result = new ArrayList<>();
 		for (int i = 0; i < fields.length; i++){
@@ -1323,5 +1323,7 @@ public final class EmsUtil {
 		return result;
 	}
 	
+	
+
 	
 }

@@ -42,6 +42,7 @@ public abstract class EmsRepository<Model> {
 	private String NAMED_QUERY_DELETE = null;
 	private String NAMED_QUERY_EXISTS = null;
 	private String NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT = null;
+	private String NAMED_QUERY_CHECK_CONTRAINTS_ON_UPDATE = null;
 	private Logger logger = Logger.getLogger("erlangms");
 	private List<String> cachedNamedQuery = new ArrayList<String>();
 	private List<String> cachedNativeNamedQuery = new ArrayList<String>();
@@ -695,82 +696,116 @@ public abstract class EmsRepository<Model> {
 		String nameOfModel = classOfModel.getName();
 		String simpleNameOfModel = classOfModel.getSimpleName();
 
-		// create query delete
+		// ************* create query delete *****************
+		
 		NAMED_QUERY_DELETE = nameOfModel + ".delete";
 		String sqlDelete = new StringBuilder("delete from ")
 											.append(simpleNameOfModel)
 											.append(" where ")
 											.append(idFieldName).append("=:pId").toString();
-		Query queryDelete = entityManager.createQuery(sqlDelete);
-		entityManagerFactory.addNamedQuery(NAMED_QUERY_DELETE, queryDelete);
+		createNamedQuery(NAMED_QUERY_DELETE, sqlDelete);
 		
-		// create query exists
+
+		// // ************* create query exists *****************
+		
 		NAMED_QUERY_EXISTS = nameOfModel + ".exists";
 		String sqlExists =  new StringBuilder("select 1 from ")
 											.append(simpleNameOfModel)
 											.append(" where ")
 											.append(idFieldName).append("=:pId").toString();
-		Query queryExits = entityManager.createQuery(sqlExists);
-		entityManagerFactory.addNamedQuery(NAMED_QUERY_EXISTS, queryExits);
+		createNamedQuery(NAMED_QUERY_EXISTS, sqlExists);
 
 
-		// create query to check contraints on insert
+		// ************* create query to check contraints on insert *****************
+
+		String sqlQueryConstraintInsert = createSqlForConstraintCheck(true);
+		hasContraints = (sqlQueryConstraintInsert != null);
+		if (hasContraints){
+			NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT = nameOfModel + ".checkConstraintInsert";
+			createNativeNamedQuery(NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT, sqlQueryConstraintInsert, null);
+			
+			String sqlQueryConstraintUpdate = createSqlForConstraintCheck(false);
+			NAMED_QUERY_CHECK_CONTRAINTS_ON_UPDATE = nameOfModel + ".checkConstraintUpdate";
+			createNativeNamedQuery(NAMED_QUERY_CHECK_CONTRAINTS_ON_UPDATE, sqlQueryConstraintUpdate, null);
+		}
+		
+
+		// ************* create cached named queries of inherited class *****************
+		createCachedNamedQueries();
+	}
+	
+
+	/**
+	 * Cria e retorna um sql para validar constraints de um modelo.
+	 * @param isInsert se true é um insert senão é um update
+	 * @return sql ou null se  não houver nenhuma constraint no modelo 
+	 * @author Everton de Vargas Agilar
+	 */
+	private String createSqlForConstraintCheck(boolean isInsert){
 		Table tableAnnotation = classOfModel.getAnnotation(Table.class);
 		UniqueConstraint[] tableContrains = tableAnnotation.uniqueConstraints();
 		List<Field> fieldsConstraints = EmsUtil.getFieldsWithUniqueConstraint(classOfModel);
 		int tableConstraintsCount = tableContrains.length;
 		int fieldConstraintsCount = fieldsConstraints.size();
-		hasContraints = tableContrains.length > 0 || fieldConstraintsCount > 0;
+		boolean hasContraints = tableContrains.length > 0 || fieldConstraintsCount > 0;
 		if (hasContraints){
-			StringBuilder sqlCheckContraintOnInsert = new StringBuilder();
-			sqlCheckContraintOnInsert.append("select top(1) 1 ")
+			StringBuilder sql = new StringBuilder();
+			sql.append("select top(1) 1 ")
 									 .append("from ").append(tableAnnotation.name())
 									 .append(" this where ");
 			
-			// table constraints
+			// Se não é um insert então é um update :)
+			if (!isInsert){
+				sql.append(idFieldName).append("=:").append(idFieldName).append(" and (");
+			}
+			
+			// build table constraints conditions
 			for (int i = 0; i < tableConstraintsCount; i++){
 				UniqueConstraint c = tableContrains[i];
 				String[] columnNames = c.columnNames();
 				int columnNamesCount = columnNames.length;
-				sqlCheckContraintOnInsert.append("(");
+				sql.append("(");
 				for (int j = 0; j < columnNamesCount; j++){
 					String f = columnNames[j];
-					sqlCheckContraintOnInsert.append("this.").append(f).append("=:").append(f);
+					sql.append("this.").append(f).append("=:").append(f);
 					if (j+1 < columnNamesCount){
-						sqlCheckContraintOnInsert.append(" and ");
+						sql.append(" and ");
 					}
 				}
-				sqlCheckContraintOnInsert.append(")");
+				sql.append(")");
 				if (i+1 < tableConstraintsCount){
-					sqlCheckContraintOnInsert.append(" or ");
+					sql.append(" or ");
 				}
 			}
 			
-			// field constraints
+			// build field constraints conditions
 			if (tableConstraintsCount > 0){
-				sqlCheckContraintOnInsert.append(" or ");
+				sql.append(" or ");
 			}
-			sqlCheckContraintOnInsert.append("(");
+			sql.append("(");
 			for (int i = 0; i < fieldConstraintsCount; i++){
 				Field field = fieldsConstraints.get(i);
 				String f = field.getAnnotation(Column.class).name();
-				sqlCheckContraintOnInsert.append("this.").append(f).append("=:").append(f);
+				sql.append("this.").append(f).append("=:").append(f);
 				if (i+1 < fieldConstraintsCount){
-					sqlCheckContraintOnInsert.append(" or ");
+					sql.append(" or ");
 				}
 			}
-			sqlCheckContraintOnInsert.append(")");
+			sql.append(")");
 			
-			// create query
-			NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT = nameOfModel + ".checkConstraintsIns";
-			createNativeNamedQuery(NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT, sqlCheckContraintOnInsert.toString(), null);
+			if (!isInsert){
+				sql.append(")");
+			}
+			
+			return sql.toString();
 		}
 		
-		// create cached named queries of inherited class
-		createCachedNamedQueries();
+		// return null porque não há constraint na declaração do modelo
+		return null;
 	}
 	
 }
+
 
 
 
