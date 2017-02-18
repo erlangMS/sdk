@@ -22,10 +22,17 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import javax.naming.Context;
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.naming.directory.SearchResult;
+import javax.naming.ldap.InitialLdapContext;
+import javax.naming.ldap.LdapContext;
 import javax.persistence.Column;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
@@ -1321,6 +1328,39 @@ public final class EmsUtil {
 			}
 		}
 		return result;
+	}
+
+	
+	/**
+	 * Permite fazer queries no barramento através do protocolo LDAP v3
+	 * @param login do usuário. Ex: geral
+	 * @param adminPassd é a senha do administrador do LDAP (deve ser igual a que está no catálogo priv/catalog/emsbus/ems_ldap_server.json)
+	 * @param urlLdapServer é o endereço do servidor ems-bus. Ex.: ldap://localhost:2389  ou ldap://servicosssi.unb.br:2389
+	 * @return user object ou exception EmsValidationException
+	 * @author Everton de Vargas Agilar
+	 * 		   Renato Carauta 
+	 */
+	public static Object ldapSearch(final String login, final String adminPasswd, final String urlLdapServer) {
+		Hashtable<String, String> env = new Hashtable<String, String>(11);
+		env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
+		env.put(Context.PROVIDER_URL, urlLdapServer);  
+		env.put(Context.SECURITY_AUTHENTICATION, "simple");
+		env.put(Context.SECURITY_PRINCIPAL, "cn=admin,dc=unb,dc=br");
+		env.put(Context.SECURITY_CREDENTIALS, adminPasswd);  // Admin password in ems_ldap_server.json catalog
+		LdapContext ctx = null;
+		try{
+			ctx = new InitialLdapContext(env, null);
+			try{
+				NamingEnumeration<SearchResult> answer = ctx.search("dc=unb,dc=br", "uid="+ login, null);
+				return answer.next().getAttributes();
+			}finally{
+				ctx.close();
+			}
+		} catch (javax.naming.AuthenticationException e) {
+			throw new EmsValidationException("Invalid ldap admin credentials.");
+		} catch (NamingException e){
+			throw new EmsValidationException("Could not connect to ldap server.");
+		}
 	}
 	
 	
