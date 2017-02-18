@@ -202,12 +202,12 @@ public class EmsRequest implements IEmsRequest {
 	 * @return Object
 	 * @author Everton de Vargas Agilar
 	 */
-	public <T> T getObject(Class<T> classOfObj){
+	public <T> T getObject(final Class<T> classOfObj){
 		return getObject(classOfObj, null);
 	}
 	
 	@Override
-	public <T> T getObject(Class<T> classOfObj, EmsJsonModelAdapter jsonModelAdapter) {
+	public <T> T getObject(final Class<T> classOfObj, final EmsJsonModelAdapter jsonModelAdapter) {
 		try{
 			return EmsUtil.fromJson(getPayload(), classOfObj, jsonModelAdapter);
 		}catch (Exception e){
@@ -311,7 +311,7 @@ public class EmsRequest implements IEmsRequest {
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
-	public int getQueryAsInt(String nome) {
+	public int getQueryAsInt(final String nome) {
 		try{
 			return Integer.parseInt(getQuery(nome));
 		}catch (Exception e){
@@ -326,7 +326,7 @@ public class EmsRequest implements IEmsRequest {
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
-	public double getQueryAsDouble(String nome) {
+	public double getQueryAsDouble(final String nome) {
 		try{
 			return Double.parseDouble(getQuery(nome));
 		}catch (Exception e){
@@ -342,7 +342,7 @@ public class EmsRequest implements IEmsRequest {
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
-	public Object mergeObjectFromPayload(Object obj) {
+	public Object mergeObjectFromPayload(final Object obj) {
 		return mergeObjectFromPayload(obj, null);
 	}
 
@@ -355,7 +355,7 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@SuppressWarnings("unchecked")
 	@Override
-	public Object mergeObjectFromPayload(Object obj, EmsJsonModelAdapter emsJsonModelSerialize) {
+	public Object mergeObjectFromPayload(final Object obj, final EmsJsonModelAdapter emsJsonModelSerialize) {
 		if (obj != null){
 			final Map<String, Object> update_values = (Map<String, Object>) getObject(HashMap.class);
 			EmsUtil.setValuesFromMap(obj, update_values, emsJsonModelSerialize);

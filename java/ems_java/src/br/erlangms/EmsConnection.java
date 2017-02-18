@@ -8,6 +8,7 @@
  
 package br.erlangms;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -26,9 +27,9 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.ericsson.otp.erlang.OtpMbox;
 import com.ericsson.otp.erlang.OtpNode;
 
-public class EmsConnection
-{
+public class EmsConnection extends Thread{
 	private static int maxThreadPool;
+	private String otpNodeName;
 	private static String cookie;
 	private static String ESB_URL;
 	private static String hostName;
@@ -38,27 +39,59 @@ public class EmsConnection
 	private static final OtpErlangBinary result_ok; 
 	private static final Logger logger;
 	private final EmsServiceFacade facade;
-    private static OtpErlangPid dispatcherPid;
+	private Class<? extends EmsServiceFacade> classOfFacade;
+	private static OtpErlangPid dispatcherPid;
 	private static String nodeUser;
 	private static String nodePassword;
     private static String authorizationHeaderName;
     private static String authorizationHeaderValue;
 	private OtpNode myNode = null;
 	private OtpMbox myMbox = null;
+	private Method methods[];
+	private String method_names[];
+	private int method_count = 0;
 	static{
 		logger = Logger.getLogger("erlangms");
 		result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
     	getSystemProperties();
     }
     
-	public EmsConnection(final String nomeAgente, final String nomeService, final EmsServiceFacade facade){
-		this.nomeAgente = nomeAgente;
-		this.nomeService = nomeService;
+	public EmsConnection( final EmsServiceFacade facade){
 		this.facade = facade;
+		this.classOfFacade = facade.getClass();
+		this.nomeAgente = classOfFacade.getSimpleName();
+		this.nomeService = classOfFacade.getName();
+		if (nodeName != null && !nodeName.isEmpty()){
+		   otpNodeName = nomeAgente + "_" + nodeName;
+	    }else{
+		   otpNodeName = nomeAgente;
+	    }
+		getMethodNamesTable();
 	}
 	
 	/**
-	 * Obtem as configurações necessárias para executar os agentes
+	 * Preenche uma tabela com os métodos do facade para acesso rápido pelo método chamaMetodo 
+	 * @author Everton de Vargas Agilar
+	 */
+	private void getMethodNamesTable() {
+		Method[] allMethods = classOfFacade.getMethods(); 
+		methods = new Method[allMethods.length];
+		method_names = new String[allMethods.length];
+		for (Method m : allMethods){
+			if (m.getParameterCount() == 1){
+				Class<?> params[] = m.getParameterTypes();
+				if (params[0] == IEmsRequest.class){
+					methods[method_count] = m;
+					method_names[method_count] = m.getName();
+			    	m.setAccessible(true);  
+					++method_count;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Obtem as configurações necessárias para conexao com o barramento de servicos ERLANGMS
 	 * Exemplo: 
 	 *    -Dcookie=erlangms
 	 *    -Dems_node=node01
@@ -67,8 +100,6 @@ public class EmsConnection
 	 *    -Dems_max_thread_pool_by_agent=100
 	 *    -Dems_user=xxxxxxx 
 	 *    -Dems_password=xxxxxx 
-	 * @param from pid do agente
-	 * @return OtpErlangTuple
 	 * @author Everton de Vargas Agilar
 	 */
 	private static void getSystemProperties() {
@@ -164,86 +195,100 @@ public class EmsConnection
 		return authorizationHeaderValue;
 	}
 
-	public void start() throws Exception {
-		String otpNodeName = null;
-		if (nodeName != null && !nodeName.isEmpty()){
-		   otpNodeName = nomeAgente + "_" + nodeName;
-	   }else{
-		   otpNodeName = nomeAgente;
-	   }
-	   myNode = new OtpNode(otpNodeName);
-       myNode.setCookie(cookie);
-       StringBuilder msg_node = new StringBuilder(nomeService)
-										.append(" host -> ").append(myNode.host())
-										.append(" node -> ").append(myNode.node())
-										.append(" port -> ").append(myNode.port())
-										.append(" cookie -> ").append(myNode.cookie());
-       logger.info(msg_node.toString());
-       myMbox = myNode.createMbox(nomeService);
-       OtpErlangObject myObject;
-       OtpErlangTuple myMsg;
-       OtpErlangTuple otp_request;
-       IEmsRequest request;
-       StringBuilder msg_task = new StringBuilder();
-       ExecutorService pool = Executors.newFixedThreadPool(maxThreadPool);
-       while(true){ 
-    	   try {
-                myObject = myMbox.receive();
-                myMsg = (OtpErlangTuple) myObject;
-                otp_request = (OtpErlangTuple) myMsg.elementAt(0);
-                request = new EmsRequest(otp_request);
-                dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
-                msg_task.setLength(0);
-                msg_task.append(request.getMetodo()).append(" ").append(request.getModulo())
-						.append(".").append(request.getFunction()).append(" [RID: ")
-						.append(request.getRID()).append(", ").append(request.getUrl()).append("]");
-                logger.info(msg_task.toString());
-                pool.submit(new Task(dispatcherPid, request, myMbox));
-			} catch(OtpErlangExit e) {
-				break;
-	        }
-       }
-    }
 	
-	public void close(){
-		if (myNode != null){
-			try{
-				myNode.close();
-			}catch (Exception e){
-				e.printStackTrace();
-			}finally{
-				logger.info(nomeService + " finalizado.");
-				myNode = null;
-			}
+    @Override  
+    public void run() {
+    	try {
+   	   
+    		// Fica nesse loop até consegui conexão com o barramento
+    		while (true){
+	    		try{
+	    			myNode = new OtpNode(otpNodeName);
+	    			break;
+	    		}catch (IOException e){
+	    			// Verifica se a thread não foi interrompida
+	    			if (Thread.interrupted()) throw new InterruptedException();
+	    			logger.warning("Não foi possível se conectar ao barramento ERLANGMS. Verifique se o servidor de nome epmd está iniciado.");
+	    			try{
+	    				 Thread.sleep(10000);
+	    			}catch (InterruptedException e1){
+	    				// tenta novamente a comunicação se a thread não foi interrompida
+	    				if (Thread.interrupted()) throw e1;
+	    			}
+	    		}
+    		}
+    	   
+    	   myNode.setCookie(cookie);
+           StringBuilder msg_node = new StringBuilder(nomeService)
+    										.append(" node -> ").append(myNode.node())
+    										.append(" port -> ").append(myNode.port());
+           logger.info(msg_node.toString());
+           myMbox = myNode.createMbox(nomeService);
+           OtpErlangObject myObject;
+           OtpErlangTuple myMsg;
+           OtpErlangTuple otp_request;
+           IEmsRequest request;
+           StringBuilder msg_task = new StringBuilder();
+           ExecutorService pool = Executors.newFixedThreadPool(maxThreadPool);
+           
+           // Fica nesse loop aguardando mensagens do barramento
+           while(true){ 
+        	   try {
+                   if (Thread.interrupted()) throw new InterruptedException();
+        		   myObject = myMbox.receive();
+                    myMsg = (OtpErlangTuple) myObject;
+                    otp_request = (OtpErlangTuple) myMsg.elementAt(0);
+                    request = new EmsRequest(otp_request);
+                    dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
+                    msg_task.setLength(0);
+                    msg_task.append(request.getMetodo()).append(" ").append(request.getModulo())
+    						.append(".").append(request.getFunction()).append(" [RID: ")
+    						.append(request.getRID()).append(", ").append(request.getUrl()).append("]");
+                    logger.info(msg_task.toString());
+                    
+                    // Submete o trabalho para um worker
+                    pool.submit(new Task(dispatcherPid, request, myMbox));
+        	   
+        	   } catch(OtpErlangExit e3) {
+        		   if (Thread.interrupted()) throw new InterruptedException();
+    	       }
+           }
+    	} catch (InterruptedException e2) {
+    		logger.info(nomeService + " finalizado de maneira graciosa :)");
+    	} catch (Exception e) {
+    		logger.warning(nomeService + " finalizado com erro. Reason: "+ e.getMessage());
 		}
-	}
+    }  
 	
-	private Object chamaMetodo(final String modulo, final String metodo, final IEmsRequest request)  {
+
+    private Object chamaMetodo(final String modulo, final String metodo, final IEmsRequest request)  {
     	Method m = null;
     	Object result = null;
 		String msg_json = null;
 		try {  
-	    	Class<?> Classe = facade.getClass();
-	    	try{
-	    		m = Classe.getMethod(metodo, IEmsRequest.class);   
+    		// localiza o método 
+    		for (int i = 0; i < method_count; i++){
+    			if (metodo.equals(method_names[i])){
+    				m = methods[i];
+    				break;
+    			}
+    		}
+    		
+    		// se não encontrou o método tenta invocar sem parâmetros (não otimizado)
+    		if (m == null){
+	    		m = classOfFacade.getMethod(metodo);
 		    	m.setAccessible(true);  
-			    if (m.getReturnType().getName().equals("void")){
-			    	m.invoke(facade, request);
-			    	return result_ok;
-			    }else{
-			    	result = m.invoke(facade, request);
-			    }
-	    	} catch (NoSuchMethodException e) {
-	    		m = Classe.getMethod(metodo);
-		    	m.setAccessible(true);  
-			    if (m.getReturnType().getName().equals("void")){
-			    	m.invoke(facade);
-			    	return result_ok;
-			    }else{
-			    	result = m.invoke(facade);
-			    }
-	    	}
-	    	return result;
+    		}
+
+    		// invoca o método
+    		if (m.getReturnType().getName().equals("void")){
+		    	m.invoke(facade, request);
+		    	return result_ok;
+		    }else{
+		    	result = m.invoke(facade, request);
+		    }
+
+    		return result;
 		} catch (NoSuchMethodException e) {  
 	        // Essa exceção ocorre se o getMethod() não encontrar o método
 	    	String erro = "Método da camada de serviço não encontrado: " + metodo + ".";

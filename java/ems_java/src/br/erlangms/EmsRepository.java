@@ -37,16 +37,21 @@ public abstract class EmsRepository<Model> {
 	private Class<Model> classOfModel = null;
 	private EntityManager entityManager = null;
 	private EntityManagerFactory entityManagerFactory = null;
-	private Field IdField = null;
+	private Field idField = null;
 	private String idFieldName = null;
-	private String NAMED_QUERY_DELETE = null;
-	private String NAMED_QUERY_EXISTS = null;
-	private String NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT = null;
-	private String NAMED_QUERY_CHECK_CONTRAINTS_ON_UPDATE = null;
+	private Column idFieldColumn = null;
 	private Logger logger = Logger.getLogger("erlangms");
 	private List<String> cachedNamedQuery = new ArrayList<String>();
 	private List<String> cachedNativeNamedQuery = new ArrayList<String>();
 	private boolean hasContraints = false;
+	private Table tableAnnotation = null;
+	private UniqueConstraint[] tableContrains = null;
+	private List<Field> fieldsConstraints = null;
+	private Field[] fields = null;
+	private String NAMED_QUERY_DELETE = null;
+	private String NAMED_QUERY_EXISTS = null;
+	private String NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT = null;
+	private String NAMED_QUERY_CHECK_CONTRAINTS_ON_UPDATE = null;
 
 	public EmsRepository(){
 
@@ -59,9 +64,19 @@ public abstract class EmsRepository<Model> {
 			entityManager = getEntityManager();
 			if (entityManager != null){
 				entityManagerFactory = entityManager.getEntityManagerFactory();
-				IdField = EmsUtil.findFieldByAnnotation(classOfModel, Id.class);
-				if (IdField != null){
-					idFieldName = IdField.getName();
+				idField = EmsUtil.findFieldByAnnotation(classOfModel, Id.class);
+				if (idField != null){
+					idFieldName = idField.getName();
+					idFieldColumn = idField.getAnnotation(Column.class);
+					if (idFieldColumn != null){
+						tableAnnotation = classOfModel.getAnnotation(Table.class);
+						tableContrains = tableAnnotation.uniqueConstraints();
+						fieldsConstraints = EmsUtil.getFieldsWithUniqueConstraint(classOfModel);
+						fields = classOfModel.getDeclaredFields();
+						for (Field f : fields){ f.setAccessible(true); }
+					}else{
+						throw new EmsValidationException("O modelo "+ classOfModel.getSimpleName() + " precisa ter a anotação @Column no campo id.");
+					}
 					doCreateCachedNamedQueries();
 				}else{
 					throw new EmsValidationException("O modelo "+ classOfModel.getSimpleName() + " não possui nenhum campo com a anotação @Id.");
@@ -235,7 +250,7 @@ public abstract class EmsRepository<Model> {
 				filter = EmsUtil.toJson(filter_map);
 				query = parseQuery(filter, null, 1, 0, null, listFunction);
 			} else{
-				throw new EmsValidationException("É necessário informar parâmetros para a pesquisa.");
+				throw new EmsValidationException("É necessário informar filter_map para EmsRepository.exists.");
 			}
 			long result = (long) query.getSingleResult();
 			if (result >= 1){
@@ -266,7 +281,7 @@ public abstract class EmsRepository<Model> {
 				return true;
 			}
 		}else {
-			throw new EmsValidationException("É necessário informar o id do objeto!");
+			throw new EmsValidationException("É necessário informar o id do objeto para EmsRepository.exists.");
 		}
 	}
 
@@ -295,10 +310,11 @@ public abstract class EmsRepository<Model> {
 	 * @return objeto persistido
 	 * @author Everton de Vargas Agilar
 	 */
-	public <T> T update(final T obj){
+	public Model update(final Model obj){
 		if (obj != null){
 			Integer idValue = EmsUtil.getIdFromObject(obj);
 			if (idValue != null && idValue >= 0){
+				if (hasContraints) checkConstraints(obj, false);
 				entityManager.merge(obj);
 			}else{
 				throw new EmsValidationException("Não é possível atualizar objeto sem id em EmsRepository.update.");
@@ -316,13 +332,13 @@ public abstract class EmsRepository<Model> {
 	 * @return objeto inserido
 	 * @author Everton de Vargas Agilar
 	 */
-	public <T> T insert(final T obj){
+	public Model insert(final Model obj){
 		if (obj != null){
 			Integer idValue = EmsUtil.getIdFromObject(obj);
 			if (idValue != null && idValue >= 0){
 				throw new EmsValidationException("Não é possível incluir objeto que já possui identificador.");
 			}else{
-				if (hasContraints) checkInsertConstraints(obj);
+				if (hasContraints) checkConstraints(obj, true);
 				entityManager.persist(obj);
 			}
 			entityManager.flush();
@@ -335,13 +351,17 @@ public abstract class EmsRepository<Model> {
 	/**
 	 * Verifica as constrains do objeto e levanta uma exception case houve violação
 	 * @param obj objeto que será inserido
+	 * @param isInsert se true é insert senão é update
 	 * @return objeto inserido
 	 * @author Everton de Vargas Agilar
 	 */
-	private <T> void checkInsertConstraints(final T obj) {
-		Query query = getNamedQuery(NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT);
-		Class<?> classObj = obj.getClass();
-		Field[] fields = classObj.getDeclaredFields();
+	private void checkConstraints(final Model obj, boolean isInsert) {
+		Query query = null;
+		if (isInsert){
+			query = getNamedQuery(NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT);
+		}else{
+			query = getNamedQuery(NAMED_QUERY_CHECK_CONTRAINTS_ON_UPDATE);
+		}
 		for (Parameter<?> p : query.getParameters()){
 			String paramName = p.getName();
 			Field field = null;
@@ -353,7 +373,6 @@ public abstract class EmsRepository<Model> {
 						break;
 					}
 				}
-				field.setAccessible(true);
 				value = field.get(obj);
 				query.setParameter(paramName, value);
 			} catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
@@ -368,7 +387,7 @@ public abstract class EmsRepository<Model> {
 		}catch (Exception e){
 			throw new EmsValidationException("Não é possível checar as constraints na inserção do objeto. Erro interno: "+ e.getMessage());
 		}
-		throw new EmsNotFoundException("Registro duplicado, verifique.");
+		throw new EmsValidationException("Registro duplicado, verifique.");
 	}
 	
 	/**
@@ -378,7 +397,7 @@ public abstract class EmsRepository<Model> {
 	 * @return objeto inserido ou atualizado
 	 * @author Everton de Vargas Agilar
 	 */
-	public <T> T insertOrUpdate(final T obj){
+	public Model insertOrUpdate(final Model obj){
 		if (obj != null){
 			Integer idValue = EmsUtil.getIdFromObject(obj);
 			if (idValue != null && idValue >= 0){
@@ -522,7 +541,7 @@ public abstract class EmsRepository<Model> {
 								throw new EmsValidationException("Classe " + classOfModel.getSimpleName() + " não tem id.");
 							}
 						}else{
-							idField = this.IdField;
+							idField = this.idField;
 						}
 						fieldName = idField.getName();
 					}else{
@@ -742,9 +761,6 @@ public abstract class EmsRepository<Model> {
 	 * @author Everton de Vargas Agilar
 	 */
 	private String createSqlForConstraintCheck(boolean isInsert){
-		Table tableAnnotation = classOfModel.getAnnotation(Table.class);
-		UniqueConstraint[] tableContrains = tableAnnotation.uniqueConstraints();
-		List<Field> fieldsConstraints = EmsUtil.getFieldsWithUniqueConstraint(classOfModel);
 		int tableConstraintsCount = tableContrains.length;
 		int fieldConstraintsCount = fieldsConstraints.size();
 		boolean hasContraints = tableContrains.length > 0 || fieldConstraintsCount > 0;
@@ -756,7 +772,8 @@ public abstract class EmsRepository<Model> {
 			
 			// Se não é um insert então é um update :)
 			if (!isInsert){
-				sql.append(idFieldName).append("=:").append(idFieldName).append(" and (");
+				String idFieldColumnName = idFieldColumn.name();
+				sql.append(idFieldColumnName).append("!=:").append(idFieldColumnName).append(" and (");
 			}
 			
 			// build table constraints conditions
