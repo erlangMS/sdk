@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -95,7 +96,6 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 import net.sf.jasperreports.engine.JRDataSource;
-import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperExportManager;
 import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
@@ -106,17 +106,22 @@ import net.sf.jasperreports.engine.util.JRLoader;
 
 
 public final class EmsUtil {
-	private static final OtpErlangAtom ok_atom = new OtpErlangAtom("ok");
-	private static final OtpErlangAtom request_msg_atom = new OtpErlangAtom("request");
-	private static final OtpErlangBinary result_null = new OtpErlangBinary("{\"ok\":\"null\"}".getBytes());
-	private static final OtpErlangBinary erro_convert_json = new OtpErlangBinary("{\"erro\":\"service\", \"message\" : \"Falha na serialização do conteúdo em JSON\"}".getBytes());
-	private static final OtpErlangBinary result_list_empty = new OtpErlangBinary("[]".getBytes());
-	private static NumberFormat doubleFormatter = null;
+	public static final OtpErlangAtom ok_atom = new OtpErlangAtom("ok");
+	public static final OtpErlangAtom error_atom = new OtpErlangAtom("error");
+	public static final OtpErlangAtom request_msg_atom = new OtpErlangAtom("request");
+	public static final OtpErlangBinary result_null = new OtpErlangBinary("{\"ok\":\"null\"}".getBytes());
+	public static final OtpErlangBinary erro_convert_json = new OtpErlangBinary("{\"erro\":\"service\", \"message\" : \"Falha na serialização do conteúdo em JSON\"}".getBytes());
+	public static final OtpErlangBinary result_list_empty = new OtpErlangBinary("[]".getBytes());
+	public static final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
+	public static final Logger logger = Logger.getLogger("erlangms");
+	public static NumberFormat doubleFormatter = null;
 	private static Gson gson = null;
 	private static Gson gson2 = null;
-	public static EmsProperties properties = null;
+	public static final EmsProperties properties = getProperties();
+	public static final SimpleDateFormat dateFormatDDMMYYYY = new SimpleDateFormat("dd/MM/yyyy");
+	public static final SimpleDateFormat dateFormatDDMMYYYY_HHmm = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+	public static final SimpleDateFormat dateFormatDDMMYYYY_HHmmss = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 	static{
-		properties = getProperties();
 		doubleFormatter = NumberFormat.getInstance(Locale.US);
 		doubleFormatter.setMaximumFractionDigits(2); 
 		doubleFormatter.setMinimumFractionDigits(2);
@@ -158,12 +163,12 @@ public final class EmsUtil {
 				@Override
 			    public JsonElement serialize(java.util.Date value, Type typeOfSrc, JsonSerializationContext context) {
 			    	if (value.getHours() == 0 && value.getMinutes() == 0){
-			            return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy").format(value));
+			            return new JsonPrimitive(dateFormatDDMMYYYY.format(value));
 			        }else{
 			        	if (value.getSeconds() == 0){
-			        		return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy HH:mm").format(value));
+			        		return new JsonPrimitive(dateFormatDDMMYYYY_HHmm.format(value));
 			        	}else{
-			        		return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(value));
+			        		return new JsonPrimitive(dateFormatDDMMYYYY_HHmmss.format(value));
 			        	}
 			        }
 			    }})					
@@ -172,12 +177,12 @@ public final class EmsUtil {
 				@Override
 			    public JsonElement serialize(java.sql.Timestamp value, Type typeOfSrc, JsonSerializationContext context) {
 			    	if (value.getHours() == 0 && value.getMinutes() == 0){
-			            return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy").format(value));
+			            return new JsonPrimitive(dateFormatDDMMYYYY.format(value));
 			        }else{
 			        	if (value.getSeconds() == 0){
-			        		return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy HH:mm").format(value));
+			        		return new JsonPrimitive(dateFormatDDMMYYYY_HHmm.format(value));
 			        	}else{
-			        		return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(value));
+			        		return new JsonPrimitive(dateFormatDDMMYYYY_HHmmss.format(value));
 			        	}
 			        }
 			    }})					
@@ -188,11 +193,11 @@ public final class EmsUtil {
                     	try {
                     		int len_value = value.length();
                     		if (len_value >= 6 && len_value <= 10){
-								return new SimpleDateFormat("dd/MM/yyyy").parse(value);
+								return dateFormatDDMMYYYY.parse(value);
     						}else if (len_value == 16){
-    							return new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(value);
+    							return dateFormatDDMMYYYY_HHmm.parse(value);
     						}else if (len_value == 19){
-    							return new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(value);
+    							return dateFormatDDMMYYYY_HHmmss.parse(value);
     						}else{
     							throw new EmsValidationException(m_erro);
     						}
@@ -208,11 +213,11 @@ public final class EmsUtil {
                     	try {
                     		int len_value = value.length();
                     		if (len_value >= 6 && len_value <= 10){
-								return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy").parse(value).getTime());
+								return new java.sql.Timestamp(dateFormatDDMMYYYY.parse(value).getTime());
     						}else if (len_value == 16){
-    							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(value).getTime());
+    							return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmm.parse(value).getTime());
     						}else if (len_value == 19){
-    							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(value).getTime());
+    							return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmmss.parse(value).getTime());
     						}else{
     							throw new EmsValidationException(m_erro);
     						}
@@ -284,12 +289,12 @@ public final class EmsUtil {
 			@Override
 		    public JsonElement serialize(java.util.Date value, Type typeOfSrc, JsonSerializationContext context) {
 		    	if (value.getHours() == 0 && value.getMinutes() == 0){
-		            return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy").format(value));
+		            return new JsonPrimitive(dateFormatDDMMYYYY.format(value));
 		        }else{
 		        	if (value.getSeconds() == 0){
-		        		return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy HH:mm").format(value));
+		        		return new JsonPrimitive(dateFormatDDMMYYYY_HHmm.format(value));
 		        	}else{
-		        		return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(value));
+		        		return new JsonPrimitive(dateFormatDDMMYYYY_HHmmss.format(value));
 		        	}
 		        }
 		    }})					
@@ -298,12 +303,12 @@ public final class EmsUtil {
 			@Override
 		    public JsonElement serialize(java.sql.Timestamp value, Type typeOfSrc, JsonSerializationContext context) {
 		    	if (value.getHours() == 0 && value.getMinutes() == 0){
-		            return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy").format(value));
+		            return new JsonPrimitive(dateFormatDDMMYYYY.format(value));
 		        }else{
 		        	if (value.getSeconds() == 0){
-		        		return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy HH:mm").format(value));
+		        		return new JsonPrimitive(dateFormatDDMMYYYY_HHmm.format(value));
 		        	}else{
-		        		return new JsonPrimitive(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(value));
+		        		return new JsonPrimitive(dateFormatDDMMYYYY_HHmmss.format(value));
 		        	}
 		        }
 		    }})					
@@ -314,11 +319,11 @@ public final class EmsUtil {
                 	try {
                 		int len_value = value.length();
                 		if (len_value >= 6 && len_value <= 10){
-							return new SimpleDateFormat("dd/MM/yyyy").parse(value);
+							return dateFormatDDMMYYYY.parse(value);
 						}else if (len_value == 16){
-							return new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(value);
+							return dateFormatDDMMYYYY_HHmm.parse(value);
 						}else if (len_value == 19){
-							return new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(value);
+							return dateFormatDDMMYYYY_HHmmss.parse(value);
 						}else{
 							throw new EmsValidationException(m_erro);
 						}
@@ -334,11 +339,11 @@ public final class EmsUtil {
                 	try {
                 		int len_value = value.length();
                 		if (len_value >= 6 && len_value <= 10){
-							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy").parse(value).getTime());
+							return new java.sql.Timestamp(dateFormatDDMMYYYY.parse(value).getTime());
 						}else if (len_value == 16){
-							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm").parse(value).getTime());
+							return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmm.parse(value).getTime());
 						}else if (len_value == 19){
-							return new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(value).getTime());
+							return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmmss.parse(value).getTime());
 						}else{
 							throw new EmsValidationException(m_erro);
 						}
@@ -678,11 +683,11 @@ public final class EmsUtil {
 							int len_value = ((String) value_field).length();
 							try {
 								if (len_value >= 6 && len_value <= 10){
-	                        		query.setParameter(p++, new SimpleDateFormat("dd/MM/yyyy").parse((String) value_field));
+	                        		query.setParameter(p++, dateFormatDDMMYYYY.parse((String) value_field));
 	    						}else if (len_value == 16){
-	    							query.setParameter(p++, new SimpleDateFormat("dd/MM/yyyy HH:mm").parse((String) value_field));
+	    							query.setParameter(p++, dateFormatDDMMYYYY_HHmm.parse((String) value_field));
 	    						}else if (len_value == 19){
-	    							query.setParameter(p++, new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse((String) value_field));	    							
+	    							query.setParameter(p++, dateFormatDDMMYYYY_HHmmss.parse((String) value_field));	    							
 	    						}else{
 	    							throw new EmsValidationException(m_erro);
 	    						}
@@ -841,11 +846,11 @@ public final class EmsUtil {
 									field.set(obj, null);
 								}
 								else if (len_value >= 6 && len_value <= 10){
-	                        		field.set(obj, new SimpleDateFormat("dd/MM/yyyy").parse((String) new_value));
+	                        		field.set(obj, dateFormatDDMMYYYY.parse((String) new_value));
 	    						}else if (len_value == 16){
-	                        		field.set(obj, new SimpleDateFormat("dd/MM/yyyy HH:mm").parse((String) new_value));
+	                        		field.set(obj, dateFormatDDMMYYYY_HHmm.parse((String) new_value));
 	    						}else if (len_value == 19){
-	    							field.set(obj, new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse((String) new_value));
+	    							field.set(obj, dateFormatDDMMYYYY_HHmmss.parse((String) new_value));
 	    						}else{
 	    							throw new EmsValidationException(m_erro);
 	    						}
@@ -864,11 +869,11 @@ public final class EmsUtil {
 									field.set(obj, null);
 								}
 								else if (len_value >= 6 && len_value <= 10){
-	                        		field.set(obj, new java.sql.Date(new SimpleDateFormat("dd/MM/yyyy").parse((String) new_value).getTime()));
+	                        		field.set(obj, new java.sql.Date(dateFormatDDMMYYYY.parse((String) new_value).getTime()));
 	    						}else if (len_value == 16){
-	                        		field.set(obj, new java.sql.Date(new SimpleDateFormat("dd/MM/yyyy HH:mm").parse((String) new_value).getTime()));
+	                        		field.set(obj, new java.sql.Date(dateFormatDDMMYYYY_HHmm.parse((String) new_value).getTime()));
 	    						}else if (len_value == 19){
-	    							field.set(obj, new java.sql.Date(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse((String) new_value).getTime()));
+	    							field.set(obj, new java.sql.Date(dateFormatDDMMYYYY_HHmmss.parse((String) new_value).getTime()));
 	    						}else{
 	    							throw new EmsValidationException(m_erro);
 	    						}
@@ -888,11 +893,11 @@ public final class EmsUtil {
 									new_time = null;
 								}
 								else if (len_value >= 6 && len_value <= 10){
-	    							new_time = new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy").parse((String) new_value).getTime());
+	    							new_time = new java.sql.Timestamp(dateFormatDDMMYYYY.parse((String) new_value).getTime());
 	    						}else if (len_value == 16){
-	    							new_time = new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm").parse((String) new_value).getTime());
+	    							new_time = new java.sql.Timestamp(dateFormatDDMMYYYY_HHmm.parse((String) new_value).getTime());
 	    						}else if (len_value == 19){
-	    							new_time = new java.sql.Timestamp(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse((String) new_value).getTime());
+	    							new_time = new java.sql.Timestamp(dateFormatDDMMYYYY_HHmmss.parse((String) new_value).getTime());
 	    						}else{
 	    							throw new EmsValidationException(m_erro);
 	    						}
@@ -959,7 +964,7 @@ public final class EmsUtil {
 	 * Retorna o primeiro campo que encontrar a anotação passada como argumento.
 	 * @param clazz Classe pojo. Ex.: OrgaoInterno.class
 	 * @param ann	anotação que será pesquisada. Ex.: Id.class
-	 * @return campo
+	 * @return Field ou null se não encontrado
 	 * @author Everton de Vargas Agilar
 	 */
 	public static Field findFieldByAnnotation(final Class<?> clazz, final Class<? extends Annotation> ann) {
@@ -981,7 +986,7 @@ public final class EmsUtil {
 	 * Retorna o id de um objeto. O id é um campo que tenha a anotação @Id
 	 * @param clazz Classe pojo. Ex.: OrgaoInterno.class
 	 * @param ann	anotação que será pesquisada. Ex.: Id.class
-	 * @return campo
+	 * @return Id ou null se não encontrado
 	 * @author Everton de Vargas Agilar
 	 */
 	public static Integer getIdFromObject(final Object obj) {
@@ -1062,7 +1067,8 @@ public final class EmsUtil {
 	}	
 
 	/**
-	 * Converte um objeto Java para um objeto de response Erlang
+	 * Converte um objeto Java para um oobjeto de response.
+	 * Isso é utilizado para enviar a resposta para o barramento no formato nativo Erlang.
 	 * @param ret objeto
 	 * @param rid Request Id da requisição
 	 * @return OtpErlangTuple
@@ -1072,7 +1078,6 @@ public final class EmsUtil {
 	    OtpErlangObject[] otp_result = new OtpErlangObject[3];
 		OtpErlangObject[] reply = new OtpErlangObject[2];
 	    boolean isEmsResponse = ret instanceof EmsResponse;
-		reply[0] = ok_atom;
 	    if (ret != null){
 	    	try{
 	        	String m_json = null;
@@ -1115,8 +1120,10 @@ public final class EmsUtil {
 	    }
 	    if (isEmsResponse){
 	    	int code = ((EmsResponse) ret).code;
+	    	reply[0] = code >= 400 ? error_atom : ok_atom;
 	    	otp_result[0] = new OtpErlangInt(code);	
 	    }else{
+			reply[0] = ok_atom;
 	    	if (request.getMetodo().equals("POST")){
 	    		otp_result[0] = new OtpErlangInt(201);
 	    	}else{
@@ -1130,9 +1137,9 @@ public final class EmsUtil {
 	}
 
 	/**
-	 * Converte um objeto Java para um objeto de requisição Erlang
+	 * Converte um objeto Java para um objeto de requisição.
 	 * @param ret objeto
-	 * @param from pid do agente
+	 * @param from pid de quem enviou mensagem
 	 * @return OtpErlangTuple
 	 * @author Everton de Vargas Agilar
 	 */
@@ -1293,35 +1300,39 @@ public final class EmsUtil {
 	}
 	
 	/**
-	 * Gera relatório no formato pdf com base na lista de objetos passados 
-	 * (o serviço que chama esse método deve declarar no seu catalogo: "content_type" : "application/pdf")
-	 * @param parametrosJasper parâmetros hashmap passados para o relatório 
-	 * @param lista é a lista de objetos passados para preencher o conteúdo do relatório
+	 * Gera um relatório no formato pdf com base na lista de objetos passados. 
+	 * É importante o contrato do serviço declarar "content_type" : "application/pdf" para que o browser exiba o pdf corretamente.
+	 * @param params parâmetros hashmap passados para o relatório 
+	 * @param listaObj é a lista de objetos passados para preencher o conteúdo do relatório
 	 * @param templateJasper arquivo .jasper que contém o template criado no Ireport para organização dos dados passados (o .jasper deve ser armazenado na pasta /resources/relatorios/ do projeto que invoca esse método)
 	 * @param owner referência para objeto de quem invoca esse metodo
 	 * @return byte[] retorna um fluxo de bytes que deve ser tratado pelo frontend para geração do pdf
 	 * @author Fabiano Rodrigues de Paiva
+	 * @author Everton de Vargas Agilar (revisão)
 	 */
-	public static byte[] printPdf(final HashMap<String, Object> parametrosJasper, final List<? extends Object> lista, final String templateJasper, final Object owner){
-		final String m_erro = "ERRO ao gerar relatorio PDF.";
-		if( (parametrosJasper!=null || (lista!=null && lista.size()>0)) && (templateJasper!=null && !templateJasper.equals("")) && owner!=null ){
+	public static byte[] printPdf(final HashMap<String, Object> params, 
+								  final List<? extends Object> listaObj, 
+								  final String templateJasper, 
+								  final Object owner){
+		if ((listaObj!=null && listaObj.size()>0) && (templateJasper!=null && !templateJasper.isEmpty()) && owner!=null) {
 			try {		
-				final InputStream streamTemplateJasper = owner.getClass().getResourceAsStream("/relatorios/"+ templateJasper);	//com ajuda do owner recupero o caminho onde está o relatório no projeto de quem invocou esse método	
-				final JasperReport jr = (JasperReport)JRLoader.loadObject(streamTemplateJasper);						
-				final JRDataSource datasourceList = new JRBeanCollectionDataSource(lista);			
-				final JasperPrint jasperPrint_ = JasperFillManager.fillReport(jr, parametrosJasper, datasourceList);			
-
-				return JasperExportManager.exportReportToPdf(jasperPrint_);  
-
-			} catch (JRException e) {
+				InputStream streamTemplateJasper = owner.getClass().getResourceAsStream(templateJasper);	//com ajuda do owner recupero o caminho onde está o relatório no projeto de quem invocou esse método	
+				if (streamTemplateJasper != null){
+					JasperReport jr = (JasperReport)JRLoader.loadObject(streamTemplateJasper);						
+					JRDataSource datasourceList = new JRBeanCollectionDataSource(listaObj);			
+					JasperPrint jasperPrint = JasperFillManager.fillReport(jr, params, datasourceList);
+					return JasperExportManager.exportReportToPdf(jasperPrint);
+				}else{
+					throw new EmsValidationException("Não foi possível encontrar o templateJasper "+ templateJasper);	
+				}
+			}catch (net.sf.jasperreports.engine.util.JRFontNotFoundException e){
+				throw new EmsValidationException("Não foi possível gerar o pdf pois as fontes utilizadas não foram encontradas no servidor. Erro interno: "+ e.getLocalizedMessage());
+			}catch (Exception e) {
 				e.printStackTrace();
-				throw new EmsValidationException(m_erro) ;
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw new EmsValidationException(m_erro) ;
+				throw new EmsValidationException("Não foi possível gerar o pdf pois um erro interno ocorreu: "+ e.getLocalizedMessage());
 			}
 		}else{
-			throw new EmsValidationException("Argumentos ParametrosJasper ou lista deve ser preenchido, juntamente com o template e owner para o método EmsUtil.printPdf");
+			throw new EmsValidationException("Informe listaObj, templateJasper e owner para EmsUtil.printPdf");
 		}
 	}
 
@@ -1355,7 +1366,9 @@ public final class EmsUtil {
 
 	
 	/**
-	 * Realiza uma pesquisa LDAP v3 para localizar um objeto pelo seu login
+	 * Realiza uma pesquisa LDAP v3 para localizar um objeto pelo seu login.
+	 * O processo ems_ldap_server precisa estar habilitado no barramento, e ele for o servidor LDAP.
+	 * Algumas informações são lidas das propriedades. Verifique EmsUtil.properties.
 	 * @param login do usuário. Ex: geral
 	 * @return user object ou exception EmsValidationException
 	 * @author Everton de Vargas Agilar
@@ -1379,7 +1392,7 @@ public final class EmsUtil {
 		} catch (javax.naming.AuthenticationException e) {
 			throw new EmsValidationException("Invalid ldap admin credentials.");
 		} catch (NamingException e){
-			throw new EmsValidationException("Não foi possível autentiar usuário no servidor LDAP "+ properties.ldapUrl);
+			throw new EmsValidationException("Não foi possível pesquisar usuário no servidor LDAP "+ properties.ldapUrl);
 		}
 	}
 	
@@ -1426,42 +1439,42 @@ public final class EmsUtil {
 	 * @author Everton de Vargas Agilar
 	 */
 	private static EmsProperties getProperties() {
-		properties = new EmsProperties();
+		EmsProperties prop = new EmsProperties();
 		String tmp_thread_pool = System.getProperty("ems_thread_pool");
 		if (tmp_thread_pool != null){
 			try{
-				properties.maxThreadPool = Integer.parseInt(tmp_thread_pool);
+				prop.maxThreadPool = Integer.parseInt(tmp_thread_pool);
 			}catch (NumberFormatException e){
-				properties.maxThreadPool = 100;
+				prop.maxThreadPool = 100;
 			}
 		}else{
-			properties.maxThreadPool = 100;
+			prop.maxThreadPool = 100;
 		}
 		
 		String tmp_cookie = System.getProperty("ems_cookie");
 		if (tmp_cookie != null){
-		   properties.cookie = tmp_cookie;
+		   prop.cookie = tmp_cookie;
 	   }else{
-		   properties.cookie = "erlangms";
+		   prop.cookie = "erlangms";
 	   }
 
 	   String tmp_host = System.getProperty("ems_host");
 	   if (tmp_host != null){
-		   properties.hostName = tmp_host;
+		   prop.hostName = tmp_host;
 	   }else{
 		   try {
-			   properties.hostName = InetAddress.getLocalHost().getHostName();
+			   prop.hostName = InetAddress.getLocalHost().getHostName();
 			} catch (UnknownHostException e) {
-				properties.hostName = "localhost";
+				prop.hostName = "localhost";
 				System.out.println("Não foi possível obter o hostname da máquina onde está o node. Usando localhost.");
 			}
 	   }
 
 	   String tmp_nodeName = System.getProperty("ems_node");
 	   if (tmp_nodeName != null){
-		   properties.nodeName = tmp_nodeName;
+		   prop.nodeName = tmp_nodeName;
 	   }else{
-		   properties.nodeName = "node01";
+		   prop.nodeName = "node01";
 	   }
 	   
 	   String tmp_ESB_URL = System.getProperty("ems_bus");
@@ -1469,62 +1482,62 @@ public final class EmsUtil {
 		   if (tmp_ESB_URL.indexOf(":") == -1){
 			   tmp_ESB_URL = tmp_ESB_URL + ":2301";
 		   }
-		   properties.ESB_URL = tmp_ESB_URL;
+		   prop.ESB_URL = tmp_ESB_URL;
 	   }else{
-		   properties.ESB_URL = "http://localhost:2301";
+		   prop.ESB_URL = "http://localhost:2301";
 	   }
 	   
 	   String tmp_user = System.getProperty("ems_user");
 	   if (tmp_user != null){
-		   properties.nodeUser = tmp_user;
+		   prop.nodeUser = tmp_user;
 	   }else{
-		   properties.nodeUser = "geral";
+		   prop.nodeUser = "geral";
 	   }
 	   
 	   String tmp_password = System.getProperty("ems_password");
 	   if (tmp_password != null){
-		   properties.nodePasswd = tmp_password;
+		   prop.nodePasswd = tmp_password;
 	   }else{
-		   properties.nodePasswd = "123456";
+		   prop.nodePasswd = "123456";
 	   }
 	   
-       String usernameAndPassword = properties.nodeUser + ":" + properties.nodePasswd;
-       properties.authorizationHeaderName = "Authorization";
-       properties.authorizationHeaderValue = "Basic " + java.util.Base64.getEncoder()
+       String usernameAndPassword = prop.nodeUser + ":" + prop.nodePasswd;
+       prop.authorizationHeaderName = "Authorization";
+       prop.authorizationHeaderValue = "Basic " + java.util.Base64.getEncoder()
     		   .encodeToString(usernameAndPassword.getBytes());
 
        // SMTP properties
        
 	   String tmp_smtp = System.getProperty("ems_smtp");
 	   if (tmp_smtp != null){
-		   properties.smtp = tmp_user;
+		   prop.smtp = tmp_user;
 	   }else{
-		   properties.smtp = "smtp.unb.br";
+		   prop.smtp = "smtp.unb.br";
 	   }
 
 	   String tmp_smtp_port = System.getProperty("ems_smtp_port");
 	   if (tmp_smtp_port != null){
 		   try{
-			   properties.smtpPort = Integer.parseInt(tmp_smtp_port);
+			   prop.smtpPort = Integer.parseInt(tmp_smtp_port);
 		   } catch(NumberFormatException e){
-			   properties.smtpPort = 25;
+			   prop.smtpPort = 25;
 		   }
 	   }else{
-		   properties.smtpPort = 25;
+		   prop.smtpPort = 25;
 	   }
        
 	   String tmp_smtp_from = System.getProperty("ems_smtp_from");
 	   if (tmp_smtp_from != null){
-		   properties.smtpFrom = tmp_smtp_from;
+		   prop.smtpFrom = tmp_smtp_from;
 	   }else{
-		   properties.smtpFrom = "erlangms@unb.br";
+		   prop.smtpFrom = "erlangms@unb.br";
 	   }
 
 	   String tmp_smtp_passwd = System.getProperty("ems_smtp_passwd");
 	   if (tmp_smtp_passwd != null){
-		   properties.smtpPasswd = tmp_smtp_passwd;
+		   prop.smtpPasswd = tmp_smtp_passwd;
 	   }else{
-		   properties.smtpPasswd = "123456";
+		   prop.smtpPasswd = "123456";
 	   }
 
 	   // LDAP properties
@@ -1537,36 +1550,33 @@ public final class EmsUtil {
 		   if (!tmp_ldap_url.startsWith("ldap://")){
 			   tmp_ldap_url = "ldap://" + tmp_ldap_url;
 		   }
-		   properties.ldapUrl = tmp_ldap_url;
+		   prop.ldapUrl = tmp_ldap_url;
 	   }else{
-		   properties.ldapUrl = "ldap://localhost:2389";
+		   prop.ldapUrl = "ldap://localhost:2389";
 	   }
 
 	   String tmp_ldap_admin = System.getProperty("ems_ldap_admin");
 	   if (tmp_ldap_admin != null){
-		   properties.ldapAdmin = tmp_ldap_admin;
+		   prop.ldapAdmin = tmp_ldap_admin;
 	   }else{
-		   properties.ldapAdmin = "cn=admin,dc=unb,dc=br";
+		   prop.ldapAdmin = "cn=admin,dc=unb,dc=br";
 	   }
 
 	   String tmp_ldap_admin_passwd = System.getProperty("ems_ldap_admin_passwd");
 	   if (tmp_ldap_admin_passwd != null){
-		   properties.ldapAdminPasswd = tmp_ldap_admin_passwd;
+		   prop.ldapAdminPasswd = tmp_ldap_admin_passwd;
 	   }else{
-		   properties.ldapAdminPasswd = "123456";
+		   prop.ldapAdminPasswd = "123456";
 	   }
 
-	   return properties;
+	   return prop;
 	}
 
+    private static class MyAuthenticator  extends Authenticator{
+        private String userName = null;
+        private String password = null;
 
-    public static class MyAuthenticator  extends Authenticator{
-        String userName=null;
-        String password=null;
-
-        public MyAuthenticator(){
-        }
-        public MyAuthenticator(String username, String password) {
+        public MyAuthenticator(final String username, final String password) {
             this.userName = username;
             this.password = password;
         }
@@ -1575,23 +1585,16 @@ public final class EmsUtil {
         }
     }	
     
-    public static class MailSenderInfo {
+    private static class MailSenderInfo {
         private String mailServerHost;
         private String mailServerPort = "25";
-        // 邮件发送者的地址
         private String fromAddress;
-        // 邮件接收者的地址
         private String toAddress;
-        // 登陆邮件发送服务器的用户名和密码
         private String userName;
         private String password;
-        // 是否需要身份验证
         private boolean validate = false;
-        // 邮件主题
         private String subject;
-        // 邮件的文本内容
         private String content;
-        // 邮件附件的文件名
         private String[] attachFileNames={};
 
         private boolean withAttachment=true;
@@ -1603,7 +1606,6 @@ public final class EmsUtil {
             this.withAttachment = withAttachment;
         }
 
-
         public Properties getProperties(){
             Properties p = new Properties();
             p.put("mail.smtp.host", this.mailServerHost);
@@ -1612,18 +1614,8 @@ public final class EmsUtil {
             return p;
         }
 
-
-
-        public String getMailServerHost() {
-            return mailServerHost;
-        }
-
         public void setMailServerHost(String mailServerHost) {
             this.mailServerHost = mailServerHost;
-        }
-
-        public String getMailServerPort() {
-            return mailServerPort;
         }
 
         public void setMailServerPort(String mailServerPort) {
@@ -1697,7 +1689,8 @@ public final class EmsUtil {
 
 
 	/**
-	 * Permite enviar um e-mail em formato texto com uma lista de anexos
+	 * Permite enviar um e-mail em formato texto com uma lista de anexos.
+	 * Algumas informações são lidas das properties. Verifique EmsUtil.properties.
 	 * @author Everton de Vargas Agilar
 	 */
     public static void sendTextMail(final String to, 
@@ -1759,7 +1752,8 @@ public final class EmsUtil {
     }
 
 	/**
-	 * Permite enviar um e-mail em formato HTML com uma lista de anexos
+	 * Permite enviar um e-mail em formato HTML com uma lista de anexos.
+	 * Algumas informações são lidas das properties. Verifique EmsUtil.properties.
 	 * @author Everton de Vargas Agilar
 	 */
     public static void sendHtmlMail(final String to, 

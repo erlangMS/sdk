@@ -31,16 +31,15 @@ import org.jinq.jpa.JPAJinqStream;
 import org.jinq.jpa.JinqJPAStreamProvider;
 
 public abstract class EmsRepository<Model> {
-
 	public abstract Class<Model> getClassOfModel();
 	public abstract EntityManager getEntityManager();
+	private static final Logger logger = EmsUtil.logger;
 	private Class<Model> classOfModel = null;
 	private EntityManager entityManager = null;
 	private EntityManagerFactory entityManagerFactory = null;
 	private Field idField = null;
 	private String idFieldName = null;
 	private Column idFieldColumn = null;
-	private Logger logger = Logger.getLogger("erlangms");
 	private List<String> cachedNamedQuery = new ArrayList<String>();
 	private List<String> cachedNativeNamedQuery = new ArrayList<String>();
 	private boolean hasContraints = false;
@@ -64,20 +63,23 @@ public abstract class EmsRepository<Model> {
 			entityManager = getEntityManager();
 			if (entityManager != null){
 				entityManagerFactory = entityManager.getEntityManagerFactory();
+				// idField é obrigatório para que os recursos desta classe funcionem corretamente
 				idField = EmsUtil.findFieldByAnnotation(classOfModel, Id.class);
 				if (idField != null){
-					idFieldName = idField.getName();
-					idFieldColumn = idField.getAnnotation(Column.class);
-					if (idFieldColumn != null){
-						tableAnnotation = classOfModel.getAnnotation(Table.class);
+					idFieldName = idField.getName(); 
+					tableAnnotation = classOfModel.getAnnotation(Table.class); // não é obrigatório o seu seu uso em VO
+					idFieldColumn = idField.getAnnotation(Column.class); // não é obrigatório o seu seu uso em VO
+					if (tableAnnotation != null){
 						tableContrains = tableAnnotation.uniqueConstraints();
-						fieldsConstraints = EmsUtil.getFieldsWithUniqueConstraint(classOfModel);
-						fields = classOfModel.getDeclaredFields();
-						for (Field f : fields){ f.setAccessible(true); }
-					}else{
-						throw new EmsValidationException("O modelo "+ classOfModel.getSimpleName() + " precisa ter a anotação @Column no campo id.");
 					}
-					doCreateCachedNamedQueries();
+					fieldsConstraints = EmsUtil.getFieldsWithUniqueConstraint(classOfModel);
+					fields = classOfModel.getDeclaredFields();
+					for (Field f : fields){ f.setAccessible(true); } // importante para conseguir acessar o valor do campo 
+					// As queries são criadas somente para models. 
+					// VOs não precisam ter a anotação @Table
+					if (tableAnnotation != null){
+						doCreateCachedNamedQueries();
+					}
 				}else{
 					throw new EmsValidationException("O modelo "+ classOfModel.getSimpleName() + " não possui nenhum campo com a anotação @Id.");
 				}
@@ -90,26 +92,24 @@ public abstract class EmsRepository<Model> {
 	}
 
 	/**
-	 * Retorna um stream para realizar pesquisas 
+	 * Retorna um stream para realizar pesquisas com lambda.
 	 * @return  stream para pesquisa
 	 * @author Everton de Vargas Agilar
 	 */
 	public JPAJinqStream<Model> getStreams(){
-		EntityManager em = getEntityManager();
-		JinqJPAStreamProvider streams = new JinqJPAStreamProvider(em.getMetamodel());
-		return (JPAJinqStream<Model>) streams.streamAll(em, getClassOfModel());
+		JinqJPAStreamProvider streams = new JinqJPAStreamProvider(entityManager.getMetamodel());
+		return (JPAJinqStream<Model>) streams.streamAll(entityManager, classOfModel);
 	}
 
 	/**
-	 * Retorna um stream para realizar pesquisas
+	 * Retorna um stream para realizar pesquisas com lambda.
 	 * @param classOfModel classe do modelo 
 	 * @return  stream para pesquisa
 	 * @author Everton de Vargas Agilar
 	 */
 	public <T> JPAJinqStream<T> getStreams(final Class<T> classOfModel){
-		EntityManager em = getEntityManager();
-		JinqJPAStreamProvider streams = new JinqJPAStreamProvider(em.getMetamodel());
-		return streams.streamAll(em, classOfModel);
+		JinqJPAStreamProvider streams = new JinqJPAStreamProvider(entityManager.getMetamodel());
+		return streams.streamAll(entityManager, classOfModel);
 	}
 	
 	/**
@@ -179,7 +179,7 @@ public abstract class EmsRepository<Model> {
 	}
 	
 	/**
-	 * Recuperar um objeto pelo seu id
+	 * Retorna um objeto pelo seu id.
 	 * @param id identificador do objeto
 	 * @return objeto ou EmsNotFoundException se não existe um objeto com o id
 	 * @author Everton de Vargas Agilar
@@ -196,34 +196,87 @@ public abstract class EmsRepository<Model> {
 		}
 	}
 	
+	/**
+	 * Retorna uma lista de objetos pesquisando por determinado campo.
+	 * @param field field do model que será pesquisado.
+	 * @param value valor a ser pesquisado
+	 * @return lista of model
+	 * @author Everton de Vargas Agilar
+	 */
 	@SuppressWarnings("unchecked")
-	public Model findFirstOwner(final Integer idOwner, final String foreignKeyFieldName){
-		if (idOwner != null && idOwner >= 0){
-			String sqlFindByOwner =  new StringBuilder("select this from ")
+	public List<Model> findByField(final Field field, final Object value){
+		if (field != null){
+			String fieldName = field.getName();
+			String sqlFindByField =  new StringBuilder("select this from ")
 												.append(classOfModel.getSimpleName())
 												.append(" where this.")
-												.append(foreignKeyFieldName).append("=:pIdOwner").toString();
-			return (Model) createNamedQuery(sqlFindByOwner, sqlFindByOwner)
-				.setParameter("pIdOwner", idOwner)
-				.setMaxResults(1)
-				.getSingleResult();
+												.append(field.getName()).append("=:pField").toString();
+			return createNamedQuery(classOfModel.getSimpleName() + ".findBy" + fieldName, sqlFindByField)
+				.setParameter("pField", value)
+				.getResultList();
 		}else{
-			throw new EmsValidationException("Parâmetro owner não pode ser null para EmsRepository.findByOwner.");
+			throw new EmsValidationException("Parâmetro field não pode ser null para EmsRepository.findByField.");
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public List<Model> findByOwner(final Integer idOwner, final String foreignKeyFieldName){
-		if (idOwner != null && idOwner >= 0){
-			String sqlFindByOwner =  new StringBuilder("select this from ")
-												.append(classOfModel.getSimpleName())
-												.append(" where ")
-												.append(foreignKeyFieldName).append("=:pIdOwner").toString();
-			return createNamedQuery(sqlFindByOwner, sqlFindByOwner)
-				.setParameter("pIdOwner", idOwner)
-				.getResultList();
+	/**
+	 * Retorna uma lista de objetos pesquisando por determinado nome de campo.
+	 * @param fieldName nome do campo do model.
+	 * @param value valor a ser pesquisado
+	 * @return lista of model
+	 * @author Everton de Vargas Agilar
+	 */
+	public List<Model> findByField(final String fieldName, final Object value){
+		if (fieldName != null){
+			Field field = getField(fieldName);
+			return findByField(field, value);
 		}else{
-			throw new EmsValidationException("Parâmetro owner não pode ser null para EmsRepository.findByOwner.");
+			throw new EmsValidationException("Parâmetro fieldName não pode ser null para EmsRepository.findByField.");
+		}
+	}
+
+	/**
+	 * Retorna o primeiro objeto pesquisando por determinado campo.
+	 * @param field field do model que será pesquisado.
+	 * @param value valor a ser pesquisado.
+	 * @return objeto ou EmsNotFoundException se não encontrar nenhum objeto.
+	 * @author Everton de Vargas Agilar
+	 */
+	@SuppressWarnings("unchecked")
+	public Model findFirstByField(final Field field, final Object value){
+		if (field != null){
+			String fieldName = field.getName();
+			String nameOfClass = classOfModel.getSimpleName();
+			String sqlFindByField =  new StringBuilder("select this from ").append(nameOfClass)
+											  .append(" where this.")
+											  .append(fieldName).append("=:pField").toString();
+			try{
+				return (Model) createNamedQuery(nameOfClass + ".findBy" + fieldName, sqlFindByField)
+					.setParameter("pField", value)
+					.setMaxResults(1)
+					.getSingleResult();
+			} catch (NoResultException e) {
+				throw new EmsNotFoundException(nameOfClass + " não encontrado pelo campo "+ fieldName);
+			}
+		}else{
+			throw new EmsValidationException("Parâmetro field não pode ser null para EmsRepository.findFirstByField.");
+		}
+	}
+	
+	/**
+	 * Retorna o primeiro objeto pesquisando por determinado nome de campo.
+	 * @param fieldName nome do campo do model.
+	 * @param value valor a ser pesquisado.
+	 * @return objeto ou EmsNotFoundException se não encontrar nenhum objeto ou se o campo não existe.
+	 * @author Everton de Vargas Agilar
+	 */
+	public Model findFirstByField(final String fieldName, final Object value){
+		if (fieldName != null){
+			Field field;
+			field = getField(fieldName);
+			return findFirstByField(field, value);
+		}else{
+			throw new EmsValidationException("Parâmetro fieldName não pode ser null para EmsRepository.findByField.");
 		}
 	}
 
@@ -263,10 +316,11 @@ public abstract class EmsRepository<Model> {
 	}
 	
 	/**
-	 * Verifica se o objeto existe, passando o id do objeto 
+	 * Verifica se o objeto existe passando o id do objeto. 
 	 * @param id Id do objeto
 	 * @return true se o objeto foi encontrado 
 	 * @author André Luciano Claret
+	 * 		   Everton de Vargas Agilar	
 	 */
 	public boolean exists(final Integer id){
 		if (id != null && id >= 0){
@@ -281,12 +335,12 @@ public abstract class EmsRepository<Model> {
 				return true;
 			}
 		}else {
-			throw new EmsValidationException("É necessário informar o id do objeto para EmsRepository.exists.");
+			throw new EmsValidationException("Parâmetro id do objeto não pode ser null para EmsRepository.exists.");
 		}
 	}
 
 	/**
-	 * Recuperar um objeto pelo seu id
+	 * Retorna um objeto pelo seu id.
 	 * @param classOfModel classe do objeto
 	 * @param id identificador do objeto
 	 * @return objeto ou EmsNotFoundException se não existe o objeto com o id
@@ -305,7 +359,7 @@ public abstract class EmsRepository<Model> {
 	}
 	
 	/**
-	 * Persiste as modificações de um objeto
+	 * Persiste as modificações de um objeto.
 	 * @param obj objeto que será persistido
 	 * @return objeto persistido
 	 * @author Everton de Vargas Agilar
@@ -327,15 +381,14 @@ public abstract class EmsRepository<Model> {
 	}
 	
 	/**
-	 * Insere um novo objeto
+	 * Insere um novo objeto.
 	 * @param obj objeto que será inserido
 	 * @return objeto inserido
 	 * @author Everton de Vargas Agilar
 	 */
 	public Model insert(final Model obj){
 		if (obj != null){
-			Integer idValue = EmsUtil.getIdFromObject(obj);
-			if (idValue != null && idValue >= 0){
+			if (getIdFromObject(obj) != null){
 				throw new EmsValidationException("Não é possível incluir objeto que já possui identificador.");
 			}else{
 				if (hasContraints) checkConstraints(obj, true);
@@ -349,10 +402,9 @@ public abstract class EmsRepository<Model> {
 	}
 
 	/**
-	 * Verifica as constrains do objeto e levanta uma exception case houve violação
-	 * @param obj objeto que será inserido
-	 * @param isInsert se true é insert senão é update
-	 * @return objeto inserido
+	 * Verifica as constrains do objeto e levanta uma exception case houver violação de alguma regra.
+	 * @param obj objeto que será verificado as constraints.
+	 * @param isInsert se true é insert senão é update.
 	 * @author Everton de Vargas Agilar
 	 */
 	private void checkConstraints(final Model obj, boolean isInsert) {
@@ -391,9 +443,8 @@ public abstract class EmsRepository<Model> {
 	}
 	
 	/**
-	 * Insere ou atualiza um objeto
-	 * @param obj objeto que será inserido ou atualizado
-	 * @param update_values Map com os dados modificados
+	 * Insere ou atualiza um objeto.
+	 * @param obj objeto que será inserido ou atualizado.
 	 * @return objeto inserido ou atualizado
 	 * @author Everton de Vargas Agilar
 	 */
@@ -401,8 +452,10 @@ public abstract class EmsRepository<Model> {
 		if (obj != null){
 			Integer idValue = EmsUtil.getIdFromObject(obj);
 			if (idValue != null && idValue >= 0){
+				if (hasContraints) checkConstraints(obj, false);
 				entityManager.merge(obj);
 			}else{
+				if (hasContraints) checkConstraints(obj, true);
 				entityManager.persist(obj);
 			}
 			entityManager.flush();
@@ -464,23 +517,15 @@ public abstract class EmsRepository<Model> {
 	protected void createCachedNamedQueries() {
 	}	
 
-	public Query parseQuery(final String filter, 
-							 final String fields, 
-							 int limit, 
-							 int offset, 
-							 final String sort, 
-							 final List<String> listFunction){
-		return parseQuery(filter, fields, limit, offset, sort, listFunction, this.classOfModel);
-	}
 	
 	/**
-	 * Cria uma query a partir de um filtro e a partir de uma função sql
+	 * Cria uma query a partir de um filtro e a partir de uma função sql.
 	 * @param filter objeto json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
 	 * @param fields lista de campos que devem retornar ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param limit Quantidade objetos trazer na pesquisa
 	 * @param offset A partir de que posição. Iniciando em 1
 	 * @param sort Trazer ordenado por quais campos o conjunto de dados
-	 * @param listFunction Lista com a funçao sql e o nome do atributo, nesta ordem. Ex:/ {"count", "idObjeto"}
+	 * @param listFunction Lista com a funçao sql e o nome do atributo, nesta ordem. Ex: {"count", "idObjeto"}
 	 * @return query com o filtro e a função sql
 	 * @author Everton de Vargas Agilar
 	 */
@@ -490,15 +535,14 @@ public abstract class EmsRepository<Model> {
 							 int limit, 
 							 int offset, 
 							 final String sort, 
-							 final List<String> listFunction,
-							 final Class<Model> classOfModel){
+							 final List<String> listFunction){
 		Query query = null;
 		StringBuilder field_smnt = null;
 		StringBuilder where = null;
 		StringBuilder sort_smnt = null;
 		String sqlFunction = null;
-		Map<String, Object> filtro_obj = null;		
-		Field idField = null;
+		Map<String, Object> filtro_obj = null;
+		String simpleNameOfModel = classOfModel.getSimpleName();
 
 		if (!(limit > 0 && limit <= 999999999)){
 			throw new EmsValidationException("Parâmetro limit da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor ou igual que 999999999");
@@ -535,22 +579,10 @@ public abstract class EmsRepository<Model> {
 						throw new EmsValidationException("Campo de pesquisa "+ field + " inválido.");
 					}
 					if (fieldName.equals("pk")){
-						if (classOfModel != this.classOfModel){
-							idField = EmsUtil.findFieldByAnnotation(classOfModel, Id.class);
-							if (idField == null) {
-								throw new EmsValidationException("Classe " + classOfModel.getSimpleName() + " não tem id.");
-							}
-						}else{
-							idField = this.idField;
-						}
 						fieldName = idField.getName();
 					}else{
-						try{
-							// Verifica se o campo existe. Uma excessão ocorre se não existir
-							classOfModel.getDeclaredField(fieldName);
-						}catch (Exception ex){
-							throw new EmsValidationException("Campo de pesquisa " + fieldName + " não existe.");
-						}
+						// Verifica se o campo existe. Uma exception EmsValidationException ocorre se não existir o campo
+						getField(fieldName);
 					}
 					if (field_len == 2){
 						if (fieldOperator.equals("isnull")){
@@ -578,7 +610,7 @@ public abstract class EmsRepository<Model> {
 			}
 		}
 
-		// Formata a lista de campos 
+		// Inclui a lista de campos no sql 
 		if (fields != null && !fields.isEmpty()){
 			try{
 				field_smnt = new StringBuilder();
@@ -643,11 +675,11 @@ public abstract class EmsRepository<Model> {
 			if (listFunction == null){
 				 sqlBuilder = new StringBuilder("select ")
 				.append(field_smnt == null ? "this" : field_smnt.toString())
-				.append(" from ").append(classOfModel.getSimpleName()).append(" this ");
+				.append(" from ").append(simpleNameOfModel).append(" this ");
 			} else {
 				 sqlBuilder = new StringBuilder("select ")
 				.append(sqlFunction)
-				.append(" from ").append(classOfModel.getSimpleName()).append(" this ");
+				.append(" from ").append(simpleNameOfModel).append(" this ");
 			}
 			if (where != null){
 				sqlBuilder.append(where.toString());
@@ -670,6 +702,14 @@ public abstract class EmsRepository<Model> {
 	}
 	
 	
+	/**
+	 * Permite criar uma named query JPA para posterior execução. Depois de criado pode ser obtido com getNamedQuery.
+	 * NamedQuery são mais rápidas e economizam recursos. Use isto em vez de criar uma query a cada execução de código. 
+	 * @param namedQuery nome da query.
+	 * @param sql sql JPA da query
+	 * @return query 
+	 * @author Everton de Vargas Agilar
+	 */
 	protected Query createNamedQuery(final String namedQuery, final String sql) {
 		Query query = null;
 		if (cachedNamedQuery.contains(namedQuery)){
@@ -684,6 +724,15 @@ public abstract class EmsRepository<Model> {
 		return query;
 	}
 	
+	/**
+	 * Permite criar uma named query com sql nativo para posterior execução. Depois de criado pode ser obtido com getNamedQuery.
+	 * NamedQuery são mais rápidas e economizam recursos. Use isto em vez de criar uma query a cada execução de código. 
+	 * @param namedQuery nome da query.
+	 * @param sql sql nativo da query
+	 * @param resultClass informe a classe do objeto se a query tem que mapear senão null.
+	 * @return query 
+	 * @author Everton de Vargas Agilar
+	 */
 	protected <T> Query createNativeNamedQuery(final String namedQuery, final String sql, final Class<T> resultClass) {
 		Query query = null;
 		if (cachedNativeNamedQuery.contains(namedQuery)){
@@ -702,6 +751,13 @@ public abstract class EmsRepository<Model> {
 		return query;
 	}
 
+	/**
+	 * Retorna a referẽncia para um query previamente criada para execução.
+	 * NamedQuery são mais rápidas e economizam recursos. Use isto em vez de criar uma query a cada execução de código. 
+	 * @param namedQuery nome da query.
+	 * @return query
+	 * @author Everton de Vargas Agilar
+	 */
 	protected Query getNamedQuery(final String namedQuery) {
 		return entityManager.createNamedQuery(namedQuery);
 	}
@@ -724,6 +780,8 @@ public abstract class EmsRepository<Model> {
 											.append(idFieldName).append("=:pId").toString();
 		createNamedQuery(NAMED_QUERY_DELETE, sqlDelete);
 		
+		
+	
 
 		// // ************* create query exists *****************
 		
@@ -819,6 +877,39 @@ public abstract class EmsRepository<Model> {
 		
 		// return null porque não há constraint na declaração do modelo
 		return null;
+	}
+	
+	/**
+	 * Retorna a referência para um field de um model. 
+	 * Semelhante a getClass().getField mas mais rápido pois não faz as checagens de segurança que a JVM realizada.
+	 * @param fieldName nome do campo para a busca.
+	 * @return field ou EmsValidationException.
+	 * @author Everton de Vargas Agilar
+	 */
+	protected Field getField(final String fieldName){
+		 // Certamente, para poucos elementos uma pesquisa sequencial é mais rápido que um Hashtable 
+		for (Field field : fields){
+			if (field.getName().equals(fieldName)){
+				return field;
+			}
+		}
+		throw new EmsValidationException(classOfModel.getSimpleName() + "." + fieldName + " não existe.");
+	}
+
+	/**
+	 * Retorna o id de um model. 
+	 * Semelhante a EmsUtil.getIdFromObject mas mais rápido pois a classe EmsRepository possui uma array interno dos fields.
+	 * @param obj objeto para obter o id
+	 * @return id ou null se não tem valor 
+	 * @author Everton de Vargas Agilar
+	 */
+	protected Integer getIdFromObject(final Model obj){
+		try {
+			Object id = idField.get(obj);
+			return (Integer) id;
+		} catch (Exception e) {
+			return null;
+		}
 	}
 	
 }

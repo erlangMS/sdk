@@ -28,23 +28,18 @@ import com.ericsson.otp.erlang.OtpNode;
 import br.erlangms.EmsUtil.EmsProperties;
 
 public class EmsConnection extends Thread{
-	private static EmsProperties properties;
+	private static final EmsProperties properties = EmsUtil.properties;
+	private static final OtpErlangBinary result_ok = EmsUtil.result_ok; 
+	private static final Logger logger = EmsUtil.logger;
 	private String otpNodeName;
 	private final String nomeAgente;
 	private final String nomeService;
-	private static final OtpErlangBinary result_ok; 
-	private static final Logger logger;
 	private final EmsServiceFacade facade;
 	private Class<? extends EmsServiceFacade> classOfFacade;
 	private static OtpErlangPid dispatcherPid;
 	private Method methods[];
 	private String method_names[];
 	private int method_count = 0;
-	static{
-		properties = EmsUtil.properties;
-		logger = Logger.getLogger("erlangms");
-		result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
-    }
     
 	public EmsConnection( final EmsServiceFacade facade){
 		this.facade = facade;
@@ -56,7 +51,8 @@ public class EmsConnection extends Thread{
 	}
 	
 	/**
-	 * Preenche uma tabela com os métodos do facade para acesso rápido pelo método chamaMetodo 
+	 * Preenche uma tabela com os métodos do facade para acesso rápido pelo método chamaMetodo.
+	 * Somente métodos com o parâmetro IEmsRequest.class. 
 	 * @author Everton de Vargas Agilar
 	 */
 	private void getMethodNamesTable() {
@@ -82,7 +78,7 @@ public class EmsConnection extends Thread{
     		OtpNode myNode = null;
     		OtpMbox myMbox = null;
     		
-    		// Fica nesse loop até consegui conexão com o barramento
+    		// Permanece neste loop até conseguir conexão com o barramento (EPMD deve estar ativo)
     		while (true){
 	    		try{
 	    			myNode = new OtpNode(otpNodeName);
@@ -92,7 +88,7 @@ public class EmsConnection extends Thread{
 	    			if (Thread.interrupted()) throw new InterruptedException();
 	    			logger.warning("Não foi possível se conectar ao barramento ERLANGMS. Verifique se o servidor de nome epmd está iniciado.");
 	    			try{
-	    				 Thread.sleep(10000);
+	    				 Thread.sleep(15000);
 	    			}catch (InterruptedException e1){
 	    				// tenta novamente a comunicação se a thread não foi interrompida
 	    				if (Thread.interrupted()) throw e1;
@@ -113,7 +109,7 @@ public class EmsConnection extends Thread{
            StringBuilder msg_task = new StringBuilder();
            ExecutorService pool = Executors.newFixedThreadPool(properties.maxThreadPool);
            
-           // Fica nesse loop aguardando mensagens do barramento
+           // Permanece neste loop aguardando mensagens do barramento
            while(true){ 
         	   try {
                    if (Thread.interrupted()) throw new InterruptedException();
@@ -132,7 +128,17 @@ public class EmsConnection extends Thread{
                     pool.submit(new Task(dispatcherPid, request, myMbox));
         	   
         	   } catch(OtpErlangExit e3) {
-        		   if (Thread.interrupted()) throw new InterruptedException();
+        		   // Somente sai do loop se a thead foi interrompida
+        		   if (Thread.interrupted()){
+        			   throw new InterruptedException();
+        		   }else{
+	   	    			try{
+		    				 Thread.sleep(15000);
+		    			}catch (InterruptedException e1){
+		    				// volta ao trabalho  se a thread não foi interrompida
+		    				if (Thread.interrupted()) throw e1;
+		    			}
+        		   }
     	       }
            }
     	} catch (InterruptedException e2) {
@@ -144,7 +150,7 @@ public class EmsConnection extends Thread{
 	
 
 	/**
-	 * Permite invocar o método referente um web-service e realizar todo o tratamento necessário.
+	 * Permite invocar o método referente um Web Service  e realizar todo o tratamento necessário.
 	 * @author Everton de Vargas Agilar
 	 */
     private Object chamaMetodo(final String modulo, final String metodo, final IEmsRequest request)  {
@@ -152,7 +158,7 @@ public class EmsConnection extends Thread{
     	Object result = null;
 		String msg_json = null;
 		try {  
-    		// localiza o método 
+    		// localiza o método na tabela de métodos
     		for (int i = 0; i < method_count; i++){
     			if (metodo.equals(method_names[i])){
     				m = methods[i];
@@ -245,7 +251,7 @@ public class EmsConnection extends Thread{
 	}  	
 	
 	/**
-	 * Classe interna para realizar o trabalho enquanto o loop principal do web-service aguarda mensagens.
+	 * Classe interna para realizar o trabalho enquanto o loop principal do serviço  aguarda mensagens.
 	 * @author Everton de Vargas Agilar
 	 */
 	private final class Task implements Callable<Boolean>{
