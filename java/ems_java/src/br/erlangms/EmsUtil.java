@@ -709,35 +709,43 @@ public final class EmsUtil {
 	
 	
 	/**
-	 * Passando um objeto, retorna um Map<String, Object> com os campos do objeto
+	 * Passando um objeto, retorna um Map<String, Object> com os campos do objeto.
+	 * Se o obj já é um map não faz nada e apenas o retorna.
 	 * @param obj Instância de um objeto
 	 * @param values	Map com chave/valor dos campos do objeto
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
-	private static Map<String, Object> ObjectFieldsToMap(final Object obj){
+	public static Map<String, Object> ObjectFieldsToMap(final Object obj){
 		if (obj != null){
 			if (obj instanceof Map){
 				return (Map<String, Object>) obj;
 			}else{
 				Map<String, Object> map = new HashMap<String, Object>();
-				Field[] fields = obj.getClass().getFields();
+				Field[] fields = obj.getClass().getDeclaredFields();
 				for (Field field : fields){
 					try {
 						map.put(field.getName(), field.get(obj));
 					} catch (IllegalArgumentException | IllegalAccessException e) {
-						e.printStackTrace();
+						field.setAccessible(true);
+						try {
+							map.put(field.getName(), field.get(obj));
+						} catch (IllegalArgumentException | IllegalAccessException e1) {
+							e1.printStackTrace();
+						}
 					}
 				}
+				return map;
 			}
+		}else{
+			throw new EmsValidationException("Parâmetro obj não pode ser null para EmsUtil.ObjectFieldsToMap.");
 		}
-		return null;
 	}
 	
 		
 	
 	/**
-	 * Seta os valores no objeto a partir de um map
+	 * Seta os valores no objeto a partir de um map.
 	 * @param obj Instância de um objeto
 	 * @param values	Map com chave/valor dos dados que serão aplicados no objeto
 	 * @author Everton de Vargas Agilar
@@ -1300,27 +1308,50 @@ public final class EmsUtil {
 	}
 	
 	/**
-	 * Gera um relatório no formato pdf com base na lista de objetos passados. 
+	 * Gera um relatório no formato pdf a partir de um template jasper. 
 	 * É importante o contrato do serviço declarar "content_type" : "application/pdf" para que o browser exiba o pdf corretamente.
-	 * @param params parâmetros hashmap passados para o relatório 
-	 * @param listaObj é a lista de objetos passados para preencher o conteúdo do relatório
-	 * @param templateJasper arquivo .jasper que contém o template criado no Ireport para organização dos dados passados (o .jasper deve ser armazenado na pasta /resources/relatorios/ do projeto que invoca esse método)
-	 * @param owner referência para objeto de quem invoca esse metodo
+	 * @param params parâmetros do relatório. Pode ser um model ou Map<String, Object> ou null. 
+	 * @param datasource é o objeto ou lista de objetos do relatório. Pode ser null.
+	 * @param templateJasper arquivo .jasper do template criado no Ireport. É obrigatório. Ex.: "/relatorios/DeclaracaoAlunoRegular.jasper"
+	 * @param owner referência para objeto quem invoca esse metodo. Utilizado para owner.getClass().getResourceAsStream() 	
 	 * @return byte[] retorna um fluxo de bytes que deve ser tratado pelo frontend para geração do pdf
 	 * @author Fabiano Rodrigues de Paiva
 	 * @author Everton de Vargas Agilar (revisão)
 	 */
-	public static byte[] printPdf(final HashMap<String, Object> params, 
-								  final List<? extends Object> listaObj, 
+	@SuppressWarnings("unchecked")
+	public static byte[] printPdf(final Object params, 
+								  final Object datasource, 
 								  final String templateJasper, 
 								  final Object owner){
-		if ((listaObj!=null && listaObj.size()>0) && (templateJasper!=null && !templateJasper.isEmpty()) && owner!=null) {
+		if ((templateJasper != null && !templateJasper.isEmpty()) && owner != null) {
 			try {		
+				Map<String, Object> paramsMap = null;
+				List<Object> objectList = null;
 				InputStream streamTemplateJasper = owner.getClass().getResourceAsStream(templateJasper);	//com ajuda do owner recupero o caminho onde está o relatório no projeto de quem invocou esse método	
 				if (streamTemplateJasper != null){
 					JasperReport jr = (JasperReport)JRLoader.loadObject(streamTemplateJasper);						
-					JRDataSource datasourceList = new JRBeanCollectionDataSource(listaObj);			
-					JasperPrint jasperPrint = JasperFillManager.fillReport(jr, params, datasourceList);
+					
+					if (params != null){
+						// É esperado um objeto ou Map. Converte para Map se for necessário
+						if (params instanceof Map){
+							paramsMap = (Map<String, Object>) params;
+						}else{
+							paramsMap = EmsUtil.ObjectFieldsToMap(params);
+						}
+					}
+
+					if (datasource != null){
+						// É esperado um objeto ou lista de objetos
+						if (datasource instanceof List){
+							objectList = (List<Object>) datasource;
+						}else{
+							objectList = new ArrayList<Object>();
+							objectList.add(datasource);
+						}
+					}
+
+					JRDataSource datasourceList = new JRBeanCollectionDataSource(objectList);			
+					JasperPrint jasperPrint = JasperFillManager.fillReport(jr, paramsMap, datasourceList);
 					return JasperExportManager.exportReportToPdf(jasperPrint);
 				}else{
 					throw new EmsValidationException("Não foi possível encontrar o templateJasper "+ templateJasper);	
@@ -1332,7 +1363,7 @@ public final class EmsUtil {
 				throw new EmsValidationException("Não foi possível gerar o pdf pois um erro interno ocorreu: "+ e.getLocalizedMessage());
 			}
 		}else{
-			throw new EmsValidationException("Informe listaObj, templateJasper e owner para EmsUtil.printPdf");
+			throw new EmsValidationException("Informe params ou listaObj, templateJasper e owner para EmsUtil.printPdf");
 		}
 	}
 
@@ -1367,8 +1398,16 @@ public final class EmsUtil {
 	
 	/**
 	 * Realiza uma pesquisa LDAP v3 para localizar um objeto pelo seu login.
-	 * O processo ems_ldap_server precisa estar habilitado no barramento, e ele for o servidor LDAP.
-	 * Algumas informações são lidas das propriedades. Verifique EmsUtil.properties.
+	 * 
+	 * O processo ems_ldap_server precisa estar habilitado no barramento, caso ele seja o servidor LDAP.
+	 * 
+	 * As seguintes informações são lidas das propriedades. Verifique EmsUtil.properties.
+	 * 	  -Dems_ldap_admin_passwd="123456"
+ 	 *	  -Dems_ldap_admin="cn=admin,dc=unb,dc=br"
+	 *    -Dems_ldap_url="ldap://localhost:2389"
+	 *    
+ 	 * Obs.: As properties devem ser incluídas no arquivo standalone.conf do JBoss/Wildfly ou na IDE Eclipse Open Launch Configuration/VM Arguments   
+	 *    
 	 * @param login do usuário. Ex: geral
 	 * @return user object ou exception EmsValidationException
 	 * @author Everton de Vargas Agilar
@@ -1397,10 +1436,29 @@ public final class EmsUtil {
 	}
 	
 	/**
-	 * Classe que armazena as propriedades para os serviços. 
-	 * Essas informações são carregadas durante durante o deployment.
+	 * Classe que armazena as propriedades para o SDK.
+	 *  
+	 * Essas informações são carregadas durante durante o deployment do arquivo standalone.conf no JBoss/Wildfly.
 	 * 
-	 * No servidor JBoss/Wildfly, estão definidas em configuration/standalone/standalone.conf
+	 * No servidor JBoss/Wildfly, estão definidas em configuration/standalone/standalone.conf. As properties 
+	 * podem ser incluídas também na IDE Eclipse Open Launch Configuration/VM Arguments   
+	 *
+	 * 
+	 * Definições de propriedade no JBoss/Widfly: 
+	 *    -Dcookie=erlangms
+	 *    -Dems_node=node01
+	 *    -Dems_emsbus=http://localhost:2301
+	 *    -Dems_cookie=erlangms
+	 *    -Dems_max_thread_pool_by_agent=100
+	 *    -Dems_user=xxxxxxx 
+	 *    -Dems_ldap_admin_passwd="xxxxxxx"
+ 	 *	  -Dems_ldap_admin="cn=admin,dc=unb,dc=br"
+	 *    -Dems_ldap_url="ldap://localhost:2389"
+	 *    -Dems_smtp_passwd="xxxxxxxx"
+	 *    -Dems_smtp_from="erlangms@unb.br"
+	 *    -Dems_smtp_port=587
+	 *    -Dems_smtp="mail.unb.br"
+
 	 *  
 	 * @author Everton de Vargas Agilar
 	 */
@@ -1428,7 +1486,8 @@ public final class EmsUtil {
     }
     
 	/**
-	 * Retorna as configurações do barramento de serviços ERLANGMS
+	 * Retorna as propriedades para o SDK do barramento de serviços ERLANGMS.
+	 * 
 	 * Exemplo: 
 	 *    -Dcookie=erlangms
 	 *    -Dems_node=node01
@@ -1436,6 +1495,13 @@ public final class EmsUtil {
 	 *    -Dems_cookie=erlangms
 	 *    -Dems_max_thread_pool_by_agent=100
 	 *    -Dems_user=xxxxxxx 
+	 *    -Dems_ldap_admin_passwd="xxxxxx"
+ 	 *	  -Dems_ldap_admin="cn=admin,dc=unb,dc=br"
+	 *    -Dems_ldap_url="ldap://localhost:2389"
+	 *    -Dems_smtp_passwd="xxxxxxxx"
+	 *    -Dems_smtp_from="erlangms@unb.br"
+	 *    -Dems_smtp_port=587
+	 *    -Dems_smtp="mail.unb.br"
 	 * @author Everton de Vargas Agilar
 	 */
 	private static EmsProperties getProperties() {
@@ -1510,7 +1576,7 @@ public final class EmsUtil {
        
 	   String tmp_smtp = System.getProperty("ems_smtp");
 	   if (tmp_smtp != null){
-		   prop.smtp = tmp_user;
+		   prop.smtp = tmp_smtp;
 	   }else{
 		   prop.smtp = "smtp.unb.br";
 	   }
@@ -1690,7 +1756,28 @@ public final class EmsUtil {
 
 	/**
 	 * Permite enviar um e-mail em formato texto com uma lista de anexos.
-	 * Algumas informações são lidas das properties. Verifique EmsUtil.properties.
+	 * 
+	 * Exemplo sem anexo: 
+	 * 		EmsUtil.sendTextMail("evertonagilar@gmail.com", "isso é um teste", "conteúdo do email", null);
+	 * 
+	 * Exemplo com anexo:
+	 * 		String[] anexos = new String[1];
+	 *		anexos[0] = "/home/everton/desenvolvimento/erlangms/ems-bus/build.sh";
+	 *		EmsUtil.sendTextMail("evertonagilar@gmail.com", "isso é um teste", "conteúdo do email", anexos);
+     *
+	 * 
+	 * As seguintes informações são lidas das properties. Verifique EmsUtil.properties:
+	 *    -Dems_smtp_passwd="xxxxxxxx"
+	 *    -Dems_smtp_from="erlangms@unb.br"
+	 *    -Dems_smtp_port=587
+	 *    -Dems_smtp="mail.unb.br"
+	 *    
+	 * Obs.: As properties devem ser incluídas no arquivo standalone.conf do JBoss/Wildfly ou na IDE Eclipse Open Launch Configuration/VM Arguments   
+	 * 
+	 * @param to  para quem vai ser enviado o e-mail.
+	 * @param subject título do e-mail. (Obrigatório)
+	 * @param content conteúdo do e-mail. (Obrigatório)
+	 * @param attachment lista de arquivos para anexar do e-mail. (Opcional)
 	 * @author Everton de Vargas Agilar
 	 */
     public static void sendTextMail(final String to, 
@@ -1752,11 +1839,25 @@ public final class EmsUtil {
     }
 
 	/**
-	 * Permite enviar um e-mail em formato HTML com uma lista de anexos.
-	 * Algumas informações são lidas das properties. Verifique EmsUtil.properties.
+	 * Permite enviar um e-mail em formato HTML com uma lista de anexos. (private porque ainda não funciona)
+	 * Ex.: EmsUtil.sendHtmlMail("evertonagilar@gmail.com", "isso é um teste", "<h1>contedo do email<h1>", null);
+	 * 
+	 * As seguintes informações são lidas das properties. Verifique EmsUtil.properties:
+	 *    -Dems_smtp_passwd="xxxxxxxx"
+	 *    -Dems_smtp_from="erlangms@unb.br"
+	 *    -Dems_smtp_port=587
+	 *    -Dems_smtp="mail.unb.br"
+	 *    
+	 * Obs.: As properties devem ser incluídas no arquivo standalone.conf do JBoss/Wildfly ou na IDE Eclipse Open Launch Configuration/VM Arguments.
+	 *    
+	 * @param to  para quem vai ser enviado o e-mail.
+	 * @param subject título do e-mail. (Obrigatório)
+	 * @param content conteúdo do e-mail. (Obrigatório)
+	 * @param attachment lista de arquivos para anexar do e-mail. (Opcional)
 	 * @author Everton de Vargas Agilar
 	 */
-    public static void sendHtmlMail(final String to, 
+    @SuppressWarnings("unused")
+	private static void sendHtmlMail(final String to, 
 									final String subject, 
 									final String content,
 									final String[] attachment){

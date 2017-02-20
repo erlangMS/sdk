@@ -75,8 +75,7 @@ public abstract class EmsRepository<Model> {
 					fieldsConstraints = EmsUtil.getFieldsWithUniqueConstraint(classOfModel);
 					fields = classOfModel.getDeclaredFields();
 					for (Field f : fields){ f.setAccessible(true); } // importante para conseguir acessar o valor do campo 
-					// As queries são criadas somente para models. 
-					// VOs não precisam ter a anotação @Table
+					// doCreateCachedNamedQueries é invocado somente para models que possuem a anotação @Table. 
 					if (tableAnnotation != null){
 						doCreateCachedNamedQueries();
 					}
@@ -281,7 +280,7 @@ public abstract class EmsRepository<Model> {
 	}
 
 	/**
-	 * Verifica se o objeto existe, passando um mapa com os nomes dos atributos e seus valores 
+	 * Verifica se o objeto existe, passando um mapa com os nomes dos atributos e seus valores. 
 	 * @param filter_map Mapa com os nomes dos atributos e seus valores
 	 * @return true se o objeto foi encontrado 
 	 * @author André Luciano Claret
@@ -340,7 +339,7 @@ public abstract class EmsRepository<Model> {
 	}
 
 	/**
-	 * Retorna um objeto pelo seu id.
+	 * Retorna um objeto pelo seu id a partir de um classOfModel específico.
 	 * @param classOfModel classe do objeto
 	 * @param id identificador do objeto
 	 * @return objeto ou EmsNotFoundException se não existe o objeto com o id
@@ -402,7 +401,8 @@ public abstract class EmsRepository<Model> {
 	}
 
 	/**
-	 * Verifica as constrains do objeto e levanta uma exception case houver violação de alguma regra.
+	 * Verifica as constrains do objeto e levanta uma exception se houver violação de alguma regra.
+	 * Esta função é invocada antes de persistir o objeto no banco e somente após todas as validações realizadas no objeto.
 	 * @param obj objeto que será verificado as constraints.
 	 * @param isInsert se true é insert senão é update.
 	 * @author Everton de Vargas Agilar
@@ -428,7 +428,7 @@ public abstract class EmsRepository<Model> {
 				value = field.get(obj);
 				query.setParameter(paramName, value);
 			} catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
-				throw new EmsValidationException("Não é possível checar as constraints na inserção do objeto. Erro interno: "+ e.getMessage());
+				throw new EmsValidationException("Não é possível verificar as constraints do objeto. Erro interno: "+ e.getMessage());
 			}
 		}
 		
@@ -437,8 +437,10 @@ public abstract class EmsRepository<Model> {
 		}catch (NoResultException e){
 			return; // ok, registro não está duplicado
 		}catch (Exception e){
-			throw new EmsValidationException("Não é possível checar as constraints na inserção do objeto. Erro interno: "+ e.getMessage());
+			throw new EmsValidationException("Não é possível verificar as constraints do objeto. Erro interno: "+ e.getMessage());
 		}
+		
+		// Se chegou até aqui então o registro está duplicado. Não há registro quando ocorrer uma exception NoResultException.
 		throw new EmsValidationException("Registro duplicado, verifique.");
 	}
 	
@@ -466,7 +468,7 @@ public abstract class EmsRepository<Model> {
 	}
 	
 	/**
-	 * Exclui um objeto
+	 * Exclui um objeto.
 	 * @param id identificador do objeto
 	 * @return true se o objeto foi excluído
 	 * @author Everton de Vargas Agilar
@@ -482,7 +484,7 @@ public abstract class EmsRepository<Model> {
 	}
 
 	/**
-	 * Exclui um objeto
+	 * Exclui um objeto a partir de um model específico..
 	 * @param classOfModel classe do objeto
 	 * @param id identificador do objeto
 	 * @return true se o objeto foi excluído
@@ -520,7 +522,7 @@ public abstract class EmsRepository<Model> {
 	
 	/**
 	 * Cria uma query a partir de um filtro e a partir de uma função sql.
-	 * @param filter objeto json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
+	 * @param filter objeto json com os campos do filtro. Ex: {"nome":"Everton de Vargas Agilar", "ativo":true}
 	 * @param fields lista de campos que devem retornar ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param limit Quantidade objetos trazer na pesquisa
 	 * @param offset A partir de que posição. Iniciando em 1
@@ -726,7 +728,7 @@ public abstract class EmsRepository<Model> {
 	
 	/**
 	 * Permite criar uma named query com sql nativo para posterior execução. Depois de criado pode ser obtido com getNamedQuery.
-	 * NamedQuery são mais rápidas e economizam recursos. Use isto em vez de criar uma query a cada execução de código. 
+	 * NamedQuery são mais rápidas e economiza recursos. Use isto em vez de criar uma query a cada execução de código. 
 	 * @param namedQuery nome da query.
 	 * @param sql sql nativo da query
 	 * @param resultClass informe a classe do objeto se a query tem que mapear senão null.
@@ -753,7 +755,7 @@ public abstract class EmsRepository<Model> {
 
 	/**
 	 * Retorna a referẽncia para um query previamente criada para execução.
-	 * NamedQuery são mais rápidas e economizam recursos. Use isto em vez de criar uma query a cada execução de código. 
+	 * NamedQuery são mais rápidas e economiza recursos. Use isto em vez de criar uma query a cada execução de código. 
 	 * @param namedQuery nome da query.
 	 * @return query
 	 * @author Everton de Vargas Agilar
@@ -887,7 +889,7 @@ public abstract class EmsRepository<Model> {
 	 * @author Everton de Vargas Agilar
 	 */
 	protected Field getField(final String fieldName){
-		 // Certamente, para poucos elementos uma pesquisa sequencial é mais rápido que um Hashtable 
+		 // Certamente, para poucos elementos (menos de 20) uma pesquisa sequencial é mais rápido que um Hashtable 
 		for (Field field : fields){
 			if (field.getName().equals(fieldName)){
 				return field;
@@ -898,7 +900,7 @@ public abstract class EmsRepository<Model> {
 
 	/**
 	 * Retorna o id de um model. 
-	 * Semelhante a EmsUtil.getIdFromObject mas mais rápido pois a classe EmsRepository possui uma array interno dos fields.
+	 * Semelhante a EmsUtil.getIdFromObject mas mais rápido pois a classe EmsRepository possui uma referência direta para idField.
 	 * @param obj objeto para obter o id
 	 * @return id ou null se não tem valor 
 	 * @author Everton de Vargas Agilar
