@@ -428,7 +428,7 @@ public abstract class EmsRepository<Model> {
 				value = field.get(obj);
 				query.setParameter(paramName, value);
 			} catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
-				throw new EmsValidationException("Não é possível verificar as constraints do objeto. Erro interno: "+ e.getMessage());
+				throw new EmsValidationException("Não é possível verificar as constraints do objeto "+ classOfModel.getSimpleName() + ". Erro interno: "+ e.getMessage());
 			}
 		}
 		
@@ -437,7 +437,7 @@ public abstract class EmsRepository<Model> {
 		}catch (NoResultException e){
 			return; // ok, registro não está duplicado
 		}catch (Exception e){
-			throw new EmsValidationException("Não é possível verificar as constraints do objeto. Erro interno: "+ e.getMessage());
+			throw new EmsValidationException("Não é possível verificar as constraints do objeto "+ classOfModel.getSimpleName() + ". Erro interno: "+ e.getMessage());
 		}
 		
 		// Se chegou até aqui então o registro está duplicado. Não há registro quando ocorrer uma exception NoResultException.
@@ -856,19 +856,22 @@ public abstract class EmsRepository<Model> {
 			}
 			
 			// build field constraints conditions
-			if (tableConstraintsCount > 0){
-				sql.append(" or ");
-			}
-			sql.append("(");
-			for (int i = 0; i < fieldConstraintsCount; i++){
-				Field field = fieldsConstraints.get(i);
-				String f = field.getAnnotation(Column.class).name();
-				sql.append("this.").append(f).append("=:").append(f);
-				if (i+1 < fieldConstraintsCount){
-					sql.append(" or ");
+			if (fieldConstraintsCount > 0){
+				if (tableConstraintsCount > 0){
+					sql.append(" or (");
+				}else{
+					sql.append("(");
 				}
+				for (int i = 0; i < fieldConstraintsCount; i++){
+					Field field = fieldsConstraints.get(i);
+					String f = field.getAnnotation(Column.class).name();
+					sql.append("this.").append(f).append("=:").append(f);
+					if (i+1 < fieldConstraintsCount){
+						sql.append(" or ");
+					}
+				}
+				sql.append(")");
 			}
-			sql.append(")");
 			
 			if (!isInsert){
 				sql.append(")");
