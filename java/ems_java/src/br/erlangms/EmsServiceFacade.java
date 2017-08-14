@@ -26,6 +26,7 @@ public abstract class EmsServiceFacade {
     
 	@PreDestroy
     public void terminate() {
+		connection.close();
 		connection.interrupt();
     }
 

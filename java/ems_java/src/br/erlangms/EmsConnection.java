@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -32,7 +33,6 @@ public class EmsConnection extends Thread{
 	private static final OtpErlangBinary result_ok = EmsUtil.result_ok; 
 	private static final Logger logger = EmsUtil.logger;
 	private String otpNodeName;
-	private final String nomeAgente;
 	private final String nomeService;
 	private final EmsServiceFacade facade;
 	private Class<? extends EmsServiceFacade> classOfFacade;
@@ -40,13 +40,19 @@ public class EmsConnection extends Thread{
 	private Method methods[];
 	private String method_names[];
 	private int method_count = 0;
-    
-	public EmsConnection( final EmsServiceFacade facade){
+	private static boolean erro_connection_epmd  = false;
+	private static final int THREAD_WAIT_TO_RESTART = 5000;
+	private String connectionErrorMessage;
+	private OtpNode myNode;
+	private OtpMbox myMbox;
+
+	
+	public EmsConnection(final EmsServiceFacade facade){
 		this.facade = facade;
 		this.classOfFacade = facade.getClass();
-		this.nomeAgente = classOfFacade.getSimpleName();
 		this.nomeService = classOfFacade.getName();
-		this.otpNodeName = nomeAgente + "_" + properties.nodeName;
+		this.otpNodeName = this.nomeService.replace(".",  "_") + "_" + properties.nodeName;
+		this.connectionErrorMessage = "Não foi possível realizar conexão ao barramento ERLANGMS. Verifique se o servidor de nome epmd foi iniciado.";
 		getMethodNamesTable();
 	}
 	
@@ -72,80 +78,120 @@ public class EmsConnection extends Thread{
 		}
 	}
 
+	public void close(){
+		if (myMbox != null){
+			myMbox.close();
+		}
+		if (myNode != null){
+			myNode.close();
+		}
+	}
+	
     @Override  
     public void run() {
-    	try {
-    		OtpNode myNode = null;
-    		OtpMbox myMbox = null;
-    		
-    		// Permanece neste loop até conseguir conexão com o barramento (EPMD deve estar ativo)
-    		while (true){
-	    		try{
-	    			myNode = new OtpNode(otpNodeName);
-	    			break;
-	    		}catch (IOException e){
-	    			// Verifica se a thread não foi interrompida
-	    			if (Thread.interrupted()) throw new InterruptedException();
-	    			logger.warning("Não foi possível se conectar ao barramento ERLANGMS. Verifique se o servidor de nome epmd está iniciado.");
-	    			try{
-	    				 Thread.sleep(15000);
-	    			}catch (InterruptedException e1){
-	    				// tenta novamente a comunicação se a thread não foi interrompida
-	    				if (Thread.interrupted()) throw e1;
-	    			}
-	    		}
-    		}
-    	   
-    	   myNode.setCookie(properties.cookie);
-           StringBuilder msg_node = new StringBuilder(nomeService)
-    										.append(" node -> ").append(myNode.node())
-    										.append(" port -> ").append(myNode.port());
-           logger.info(msg_node.toString());
-           myMbox = myNode.createMbox(nomeService);
-           OtpErlangObject myObject;
-           OtpErlangTuple myMsg;
-           OtpErlangTuple otp_request;
-           IEmsRequest request;
-           StringBuilder msg_task = new StringBuilder();
-           ExecutorService pool = Executors.newFixedThreadPool(properties.maxThreadPool);
-           
-           // Permanece neste loop aguardando mensagens do barramento
-           while(true){ 
-        	   try {
-                   if (Thread.interrupted()) throw new InterruptedException();
-        		   myObject = myMbox.receive();
-                    myMsg = (OtpErlangTuple) myObject;
-                    otp_request = (OtpErlangTuple) myMsg.elementAt(0);
-                    request = new EmsRequest(otp_request);
-                    dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
-                    msg_task.setLength(0);
-                    msg_task.append(request.getMetodo()).append(" ").append(request.getModulo())
-    						.append(".").append(request.getFunction()).append(" [RID: ")
-    						.append(request.getRID()).append(", ").append(request.getUrl()).append("]");
-                    logger.info(msg_task.toString());
-                    
-                    // Delega o trabalho para um worker
-                    pool.submit(new Task(dispatcherPid, request, myMbox));
-        	   
-        	   } catch(OtpErlangExit e3) {
-        		   // Somente sai do loop se a thead foi interrompida
-        		   if (Thread.interrupted()){
-        			   throw new InterruptedException();
-        		   }else{
-	   	    			try{
-		    				 Thread.sleep(15000);
+		Random r = new Random();
+        OtpErlangObject myObject;
+        OtpErlangTuple myMsg;
+        OtpErlangTuple otp_request;
+        IEmsRequest request;
+        StringBuilder msg_task = new StringBuilder();
+        ExecutorService pool = Executors.newFixedThreadPool(properties.maxThreadPool);
+        boolean printInfo = true;
+        boolean debug = EmsUtil.properties.debug;
+        final String msgReinicio = "Reiniciando serviço "+ nomeService + " ocioso para renovar recursos.";
+        final String msgFinalizadoSucesso = nomeService + " finalizado com sucesso.";
+        final String msgReiniciarException = "Serviço "+ nomeService + " será reiniado devido erro interno: ";
+        InitWork:
+        while (true){
+    		try {
+	    		// Permanece neste loop até conseguir conexão com o barramento (EPMD deve estar ativo)
+	    		while (true){
+		    		try{
+		    			myNode = new OtpNode(otpNodeName);
+		    			break;
+		    		}catch (IOException e){
+		    			// Verifica se a thread não foi interrompida
+		    			if (Thread.interrupted()) throw new InterruptedException();
+		    			synchronized (e) {
+			    			if (!erro_connection_epmd){
+			    				erro_connection_epmd = true;
+			    				logger.warning(connectionErrorMessage);
+			    			}
+						}
+		    			try{
+		    				// Aguarda um tempo aleatório até 10 segundos para conectar 
+		    				Thread.sleep(3+r.nextInt(7));
 		    			}catch (InterruptedException e1){
-		    				// volta ao trabalho  se a thread não foi interrompida
+		    				// tenta novamente a comunicação se a thread não foi interrompida
 		    				if (Thread.interrupted()) throw e1;
 		    			}
-        		   }
-    	       }
-           }
-    	} catch (InterruptedException e2) {
-    		logger.info(nomeService + " finalizado com sucesso.");
-    	} catch (Exception e) {
-    		logger.warning(nomeService + " finalizado com erro. Motivo: "+ e.getMessage());
-		}
+		    		}
+	    		}
+	    	   
+	    	   myNode.setCookie(properties.cookie);
+	           myMbox = myNode.createMbox(nomeService);
+	           if (printInfo || debug){
+	        	   logger.info(nomeService + " node -> " + myNode.node());
+	           }
+	           
+	           // Permanece neste loop aguardando mensagens do barramento
+	           while(true){ 
+	        	   try {
+	                   if (Thread.interrupted()) throw new InterruptedException();
+	                   myObject = myMbox.receive((5000 + r.nextInt(15000)) + properties.msg_timeout);  
+	                   if (Thread.interrupted()) throw new InterruptedException();
+	                   // quando a mensagem for null é um timeout de inatividade. Reinicia tudo
+	                   if (myObject == null){
+	                		   if (debug){
+	                			   logger.info(msgReinicio);
+	                		   }
+	                	   	   myMbox.close();
+	                		   myNode.close();
+	                		   printInfo = false;
+	                		   continue InitWork;
+	                   }
+	                   myMsg = (OtpErlangTuple) myObject;
+	                   otp_request = (OtpErlangTuple) myMsg.elementAt(0);
+	                   request = new EmsRequest(otp_request);
+	                   dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
+	                   msg_task.setLength(0);
+	                   msg_task.append(request.getMetodo()).append(" ").append(request.getModulo())
+	    						.append(".").append(request.getFunction()).append(" [RID: ")
+	    						.append(request.getRID()).append(", ").append(request.getUrl()).append("]");
+	                   logger.info(msg_task.toString());
+	                    
+	                    // Delega o trabalho para um worker
+	                    pool.submit(new Task(dispatcherPid, request, myMbox));
+	        	   
+	        	   } catch(final OtpErlangExit e3) {
+	        		   // Somente sai do loop se a thead foi interrompida
+	        		   if (Thread.interrupted()){
+	        			   throw new InterruptedException();
+	        		   }else{
+		   	    			try{
+			    				 Thread.sleep(THREAD_WAIT_TO_RESTART);
+			    			}catch (InterruptedException e1){
+			    				// volta ao trabalho  se a thread não foi interrompida
+			    				if (Thread.interrupted()) throw e1;
+			    			}
+	        		   }
+	    	       }
+	           }
+	    	} catch (final InterruptedException e2) {
+	    		logger.info(msgFinalizadoSucesso);
+	    		return;
+	    	} catch (final Exception e) {
+	    		// Qualquer outra exception não esperada o serviço será reiniciado
+	    		logger.warning(msgReiniciarException + e.getMessage());
+	    		e.printStackTrace();
+	    		printInfo = true;
+	    		try {
+					Thread.sleep(THREAD_WAIT_TO_RESTART);
+				} catch (InterruptedException e1) {
+					if (Thread.interrupted()) return;
+				}
+			}
+    	}
     }  
 	
 
@@ -181,13 +227,13 @@ public class EmsConnection extends Thread{
 		    }
 
     		return result;
-		} catch (NoSuchMethodException e) {  
+		} catch (final NoSuchMethodException e) {  
 	        // Essa exceção ocorre se o getMethod() não encontrar o método
 	    	String erro = "Método da camada de serviço não encontrado: " + metodo + ".";
 	    	msg_json = "{\"error\":\"validation\", \"message\" : \"" + erro + "\"}"; 
 	    	logger.info(erro);
 	    	return new EmsResponse(400, msg_json); 
-	    } catch (IllegalAccessException e) {  
+	    } catch (final IllegalAccessException e) {  
 	        // Pode ocorrer se o método que você está invocando não for  
 	        // acessível. Você pode forçar que um método (mesmo privado!) seja  
 	        // acessível fazendo:  
@@ -196,7 +242,7 @@ public class EmsConnection extends Thread{
 	    	msg_json = "{\"error\":\"validation\", \"message\" : \"" + erro + "\"}"; 
 	    	logger.info(erro);
 	    	return new EmsResponse(400, msg_json); 
-	    } catch (InvocationTargetException e) {  
+	    } catch (final InvocationTargetException e) {  
 	        // Essa exceção acontece se o método chamado gerar uma exceção.  
 	        // Use e.getCause() para descobrir qual exceção foi gerada no método  
 	        // chamado e trata-la adequadamente.
@@ -235,7 +281,7 @@ public class EmsConnection extends Thread{
 	    			}
 		    		msg_json = "{\"error\":\"validation\", \"message\" : " + EmsUtil.toJson(motivo) + "}";
 		    		return new EmsResponse(400, msg_json);
-	    		}catch (Exception ex){
+	    		}catch (final Exception ex){
 			    	String erro = "O método "+ modulo + "." + metodo + " gerou um erro: " + e.getCause() + "."; 
 			    	msg_json = "{\"error\":\"validation\", \"message\" : \"" + erro + "\"}"; 
 			    	logger.info(erro);

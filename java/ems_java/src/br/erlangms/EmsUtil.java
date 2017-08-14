@@ -221,7 +221,7 @@ public final class EmsUtil {
     						}else{
     							throw new EmsValidationException(m_erro);
     						}
-						} catch (ParseException e) {
+						} catch (final ParseException e) {
 							throw new EmsValidationException(m_erro);
 						}
 					}
@@ -327,7 +327,7 @@ public final class EmsUtil {
 						}else{
 							throw new EmsValidationException(m_erro);
 						}
-					} catch (ParseException e) {
+					} catch (final ParseException e) {
 						throw new EmsValidationException(m_erro);
 					}
 				}
@@ -347,7 +347,7 @@ public final class EmsUtil {
 						}else{
 							throw new EmsValidationException(m_erro);
 						}
-					} catch (ParseException e) {
+					} catch (final ParseException e) {
 						throw new EmsValidationException(m_erro);
 					}
 				}
@@ -468,7 +468,7 @@ public final class EmsUtil {
 		                .getImplementation();
 		        // Serialize the value
 		        delegate.write(out, unproxiedValue);
-	        }catch (Exception e){
+	        }catch (final Exception e){
 	        	out.nullValue();
 	        }
 	    }
@@ -1464,7 +1464,8 @@ public final class EmsUtil {
 	 */
     public static class EmsProperties{
 		public int maxThreadPool;		
-    	public String cookie;	 		   // Ex: erlangms
+		public String ems_bus_node1;	   // Ex.: default is ems_bus
+		public String cookie;	 		   // Ex: erlangms
     	public String ESB_URL;			   // Ex: http://localhost:2301
     	public String hostName;	
     	public  String nodeName;
@@ -1472,6 +1473,8 @@ public final class EmsUtil {
     	public String nodePasswd;
         public String authorizationHeaderName;
         public String authorizationHeaderValue;
+        public boolean debug;
+        public int msg_timeout = 60000;
 		
         // smtp
         public int smtpPort;			  // Ex: 25
@@ -1491,9 +1494,11 @@ public final class EmsUtil {
 	 * Exemplo: 
 	 *    -Dcookie=erlangms
 	 *    -Dems_node=node01
-	 *    -Dems_emsbus=http://localhost:2301
+	 *    -Dems_emsbus_url=http://localhost:2301
+	 *    -Dems_emsbus=ems_bus
 	 *    -Dems_cookie=erlangms
 	 *    -Dems_max_thread_pool_by_agent=100
+	 *    -Dems_debug=false
 	 *    -Dems_user=xxxxxxx 
 	 *    -Dems_ldap_admin_passwd="xxxxxx"
  	 *	  -Dems_ldap_admin="cn=admin,dc=unb,dc=br"
@@ -1536,6 +1541,12 @@ public final class EmsUtil {
 			}
 	   }
 
+	   if (System.getProperty("ems_debug", "false").equalsIgnoreCase("true")){
+		   prop.debug = true;
+	   }else{
+		   prop.debug = false;
+	   }
+
 	   String tmp_nodeName = System.getProperty("ems_node");
 	   if (tmp_nodeName != null){
 		   prop.nodeName = tmp_nodeName;
@@ -1543,7 +1554,7 @@ public final class EmsUtil {
 		   prop.nodeName = "node01";
 	   }
 	   
-	   String tmp_ESB_URL = System.getProperty("ems_bus");
+	   String tmp_ESB_URL = System.getProperty("ems_bus_url");
 	   if (tmp_ESB_URL != null){
 		   if (tmp_ESB_URL.indexOf(":") == -1){
 			   tmp_ESB_URL = tmp_ESB_URL + ":2301";
@@ -1552,6 +1563,14 @@ public final class EmsUtil {
 	   }else{
 		   prop.ESB_URL = "http://localhost:2301";
 	   }
+	   
+	   String tmp_ems_bus_node1 = System.getProperty("ems_bus_node1");
+	   if (tmp_ems_bus_node1 != null){
+		   prop.ems_bus_node1 = tmp_ems_bus_node1;
+	   }else{
+		   prop.ems_bus_node1 = "ems_bus";
+	   }
+
 	   
 	   String tmp_user = System.getProperty("ems_user");
 	   if (tmp_user != null){
@@ -1634,6 +1653,17 @@ public final class EmsUtil {
 	   }else{
 		   prop.ldapAdminPasswd = "123456";
 	   }
+
+		String tmp_msg_timeout = System.getProperty("ems_msg_timeout");
+		if (tmp_msg_timeout != null){
+			try{
+				prop.msg_timeout = Integer.parseInt(tmp_msg_timeout);
+			}catch (NumberFormatException e){
+				prop.msg_timeout = 60000 * 3;
+			}
+		}else{
+			prop.msg_timeout = 60000 * 3;
+		}
 
 	   return prop;
 	}
