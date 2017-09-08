@@ -365,5 +365,33 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public Map<String, Object> getClient() {
+		try{
+			String clientJson = new String(((OtpErlangBinary)otp_request.elementAt(9)).binaryValue());
+			return (Map<String, Object>) EmsUtil.fromJson(clientJson, HashMap.class);
+		}catch (Exception e){
+			throw new EmsValidationException("Não foi possível obter o client da requisição. Erro interno: "+ e.getMessage());
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public Map<String, Object> getUser() {
+		try{
+			String userJson = new String(((OtpErlangBinary)otp_request.elementAt(10)).binaryValue());
+			return (Map<String, Object>) EmsUtil.fromJson(userJson, HashMap.class);
+		}catch (Exception e){
+			throw new EmsValidationException("Não foi possível obter o user da requisição. Erro interno: "+ e.getMessage());
+		}
+	}
+
+	@Override
+	public String getScope() {
+		return new String(((OtpErlangBinary)otp_request.elementAt(12)).binaryValue());
+	}
+
 	
 }
