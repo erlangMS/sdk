@@ -1517,10 +1517,10 @@ public final class EmsUtil {
 			try{
 				prop.maxThreadPool = Integer.parseInt(tmp_thread_pool);
 			}catch (NumberFormatException e){
-				prop.maxThreadPool = 100;
+				prop.maxThreadPool = 12;
 			}
 		}else{
-			prop.maxThreadPool = 100;
+			prop.maxThreadPool = 12;
 		}
 		
 		String tmp_cookie = System.getProperty("ems_cookie");
@@ -1660,10 +1660,10 @@ public final class EmsUtil {
 			try{
 				prop.msg_timeout = Integer.parseInt(tmp_msg_timeout);
 			}catch (NumberFormatException e){
-				prop.msg_timeout = 60000 * 3;
+				prop.msg_timeout = 60000;
 			}
 		}else{
-			prop.msg_timeout = 60000 * 3;
+			prop.msg_timeout = 60000;
 		}
 
 	   return prop;

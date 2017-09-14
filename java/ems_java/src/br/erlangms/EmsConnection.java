@@ -95,7 +95,7 @@ public class EmsConnection extends Thread{
         OtpErlangTuple otp_request;
         IEmsRequest request;
         StringBuilder msg_task = new StringBuilder();
-        ExecutorService pool = Executors.newFixedThreadPool(properties.maxThreadPool);
+        ExecutorService pool = Executors.newCachedThreadPool();
         boolean printInfo = true;
         boolean debug = EmsUtil.properties.debug;
         final String msgReinicio = "Reiniciando serviço "+ nomeService + " ocioso para renovar recursos.";
@@ -138,7 +138,7 @@ public class EmsConnection extends Thread{
 	           while(true){ 
 	        	   try {
 	                   if (Thread.interrupted()) throw new InterruptedException();
-	                   myObject = myMbox.receive((5000 + r.nextInt(15000)) + properties.msg_timeout);  
+	                   myObject = myMbox.receive(properties.msg_timeout);  
 	                   if (Thread.interrupted()) throw new InterruptedException();
 	                   // quando a mensagem for null é um timeout de inatividade. Reinicia tudo
 	                   if (myObject == null){
