@@ -112,8 +112,8 @@ public abstract class EmsRepository<Model> {
 	}
 	
 	/**
-	 * Pesquisa um objeto a partir de um filtro
-	 * @param filter objeto json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
+	 * Pesquisa uma lista de objetos a partir de um filtro no formato json
+	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
 	 * @param fields lista de campos que devem retornar ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param limit Quantidade objetos trazer na pesquisa
 	 * @param offset A partir de que posição. Iniciando em 1
@@ -128,6 +128,26 @@ public abstract class EmsRepository<Model> {
 		query.setMaxResults(limit);
 		List<Model> result = query.getResultList();
 		return result;
+	}
+
+	/**
+	 * Pesquisa uma lista de objetos a partir de um objeto request.
+	 * O objeto request possui os seguintes atributos padrão:
+	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
+	 * @param fields lista de campos que devem retornar ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
+	 * @param limit Quantidade objetos trazer na pesquisa
+	 * @param offset A partir de que posição. Iniciando em 1
+	 * @param sort trazer ordenado por quais campos o conjunto de dados
+	 * @return lista dos objetos
+	 * @author Everton de Vargas Agilar
+	 */
+	public List<Model> find(IEmsRequest request){
+		String filter = request.getQuery("filter");
+		String fields = request.getQuery("fields");
+		int limit = request.getQueryAsInt("limit");
+		int offset = request.getQueryAsInt("offset");
+		String sort = request.getQuery("sort");
+		return find(filter, fields, limit, offset, sort);
 	}
 	
 	/**
@@ -146,22 +166,26 @@ public abstract class EmsRepository<Model> {
 		String new_filter = null;
 		String fieldName = null;
 		Integer idOwner;
-		Map<String,Object> filtro_obj = new HashMap<String, Object>();
 		if (owner != null){
 			idOwner = EmsUtil.getIdFromObject(owner);
 			fieldName = "id" + owner.getClass().getSimpleName();			
 		} else {
-			throw new EmsValidationException("Objeto pai não pode ser nulo!");
+			throw new EmsValidationException("Parâmetro owner não pode ser nulo para EmsRepository.find.");
 		}	
-		filtro_obj = EmsUtil.fromJson(filter, HashMap.class);
-		filtro_obj.put(fieldName, idOwner);
-		new_filter = EmsUtil.toJson(filtro_obj);
-		return find(new_filter, fields, limit, offset, sort);
+		if (filter != null){
+			Map<String,Object> filtro_obj = new HashMap<String, Object>();
+			filtro_obj = EmsUtil.fromJson(filter, HashMap.class);
+			filtro_obj.put(fieldName, idOwner);
+			new_filter = EmsUtil.toJson(filtro_obj);
+			return find(new_filter, fields, limit, offset, sort);
+		}else{
+			throw new EmsValidationException("Parâmetro filter não pode ser nulo para EmsRepository.find.");
+		}
 	}
 	
 	/**
-	 * Recupera uma lista de objeto a partir de um filtro por HashMap. Variação do método find, para consultas internas. 
-	 * @param filter_map HashMap com os campos do filtro. Ex:/ {"idAluno" = 12345678, "idDisciplina" = 321654}
+	 * Recupera uma lista de objeto a partir de um filtro por HashMap. 
+	 * @param filter HashMap com os campos do filtro.
 	 * @param fields lista de campos que devem retornar ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param limit Quantidade objetos trazer na pesquisa
 	 * @param offset A partir de que posição. Iniciando em 1
@@ -169,12 +193,13 @@ public abstract class EmsRepository<Model> {
 	 * @return lista dos objetos
 	 * @author André Luciano Claret
 	 */
-	public List<Model> find(final Map<String,Object> filter_map, final String fields, int limit, int offset, final String sort){
-		String filter = null;
-		if (!filter_map.isEmpty()){
-			filter = EmsUtil.toJson(filter_map);
+	public List<Model> find(final Map<String,Object> filter, final String fields, int limit, int offset, final String sort){
+		if (filter != null && !filter.isEmpty()){
+			String filterJson = EmsUtil.toJson(filter);
+			return find(filterJson, fields, limit, offset, sort);
+		}else{
+			throw new EmsValidationException("Parâmetro filter não pode ser nulo para EmsRepository.find.");
 		}
-		return find(filter, fields, limit, offset, sort);
 	}
 	
 	/**

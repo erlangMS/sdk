@@ -109,6 +109,12 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 
+	/**
+	 * Retorna um parâmetro do request pelo nome.
+	 * @param nome do parâmetro
+	 * @return valor da querystring como inteiro
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public int getParamAsInt(final String nome) {
 		OtpErlangMap params = ((OtpErlangMap) otp_request.elementAt(3));
@@ -121,6 +127,12 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 	
+	/**
+	 * Retorna um parâmetro do request pelo nome.
+	 * @param nome do parâmetro
+	 * @return valor da querystring como double
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public double getParamAsDouble(final String nome) {
 		try{
@@ -130,6 +142,12 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 
+	/**
+	 * Retorna um parâmetro do request pelo nome.
+	 * @param nome do parâmetro
+	 * @return valor da querystring como Date
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public Date getParamAsDate(final String nome) throws ParseException {
 		try{
@@ -221,7 +239,7 @@ public class EmsRequest implements IEmsRequest {
 	}
 	
 	/**
-	 * Permite obter uma propriedade do payload. Útil para tratar o payload como uma lista de propriedades.
+	 * Permite obter uma propriedade incluída pelo desenvolvedor.
 	 * @param nome nome da propriedade
 	 * @return Object 
 	 * @author Everton de Vargas Agilar
@@ -229,27 +247,43 @@ public class EmsRequest implements IEmsRequest {
 	@Override
 	public Object getProperty(final String nome){
 		if (properties == null){
-			properties = getPayloadAsMap();
+			throw new EmsValidationException("Propriedade "+ nome + " não existe na requisição.");
 		}
-		Object result = properties.get(nome);
-		if (result == null){
-			throw new EmsValidationException("Propriedade "+ nome + " não exite na requisição."); 
-		}
-		return result;
-	};
-	
-	@Override
-	public Integer getPropertyAsInt(final String nome){
-		Object prop = getProperty(nome);
-		if (prop instanceof String){
-			return Integer.parseInt((String) prop);
-		}else if (prop instanceof Double){
-			return ((Double) prop).intValue();
+		if (properties.containsKey(nome)){
+			return properties.get(nome);
 		}else{
-			throw new EmsValidationException("Propriedade "+ nome + " não é numérica.");
+			throw new EmsValidationException("Propriedade "+ nome + " não existe na requisição."); 
 		}
 	};
 
+	/**
+	 * Permite obter uma propriedade incluída pelo desenvolvedor. Se não existe a proprieadade, retorna o defaultValue.
+	 * @param nome nome da propriedade
+	 * @return Object 
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
+	public Object getProperty(final String nome, final Object defaultValue){
+		if (properties == null){
+			throw new EmsValidationException("Propriedade "+ nome + " não existe na requisição.");
+		}
+		return properties.getOrDefault(nome, defaultValue);
+	};
+
+	/**
+	 * Permite ao desenvolvedor definir uma propriedade e armazenar na requisição.
+	 * @param nome nome da propriedade
+	 * @return Object 
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
+	public void setProperty(final String nome, final Object value){
+		if (properties == null){
+			properties = new java.util.HashMap<String, Object>();
+		}
+		properties.put(nome, value);
+	};
+	
 	/**
 	 * Retorna o payload do request como map. Um erro será gerado se não for possível ler o objeto JSON.
 	 * @return Map<String, Object>
@@ -366,6 +400,11 @@ public class EmsRequest implements IEmsRequest {
 	}
 
 
+	/**
+	 * Obter o cliente da requisição.
+	 * @return map com atributo/valor 
+	 * @author Everton de Vargas Agilar
+	 */
 	@SuppressWarnings("unchecked")
 	@Override
 	public Map<String, Object> getClient() {
@@ -377,6 +416,11 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 	
+	/**
+	 * Obter o usuário da requisição.
+	 * @return map com atributo/valor 
+	 * @author Everton de Vargas Agilar
+	 */
 	@SuppressWarnings("unchecked")
 	@Override
 	public Map<String, Object> getUser() {
@@ -388,10 +432,14 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 
+	/**
+	 * Obter o scopo da requisição oauth2
+	 * @return string 
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public String getScope() {
 		return new String(((OtpErlangBinary)otp_request.elementAt(12)).binaryValue());
 	}
-
 	
 }

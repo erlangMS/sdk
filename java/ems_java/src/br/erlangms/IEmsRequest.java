@@ -35,12 +35,13 @@ public interface IEmsRequest {
 	public <T> T getObject(Class<T> classOfObj);
 	public Map<String, Object> getObject();
 	public Object getProperty(final String nome);
-	public Integer getPropertyAsInt(final String nome);
+	public Object getProperty(final String nome, final Object defaultValue);
+	public void setProperty(final String nome, final Object value);
 	public Object mergeObjectFromPayload(Object obj);
 	public Object mergeObjectFromPayload(Object obj, EmsJsonModelAdapter jsonModelAdapter);
 	public Map<String, Object> getPayloadAsMap();
-	public String getContentType();
 	public Map<String, Object> getClient();
 	public Map<String, Object> getUser();
+	public String getContentType();
 	public String getScope();
 }
