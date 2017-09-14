@@ -27,10 +27,12 @@ public class EmsRequest implements IEmsRequest {
 	private OtpErlangTuple otp_request;
 	private static OtpErlangAtom undefined = new OtpErlangAtom("undefined");
 	private Map<String, Object> properties;
+	private int queryCount;
 
 	public EmsRequest(final OtpErlangTuple otp_request){
 		this.otp_request = otp_request;
 		this.properties = null;
+		this.queryCount = -1;
 	}
 	
 	/**
@@ -164,13 +166,17 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public int getQueryCount(){
+		if (queryCount  != -1){
+			return queryCount;
+		}
 		try{
 			OtpErlangObject Querystring = otp_request.elementAt(4);
 			if (!Querystring.equals(undefined)){
-				return ((OtpErlangMap) Querystring).arity();
+				queryCount = ((OtpErlangMap) Querystring).arity(); 
 			}else{
-				return 0;
+				queryCount = 0;
 			}
+			return queryCount;
 		}catch (Exception e){
 			throw new EmsValidationException("Não foi possível obter a quantidade de queries do request.");
 		}
@@ -200,6 +206,106 @@ public class EmsRequest implements IEmsRequest {
 			}
 		}else{
 			throw new EmsValidationException("Não existe a query " + nome + " do request.");
+		}
+	}
+
+	/**
+	 * Retorna uma querystring pelo nome ou um valor default se não informado.
+	 * @param nome da querystring
+	 * @return valor da querystring como texto
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
+	public String getQuery(final String nome, final String defaultValue) {
+		if (getQueryCount() > 0){
+			try{
+				OtpErlangMap Queries = ((OtpErlangMap) otp_request.elementAt(4));
+				OtpErlangBinary OtpNome = new OtpErlangBinary(nome.getBytes());
+				OtpErlangBinary otp_result = (OtpErlangBinary) Queries.get(OtpNome);
+				if (otp_result != null){
+					String result = new String(otp_result.binaryValue());
+					return result;
+				}else{
+					return defaultValue;
+				}
+			}catch (Exception e){
+				throw new EmsValidationException("Não foi possível obter a query "+ nome + " do request.");
+			}
+		}else{
+			throw new EmsValidationException("Não existe a query " + nome + " do request.");
+		}
+	}
+
+	/**
+	 * Retorna uma querystring do request como int. Um erro será gerado se não for possível retornar um int.
+	 * @param nome nome da querystring
+	 * @return valor int
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
+	public int getQueryAsInt(final String nome) {
+		try{
+			return Integer.parseInt(getQuery(nome));
+		}catch (Exception e){
+			throw new EmsValidationException("Não foi possível converter a query "+ nome + " para int do request.");
+		}
+	}
+
+	/**
+	 * Retorna uma querystring do request como int ou o valor default se não existir. 
+	 * Um erro será gerado se não for possível retornar um int.
+	 * @param nome nome da querystring
+	 * @return valor int
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
+	public int getQueryAsInt(final String nome, int defaultValue) {
+		try{
+			String result = getQuery(nome);
+			if (result != null){
+				return Integer.parseInt(result);
+			}else{
+				return defaultValue;
+			}
+		}catch (Exception e){
+			throw new EmsValidationException("Não foi possível converter a query "+ nome + " para int do request.");
+		}
+	}
+
+	/**
+	 * Retorna uma querystring do request como Double. 
+	 * Um erro será gerado se não for possível retornar um double.
+	 * @param nome nome da querystring
+	 * @return valor double
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
+	public double getQueryAsDouble(final String nome) {
+		try{
+			return Double.parseDouble(getQuery(nome));
+		}catch (Exception e){
+			throw new EmsValidationException("Não foi possível converter a query "+ nome + " para double do request.");
+		}
+	}
+
+	/**
+	 * Retorna uma querystring do request como Double ou o valor default se não existir. 
+	 * Um erro será gerado se não for possível retornar um double.
+	 * @param nome nome da querystring
+	 * @return valor double
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
+	public double getQueryAsDouble(final String nome, double defaultValue) {
+		try{
+			String result = getQuery(nome);
+			if (result != null){
+				return Double.parseDouble(result);
+			}else{
+				return defaultValue;
+			}
+		}catch (Exception e){
+			throw new EmsValidationException("Não foi possível converter a query "+ nome + " para double do request.");
 		}
 	}
 
@@ -339,36 +445,6 @@ public class EmsRequest implements IEmsRequest {
 	}
 
 	/**
-	 * Retorna uma querystring do request como int. Um erro será gerado se não for possível retornar um int.
-	 * @param nome nome da querystring
-	 * @return valor int
-	 * @author Everton de Vargas Agilar
-	 */
-	@Override
-	public int getQueryAsInt(final String nome) {
-		try{
-			return Integer.parseInt(getQuery(nome));
-		}catch (Exception e){
-			throw new EmsValidationException("Não foi possível converter a query "+ nome + " para int do request.");
-		}
-	}
-
-	/**
-	 * Retorna uma querystring do request como Double. Um erro será gerado se não for possível retornar um double.
-	 * @param nome nome da querystring
-	 * @return valor double
-	 * @author Everton de Vargas Agilar
-	 */
-	@Override
-	public double getQueryAsDouble(final String nome) {
-		try{
-			return Double.parseDouble(getQuery(nome));
-		}catch (Exception e){
-			throw new EmsValidationException("Não foi possível converter a query "+ nome + " para double do request.");
-		}
-	}
-
-	/**
 	 * Realiza o merge dos atributos do objeto com o objeto JSON do request
 	 * Útil para métodos que fazem o update dos dados no banco de dados
 	 * @param obj Objeto para fazer merge com o payload
@@ -401,7 +477,7 @@ public class EmsRequest implements IEmsRequest {
 
 
 	/**
-	 * Obter o cliente da requisição.
+	 * Obter o cliente do request.
 	 * @return map com atributo/valor 
 	 * @author Everton de Vargas Agilar
 	 */
@@ -412,12 +488,12 @@ public class EmsRequest implements IEmsRequest {
 			String clientJson = new String(((OtpErlangBinary)otp_request.elementAt(9)).binaryValue());
 			return (Map<String, Object>) EmsUtil.fromJson(clientJson, HashMap.class);
 		}catch (Exception e){
-			throw new EmsValidationException("Não foi possível obter o client da requisição. Erro interno: "+ e.getMessage());
+			throw new EmsValidationException("Não foi possível obter o client do request. Erro interno: "+ e.getMessage());
 		}
 	}
 	
 	/**
-	 * Obter o usuário da requisição.
+	 * Obter o usuário do request.
 	 * @return map com atributo/valor 
 	 * @author Everton de Vargas Agilar
 	 */
@@ -428,12 +504,28 @@ public class EmsRequest implements IEmsRequest {
 			String userJson = new String(((OtpErlangBinary)otp_request.elementAt(10)).binaryValue());
 			return (Map<String, Object>) EmsUtil.fromJson(userJson, HashMap.class);
 		}catch (Exception e){
-			throw new EmsValidationException("Não foi possível obter o user da requisição. Erro interno: "+ e.getMessage());
+			throw new EmsValidationException("Não foi possível obter o user do request. Erro interno: "+ e.getMessage());
 		}
 	}
 
 	/**
-	 * Obter o scopo da requisição oauth2
+	 * Obter o catálogo do request.
+	 * @return map com atributo/valor 
+	 * @author Everton de Vargas Agilar
+	 */
+	@SuppressWarnings("unchecked")
+	@Override
+	public Map<String, Object> getCatalog() {
+		try{
+			String catalogJson = new String(((OtpErlangBinary)otp_request.elementAt(11)).binaryValue());
+			return (Map<String, Object>) EmsUtil.fromJson(catalogJson, HashMap.class);
+		}catch (Exception e){
+			throw new EmsValidationException("Não foi possível obter o catálogo do request. Erro interno: "+ e.getMessage());
+		}
+	}
+
+	/**
+	 * Obter o scopo oauth2 do request.
 	 * @return string 
 	 * @author Everton de Vargas Agilar
 	 */

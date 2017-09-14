@@ -1435,7 +1435,22 @@ public final class EmsUtil {
 			throw new EmsValidationException("Não foi possível pesquisar usuário no servidor LDAP "+ properties.ldapUrl);
 		}
 	}
+
 	
+	public static List<Map<String, Object>> getObjGenerico(final List<String> fieldNames, final List<?> listObj){		
+		List<Map<String, Object>> result = new ArrayList<Map<String, Object>>(listObj.size());
+		int colSize = fieldNames.size();
+		for(Object obj : listObj){
+			int index = 0;
+			Map<String, Object> objVo = new HashMap<>(colSize);
+			for (String fieldName : fieldNames) {			
+				objVo.put(fieldName, ((Object[])obj)[index++]);
+			}
+			result.add(objVo);
+		}			
+		return result;		
+	}	
+
 	/**
 	 * Classe que armazena as propriedades para o SDK.
 	 *  
@@ -1945,5 +1960,6 @@ public final class EmsUtil {
         	throw new EmsValidationException("Não foi possível enviar e-mail para "+ to + ". Erro interno: "+ ex.getMessage());
         }
     }
+
     
 }

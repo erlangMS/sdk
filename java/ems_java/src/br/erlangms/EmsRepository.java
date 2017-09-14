@@ -130,11 +130,22 @@ public abstract class EmsRepository<Model> {
 		return result;
 	}
 
+
+	public List<Map<String, Object>> findGenerico(final String filter, final String fields, int limit, int offset, final String sort, final List<String> fieldNames){
+		Query query = parseQuery(filter, fields, limit, offset, sort, null);
+		query.setFirstResult(offset);
+		query.setMaxResults(limit);
+		@SuppressWarnings("unchecked")
+		List<Object[]> result = query.getResultList();
+		return EmsUtil.getObjGenerico(fieldNames, result);
+	}
+	
+	
 	/**
 	 * Pesquisa uma lista de objetos a partir de um objeto request.
-	 * O objeto request possui os seguintes atributos padrão:
+	 * O objeto request deve possuir os seguintes atributos padrão:
 	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
-	 * @param fields lista de campos que devem retornar ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
+	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param limit Quantidade objetos trazer na pesquisa
 	 * @param offset A partir de que posição. Iniciando em 1
 	 * @param sort trazer ordenado por quais campos o conjunto de dados
@@ -144,16 +155,17 @@ public abstract class EmsRepository<Model> {
 	public List<Model> find(IEmsRequest request){
 		String filter = request.getQuery("filter");
 		String fields = request.getQuery("fields");
-		int limit = request.getQueryAsInt("limit");
-		int offset = request.getQueryAsInt("offset");
+		int limit = request.getQueryAsInt("limit", 100);
+		int offset = request.getQueryAsInt("offset", 0);
 		String sort = request.getQuery("sort");
 		return find(filter, fields, limit, offset, sort);
 	}
+
 	
 	/**
 	 * Recupera uma lista de objeto a partir de um objeto pai, utilizando os filtros. Variação do método find, acrescentando o objeto pai. 
 	 * @param filter objeto json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
-	 * @param fields lista de campos que devem retornar ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
+	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param limit Quantidade objetos trazer na pesquisa
 	 * @param offset A partir de que posição. Iniciando em 1
 	 * @param sort trazer ordenado por quais campos o conjunto de dados
@@ -186,7 +198,7 @@ public abstract class EmsRepository<Model> {
 	/**
 	 * Recupera uma lista de objeto a partir de um filtro por HashMap. 
 	 * @param filter HashMap com os campos do filtro.
-	 * @param fields lista de campos que devem retornar ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
+	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param limit Quantidade objetos trazer na pesquisa
 	 * @param offset A partir de que posição. Iniciando em 1
 	 * @param sort trazer ordenado por quais campos o conjunto de dados
@@ -199,6 +211,25 @@ public abstract class EmsRepository<Model> {
 			return find(filterJson, fields, limit, offset, sort);
 		}else{
 			throw new EmsValidationException("Parâmetro filter não pode ser nulo para EmsRepository.find.");
+		}
+	}
+	
+	/**
+	 * Retorna um objeto pelo seu id. O id é obtido direto do request.
+	 * @param id identificador do objeto
+	 * @return objeto ou EmsNotFoundException se não existe um objeto com o id
+	 * @author Everton de Vargas Agilar
+	 */
+	public Model findById(IEmsRequest request){
+		Integer id = request.getParamAsInt("id"); 
+		if (id != null && id >= 0){
+			Model obj = entityManager.find(classOfModel, id);
+			if (obj == null){
+				throw new EmsNotFoundException(classOfModel.getSimpleName() + " não encontrado: "+ id.toString());
+			}
+			return obj;
+		}else{
+			throw new EmsValidationException("Parâmetro id não pode ser null para EmsRepository.findById.");
 		}
 	}
 	
@@ -219,7 +250,7 @@ public abstract class EmsRepository<Model> {
 			throw new EmsValidationException("Parâmetro id não pode ser null para EmsRepository.findById.");
 		}
 	}
-	
+
 	/**
 	 * Retorna uma lista de objetos pesquisando por determinado campo.
 	 * @param field field do model que será pesquisado.
@@ -509,7 +540,7 @@ public abstract class EmsRepository<Model> {
 	}
 
 	/**
-	 * Exclui um objeto a partir de um model específico..
+	 * Exclui um objeto a partir de um model específico.
 	 * @param classOfModel classe do objeto
 	 * @param id identificador do objeto
 	 * @return true se o objeto foi excluído
@@ -538,7 +569,7 @@ public abstract class EmsRepository<Model> {
 
 
 	/**
-	 * Um método protected para as classes herdadas criarem as queries
+	 * Um método protected para as classes herdadas criarem as queries em cache para serem reutilizadas.
 	 * @author Everton de Vargas Agilar
 	 */
 	protected void createCachedNamedQueries() {
@@ -579,7 +610,7 @@ public abstract class EmsRepository<Model> {
 			throw new EmsValidationException("Parâmetro offset da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor que 999999999");
 		}
 		
-		// Define o filtro da query se foi informado
+		// tem filtro?
 		if (filter != null && filter.length() > 5){
 			try{
 				boolean useAnd = false; 

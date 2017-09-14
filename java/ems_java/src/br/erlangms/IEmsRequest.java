@@ -24,8 +24,11 @@ public interface IEmsRequest {
 	public double getParamAsDouble(final String NomeParam);
 	public int getQueryCount();
 	public String getQuery(final String Nome);
+	public String getQuery(final String nome, final String defaultValue);
 	public int getQueryAsInt(final String Nome);
+	public int getQueryAsInt(final String nome, int defaultValue);
 	public double getQueryAsDouble(final String Nome);
+	public double getQueryAsDouble(final String nome, double defaultValue);
 	public String getModulo();
 	public String getFunction();
 	public OtpErlangObject getOtpRequest();
@@ -42,6 +45,7 @@ public interface IEmsRequest {
 	public Map<String, Object> getPayloadAsMap();
 	public Map<String, Object> getClient();
 	public Map<String, Object> getUser();
+	public Map<String, Object> getCatalog();
 	public String getContentType();
 	public String getScope();
 }
