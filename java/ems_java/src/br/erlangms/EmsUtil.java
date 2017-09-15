@@ -1381,7 +1381,7 @@ public final class EmsUtil {
 	/**
 	 * Obter a lista de fields com unique constraint de um model.
 	 * Obs.: Id não é retornado embora tenha a constraint unique  
-	 * @return list of Field[] 
+	 * @return List<Field> 
 	 * @author Everton de Vargas Agilar
 	 */
 	public static List<Field> getFieldsWithUniqueConstraint(final Class<?> classOfModel){
@@ -1390,6 +1390,25 @@ public final class EmsUtil {
 		for (int i = 0; i < fields.length; i++){
 			Field field = fields[i];
 			if (field.isAnnotationPresent(Column.class) && field.getAnnotation(Column.class).unique() && !field.isAnnotationPresent(Id.class)){
+				result.add(field);
+			}
+		}
+		return result;
+	}
+
+
+	/**
+	 * Obter a lista de fields de um model.
+	 * Obs.: somente fields com a anotação Column.  
+	 * @return List<Field> 
+	 * @author Everton de Vargas Agilar
+	 */
+	public static List<Field> getFieldsFromModel(final Class<?> classOfModel){
+		Field[] fields = classOfModel.getDeclaredFields();
+		List<Field> result = new ArrayList<>();
+		for (int i = 0; i < fields.length; i++){
+			Field field = fields[i];
+			if (field.isAnnotationPresent(Column.class)){
 				result.add(field);
 			}
 		}
@@ -1437,9 +1456,17 @@ public final class EmsUtil {
 	}
 
 	
-	public static List<Map<String, Object>> getObjGenerico(final List<String> fieldNames, final List<?> listObj){		
+	public static List<Map<String, Object>> getObjGenerico(final Object fields, final List<?> listObj){		
+		String[] fieldNames = null;
+		if (fields instanceof String){
+			fieldNames = ((String)fields).split(",");
+		}else if (fields instanceof String[] ){
+			fieldNames = (String[])fields;
+		}else if (fields instanceof List<?>){
+			fieldNames = (String[]) ((List<?>)fields).toArray();
+		}
 		List<Map<String, Object>> result = new ArrayList<Map<String, Object>>(listObj.size());
-		int colSize = fieldNames.size();
+		int colSize = fieldNames.length;
 		for(Object obj : listObj){
 			int index = 0;
 			Map<String, Object> objVo = new HashMap<>(colSize);

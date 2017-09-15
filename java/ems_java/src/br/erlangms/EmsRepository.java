@@ -9,10 +9,16 @@
 package br.erlangms;
 
 import java.lang.reflect.Field;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
@@ -27,6 +33,9 @@ import javax.persistence.Query;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
+import org.hibernate.Session;
+import org.hibernate.transform.AliasToEntityMapResultTransformer;
+import org.hibernate.transform.Transformers;
 import org.jinq.jpa.JPAJinqStream;
 import org.jinq.jpa.JinqJPAStreamProvider;
 
@@ -46,7 +55,8 @@ public abstract class EmsRepository<Model> {
 	private Table tableAnnotation = null;
 	private UniqueConstraint[] tableContrains = null;
 	private List<Field> fieldsConstraints = null;
-	private Field[] fields = null;
+	private List<Field> fields = null;
+	private String[] fieldNames = null;
 	private String NAMED_QUERY_DELETE = null;
 	private String NAMED_QUERY_EXISTS = null;
 	private String NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT = null;
@@ -73,8 +83,13 @@ public abstract class EmsRepository<Model> {
 						tableContrains = tableAnnotation.uniqueConstraints();
 					}
 					fieldsConstraints = EmsUtil.getFieldsWithUniqueConstraint(classOfModel);
-					fields = classOfModel.getDeclaredFields();
-					for (Field f : fields){ f.setAccessible(true); } // importante para conseguir acessar o valor do campo 
+					fields = EmsUtil.getFieldsFromModel(classOfModel);
+					fieldNames = new String[fields.size()];
+					for (int i = 0; i < fields.size(); i++){ 
+						Field f = fields.get(i); // importante para conseguir acessar o valor do campo
+						f.setAccessible(true);
+						fieldNames[i] = f.getName();
+					}  
 					// doCreateCachedNamedQueries é invocado somente para models que possuem a anotação @Table. 
 					if (tableAnnotation != null){
 						doCreateCachedNamedQueries();
@@ -111,6 +126,53 @@ public abstract class EmsRepository<Model> {
 		return streams.streamAll(entityManager, classOfModel);
 	}
 	
+	
+	public List<Map<String, Object>> findGenerico(final IEmsRequest request){
+		String filter = request.getQuery("filter");
+		String fields = request.getQuery("fields");
+		int limit = request.getQueryAsInt("limit", 100);
+		int offset = request.getQueryAsInt("offset", 0);
+		String sort = request.getQuery("sort");
+		return findGenerico(filter, fields, limit, offset, sort);
+	}
+
+	
+	/*
+	
+	public List<Map<String, Object>> findAlunoGenerico(IEmsRequest request) {
+		Query query = createNativeNamedQuery("listaAlunos", "select TOP(5) aluno0_.alumatricula as matricula, aluno0_.alucelular as celular, aluno0_.alunome as nome from BDSiac.dbo.Aluno aluno0_", null);
+		Object result = query.getResultList(); 
+
+		org.hibernate.Query q = (org.hibernate.Query) query.unwrap(org.hibernate.Query.class);
+		String sql = q.getQueryString();
+		q.setResultTransformer(AliasToEntityMapResultTransformer.INSTANCE);
+		List<Map<String,Object>> aliasToValueMapList=q.list();
+		return aliasToValueMapList;
+	}*/
+	
+	public List<Map<String, Object>> findGenerico(final String filter, final String fields, int limit, int offset, final String sort){
+		Query query = parseQuery(filter, fields, limit, offset, sort, null);
+		query.setFirstResult(offset);
+		query.setMaxResults(limit);
+		@SuppressWarnings("unchecked")
+		//List<Object[]> result = query.getResultList();
+		List<Object[]> result = null;
+		if (fields == null || fields.isEmpty()){
+			org.hibernate.Query q = (org.hibernate.Query) query.unwrap(org.hibernate.Query.class);
+			String sql = q.getQueryString();
+			q.setResultTransformer(AliasToEntityMapResultTransformer.INSTANCE);
+			List<Map<String,Object>> aliasToValueMapList=q.list();
+			System.out.println(q.getReturnAliases());
+
+			List<List<Object>> dados = q.setResultTransformer(Transformers.ALIAS_TO_ENTITY_MAP).list();
+				
+			System.out.println(aliasToValueMapList);
+		}
+		
+		return EmsUtil.getObjGenerico(fields, result);
+	}
+
+	
 	/**
 	 * Pesquisa uma lista de objetos a partir de um filtro no formato json
 	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
@@ -131,16 +193,6 @@ public abstract class EmsRepository<Model> {
 	}
 
 
-	public List<Map<String, Object>> findGenerico(final String filter, final String fields, int limit, int offset, final String sort, final List<String> fieldNames){
-		Query query = parseQuery(filter, fields, limit, offset, sort, null);
-		query.setFirstResult(offset);
-		query.setMaxResults(limit);
-		@SuppressWarnings("unchecked")
-		List<Object[]> result = query.getResultList();
-		return EmsUtil.getObjGenerico(fieldNames, result);
-	}
-	
-	
 	/**
 	 * Pesquisa uma lista de objetos a partir de um objeto request.
 	 * O objeto request deve possuir os seguintes atributos padrão:
@@ -475,9 +527,9 @@ public abstract class EmsRepository<Model> {
 			Field field = null;
 			Object value;
 			try {
-				for (int i = 0; i < fields.length; i++){
-					field = fields[i];
-					if (field.isAnnotationPresent(Column.class) && field.getAnnotation(Column.class).name().equals(paramName)){
+				for (int i = 0; i < fields.size(); i++){
+					field = fields.get(i);
+					if (field.getAnnotation(Column.class).name().equals(paramName)){
 						break;
 					}
 				}
@@ -972,6 +1024,87 @@ public abstract class EmsRepository<Model> {
 			return null;
 		}
 	}
+
+	
+	/** 
+	 * @author Adam Crume for JavaWorld.com, original code 
+	 * @author Wanja Gayk for brixomatic.wordpress.com, reduced code extract 
+	 * @see http://www.javaworld.com/article/2077706/core-java/named-parameters-for-preparedstatement.html?page=2 
+	 */ 
+	public static class PreparedStatementFactory {  
+	   
+	  public static PreparedStatement create(final Connection connection, final String queryStringWithNamedParameters) throws SQLException {  
+	       final String parsedQuery = parse(queryStringWithNamedParameters);  
+	       return connection.prepareStatement(parsedQuery);  
+	  }  
+	   
+	  private static final String parse(final String query) {  
+	       // I was originally using regular expressions, but they didn't work well for ignoring  
+	            // parameter-like strings inside quotes.  
+	       final int length = query.length();  
+	       final StringBuffer parsedQuery = new StringBuffer(length);  
+	       boolean inSingleQuote = false;  
+	       boolean inDoubleQuote = false;  
+	        
+	       for (int i = 0; i < length; ++i) {  
+	            char c = query.charAt(i);  
+	            if (inSingleQuote) {  
+	                 if (c == '\'') {  
+	                      inSingleQuote = false;  
+	                 }  
+	            } else if (inDoubleQuote) {  
+	                 if (c == '"') {  
+	                      inDoubleQuote = false;  
+	                 }  
+	            } else {  
+	                 if (c == '\'') {  
+	                      inSingleQuote = true;  
+	                 } else if (c == '"') {  
+	                      inDoubleQuote = true;  
+	                 } else if (c == ':' && i + 1 < length && Character.isJavaIdentifierStart(query.charAt(i + 1))) {  
+	                      int j = i + 2;  
+	                      while (j < length && Character.isJavaIdentifierPart(query.charAt(j))) {  
+	                           ++j;  
+	                      }  
+	                      final String name = query.substring(i + 1, j);  
+	                      c = '?'; // replace the parameter with a question mark  
+	                      i += name.length(); // skip past the end of the parameter  
+	                 }  
+	            }  
+	            parsedQuery.append(c);  
+	       }  
+	       return parsedQuery.toString();  
+	  }  
+	   
+	}
+	
+	private Map<String, Integer> getColumnNameToIndexMap(final String queryString) throws SQLException {  
+		  final Session session = entityManager.unwrap(Session.class); // ATTENTION! This is Hibernate-specific!  
+		  final AtomicReference<ResultSetMetaData> msRef = new AtomicReference<>();  
+		  session.doWork((c) -> {  
+		       try (final PreparedStatement statement = PreparedStatementFactory.create(c, queryString)) {  
+		       // I'm not setting parameters here, because I just want to find out about the return values' column names  
+		       msRef.set(statement.getMetaData());  
+		       }  
+		  });  
+		  final ResultSetMetaData metaData = msRef.get();  
+		  // LinkedHashmap preserves order of insertion:  
+		  final Map<String, Integer> columnNameToColumnIndex = new LinkedHashMap<>();   
+		  for (int t = 0; t < metaData.getColumnCount(); ++t) {  
+		       // important, first index in the metadata is "1", the first index for the result array must be "0"  
+		       columnNameToColumnIndex.put(metaData.getColumnName(t + 1), t);  
+		  }  
+		  return columnNameToColumnIndex;  
+		}  	
+	
+	
+	private Map<String, Object> getColumNameToValueMapFromRowValueArray(final Object[] rowValueArray, final Map<String, Integer> columnNameToIndexMap) {  
+		  // stream().collect(toMap(keyFunct, valueFunct)...) will not accept "null" values, so we do it this way:  
+		  final Map<String, Object> result = new LinkedHashMap<>();  
+		  columnNameToIndexMap.entrySet().forEach(nameToIndexEntry -> result.put(nameToIndexEntry.getKey(), rowValueArray[nameToIndexEntry.getValue()]));  
+		  return result;  
+	}
+	
 	
 }
 
