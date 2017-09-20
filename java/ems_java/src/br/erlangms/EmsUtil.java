@@ -18,6 +18,8 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -66,7 +68,10 @@ import javax.persistence.UniqueConstraint;
 import javax.ws.rs.client.ClientBuilder;
 
 import org.hibernate.Hibernate;
+import org.hibernate.internal.AbstractQueryImpl;
+import org.hibernate.internal.SQLQueryImpl;
 import org.hibernate.proxy.HibernateProxy;
+import org.hibernate.transform.AliasToEntityMapResultTransformer;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
@@ -117,14 +122,23 @@ public final class EmsUtil {
 	public static NumberFormat doubleFormatter = null;
 	private static Gson gson = null;
 	private static Gson gson2 = null;
-	public static final EmsProperties properties = getProperties();
+	public static EmsProperties properties = null;
 	public static final SimpleDateFormat dateFormatDDMMYYYY = new SimpleDateFormat("dd/MM/yyyy");
 	public static final SimpleDateFormat dateFormatDDMMYYYY_HHmm = new SimpleDateFormat("dd/MM/yyyy HH:mm");
 	public static final SimpleDateFormat dateFormatDDMMYYYY_HHmmss = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+	private static MessageDigest messageDigestSHA1 = null;
+	private static java.util.Base64.Encoder base64Encoder = null;
 	static{
 		doubleFormatter = NumberFormat.getInstance(Locale.US);
 		doubleFormatter.setMaximumFractionDigits(2); 
 		doubleFormatter.setMinimumFractionDigits(2);
+		try {
+			messageDigestSHA1 = MessageDigest.getInstance("SHA-1");
+		} catch (NoSuchAlgorithmException e1) {
+			e1.printStackTrace();
+		}
+		base64Encoder = java.util.Base64.getEncoder(); 
+		properties = getProperties();
 		gson = new GsonBuilder()
 	    	.setExclusionStrategies(new SerializeStrategy())
 	    	.setDateFormat("dd/MM/yyyy")
@@ -634,6 +648,9 @@ public final class EmsUtil {
 					}
 					Object value_field = values.get(field);
 					Class<?> paramType = query.getParameter(p).getParameterType();
+					if (paramType == null){
+						paramType = value_field.getClass();
+					}
 					if (paramType == Integer.class){
 						if (value_field instanceof String){
 							query.setParameter(p++, Integer.parseInt((String) value_field));
@@ -1245,6 +1262,7 @@ public final class EmsUtil {
 			case "e": return " = ";
 			case "ne": return " != ";
 			case "isnull": return " is null ";
+			case "equal": return " = ";
 		}
 		throw new EmsValidationException("Operador do campo de pesquisa "+ fieldOperator + " inválido");
 	}
@@ -1631,8 +1649,7 @@ public final class EmsUtil {
 	   
        String usernameAndPassword = prop.nodeUser + ":" + prop.nodePasswd;
        prop.authorizationHeaderName = "Authorization";
-       prop.authorizationHeaderValue = "Basic " + java.util.Base64.getEncoder()
-    		   .encodeToString(usernameAndPassword.getBytes());
+       prop.authorizationHeaderValue = "Basic " +  toBase64(usernameAndPassword);
 
        // SMTP properties
        
@@ -1988,5 +2005,21 @@ public final class EmsUtil {
         }
     }
 
+
+	/**
+	 * Algoritmo SHA-1
+	 * @author Everton de Vargas Agilar
+	 */
+    public static String toSHA1(final String value) {
+        return new String(messageDigestSHA1.digest(value.getBytes()));
+    }
+    
+	/**
+	 * Algoritmo base64
+	 * @author Everton de Vargas Agilar
+	 */
+    public static String toBase64(final String value){
+    	return base64Encoder.encodeToString(value.getBytes());
+    }
     
 }

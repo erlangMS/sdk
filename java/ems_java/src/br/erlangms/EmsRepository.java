@@ -9,16 +9,10 @@
 package br.erlangms;
 
 import java.lang.reflect.Field;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
@@ -33,7 +27,6 @@ import javax.persistence.Query;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
-import org.hibernate.Session;
 import org.hibernate.transform.AliasToEntityMapResultTransformer;
 import org.hibernate.transform.Transformers;
 import org.jinq.jpa.JPAJinqStream;
@@ -61,6 +54,7 @@ public abstract class EmsRepository<Model> {
 	private String NAMED_QUERY_EXISTS = null;
 	private String NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT = null;
 	private String NAMED_QUERY_CHECK_CONTRAINTS_ON_UPDATE = null;
+	private String prefixFindNamedQuery = null;
 
 	public EmsRepository(){
 
@@ -70,6 +64,7 @@ public abstract class EmsRepository<Model> {
 	private void postConstruct(){
 		classOfModel = getClassOfModel();
 		if (classOfModel != null){
+			prefixFindNamedQuery = classOfModel.getSimpleName() + "_";
 			entityManager = getEntityManager();
 			if (entityManager != null){
 				entityManagerFactory = entityManager.getEntityManagerFactory();
@@ -149,6 +144,174 @@ public abstract class EmsRepository<Model> {
 		List<Map<String,Object>> aliasToValueMapList=q.list();
 		return aliasToValueMapList;
 	}*/
+
+	public List<Map<String, Object>> find(final String sql) {
+		String namedQuery = prefixFindNamedQuery + EmsUtil.toBase64(EmsUtil.toSHA1(sql));
+		Query query = createNativeNamedQuery(namedQuery, sql, null); // apenas retorna referência se já existe!
+		org.hibernate.Query q = (org.hibernate.Query) query.unwrap(org.hibernate.Query.class);
+		q.setResultTransformer(AliasToEntityMapResultTransformer.INSTANCE);
+		List<Map<String,Object>> result = q.list();
+		return result;
+	}
+	
+	
+	public List<Map<String, Object>> find(final String sql, final String filter, final String fields, int limit, int offset, final String sort) {
+		Query query = null;
+		StringBuilder field_smnt = null;
+		StringBuilder where = null;
+		StringBuilder sort_smnt = null;
+		Map<String, Object> filtro_obj = null;
+		if (!(limit > 0 && limit <= 999999999)){
+			throw new EmsValidationException("Parâmetro limit da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor ou igual que 999999999");
+		}
+	
+		if (!(offset >= 0 && offset < 999999999)){
+			throw new EmsValidationException("Parâmetro offset da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor que 999999999");
+		}
+
+		String namedQuery = prefixFindNamedQuery + EmsUtil.toBase64(EmsUtil.toSHA1(sql + filter + fields + sort));
+		if (!cachedNativeNamedQuery.contains(namedQuery)){
+			// tem filtro?
+			if (filter != null && filter.length() > 5){
+				try{
+					boolean useAnd = false; 
+					filtro_obj = (Map<String, Object>) EmsUtil.fromJson(filter, HashMap.class);
+					where = new StringBuilder(" where ");
+					for (String field : filtro_obj.keySet()){
+						if (useAnd){
+							where.append(" and ");
+						}
+						String[] field_defs = field.split("__");
+						String fieldName;
+						String fieldOperator;
+						String sqlOperator;
+						int field_len = field_defs.length; 
+						if (field_len == 1){
+							fieldName = field;
+							fieldOperator = "=";
+							sqlOperator = "=";
+						} else if (field_len == 2){
+							fieldName = field_defs[0];
+							fieldOperator = field_defs[1];
+							sqlOperator = EmsUtil.fieldOperatorToSqlOperator(fieldOperator);
+						}else{
+							throw new EmsValidationException("Campo de pesquisa "+ field + " inválido.");
+						}
+						if (fieldName.equals("pk")){
+							fieldName = idField.getName();
+						}
+						if (field_len == 2){
+							if (fieldOperator.equals("isnull")){
+								boolean fieldBoolean = EmsUtil.parseAsBoolean(filtro_obj.get(field)); 
+								if (fieldBoolean){
+									where.append(fieldName).append(" is null ");
+								}else{
+									where.append(fieldName).append(" is not null ");
+								}
+							} else if(fieldOperator.equals("icontains") || fieldOperator.equals("ilike")){
+								fieldName = String.format("lower(this.%s)", fieldName);
+								where.append(fieldName).append(sqlOperator).append("?");
+							}else{
+								fieldName = String.format("this.%s", fieldName);
+								where.append(fieldName).append(sqlOperator).append("?");
+							}
+						}else{
+							fieldName = String.format("this.%s", fieldName);
+							where.append(fieldName).append(sqlOperator).append("?");
+						}
+						useAnd = true;
+					}
+				}catch (Exception e){
+					throw new EmsValidationException("Filtro da pesquisa inválido. Erro interno: "+ e.getMessage());
+				}
+			}
+		
+			// Inclui a lista de campos no sql 
+			if (fields != null && !fields.isEmpty()){
+				try{
+					field_smnt = new StringBuilder();
+					String[] field_list = fields.split(",");
+					boolean useVirgula = false;
+					for (String field_name : field_list){
+						if (useVirgula){
+							field_smnt.append(",");
+						}
+						if (field_name.equals("pk")){
+							field_smnt.append("this.").append(idField.getName()); 
+						}else{
+							field_smnt.append("this.").append(field_name);
+						}
+						useVirgula = true;
+					}
+				}catch (Exception e){
+					throw new EmsValidationException("Lista de campos da pesquisa inválido. Erro interno: "+ e.getMessage());
+				}
+			}
+		
+			// Define o sort se foi informado
+			if (sort != null && !sort.isEmpty()){
+				try{
+					boolean useVirgula = false;
+					sort_smnt = new StringBuilder(" order by");
+					String[] sort_list = sort.split(",");
+					String sort_field = null;
+					for (String s : sort_list){
+						if (useVirgula){
+							sort_smnt.append(",");
+						}
+						if (s.startsWith("-")){
+							sort_field = s.substring(1);
+							if (sort_field.equals("pk")){
+								sort_field =  idField.getName();
+							}
+							sort_smnt.append(" this.").append(sort_field).append(" desc");
+						}else{
+							sort_field = s;	
+							if (sort_field.equals("pk")){
+								sort_field =  idField.getName();
+							}
+							sort_smnt.append(" this.").append(sort_field);
+						}
+						useVirgula = true;
+					}
+				}catch (Exception e){
+					throw new EmsValidationException("Sort da pesquisa inválido. Erro interno: "+ e.getMessage());
+				}
+			}
+			
+		
+		
+			try{
+				// formata o sql
+				StringBuilder sqlBuilder;
+			    sqlBuilder = new StringBuilder("select ")
+			    		.append(field_smnt == null ? "*" : field_smnt)
+			    		.append(" from (").append(sql).append(") this ");
+				if (where != null){
+					sqlBuilder.append(where.toString());
+				}	
+				if (sort_smnt != null){
+					sqlBuilder.append(sort_smnt.toString());
+				}	
+				String sqlCommand = sqlBuilder.toString();
+				query = createNativeNamedQuery(namedQuery, sqlCommand, null);
+			}catch (Exception e){
+				throw new EmsValidationException("Não foi possível criar a query da pesquisa. Erro interno: "+ e.getMessage());
+			}
+		}
+		
+		// Seta os parâmetros da query para cada campo do filtro
+		if (where != null){
+			EmsUtil.setQueryParameterFromMap(query, filtro_obj);
+		}
+		query.setFirstResult(offset);
+		query.setMaxResults(limit);
+		
+		org.hibernate.Query q = (org.hibernate.Query) query.unwrap(org.hibernate.Query.class);
+		q.setResultTransformer(EmsAliasToEntityMapResultTransformer.INSTANCE);
+		List<Map<String,Object>> result = q.list();
+		return result;
+	}
 	
 	public List<Map<String, Object>> findGenerico(final String filter, final String fields, int limit, int offset, final String sort){
 		Query query = parseQuery(filter, fields, limit, offset, sort, null);
@@ -814,7 +977,8 @@ public abstract class EmsRepository<Model> {
 	
 	/**
 	 * Permite criar uma named query JPA para posterior execução. Depois de criado pode ser obtido com getNamedQuery.
-	 * NamedQuery são mais rápidas e economizam recursos. Use isto em vez de criar uma query a cada execução de código. 
+	 * NamedQuery são mais rápidas e economizam recursos. Use isto em vez de criar uma query a cada execução de código.
+	 * Se a namedQuery já existe, apenas é retornado sua referência. 
 	 * @param namedQuery nome da query.
 	 * @param sql sql JPA da query
 	 * @return query 
@@ -1026,85 +1190,51 @@ public abstract class EmsRepository<Model> {
 	}
 
 	
-	/** 
-	 * @author Adam Crume for JavaWorld.com, original code 
-	 * @author Wanja Gayk for brixomatic.wordpress.com, reduced code extract 
-	 * @see http://www.javaworld.com/article/2077706/core-java/named-parameters-for-preparedstatement.html?page=2 
-	 */ 
-	public static class PreparedStatementFactory {  
-	   
-	  public static PreparedStatement create(final Connection connection, final String queryStringWithNamedParameters) throws SQLException {  
-	       final String parsedQuery = parse(queryStringWithNamedParameters);  
-	       return connection.prepareStatement(parsedQuery);  
-	  }  
-	   
-	  private static final String parse(final String query) {  
-	       // I was originally using regular expressions, but they didn't work well for ignoring  
-	            // parameter-like strings inside quotes.  
-	       final int length = query.length();  
-	       final StringBuffer parsedQuery = new StringBuffer(length);  
-	       boolean inSingleQuote = false;  
-	       boolean inDoubleQuote = false;  
-	        
-	       for (int i = 0; i < length; ++i) {  
-	            char c = query.charAt(i);  
-	            if (inSingleQuote) {  
-	                 if (c == '\'') {  
-	                      inSingleQuote = false;  
-	                 }  
-	            } else if (inDoubleQuote) {  
-	                 if (c == '"') {  
-	                      inDoubleQuote = false;  
-	                 }  
-	            } else {  
-	                 if (c == '\'') {  
-	                      inSingleQuote = true;  
-	                 } else if (c == '"') {  
-	                      inDoubleQuote = true;  
-	                 } else if (c == ':' && i + 1 < length && Character.isJavaIdentifierStart(query.charAt(i + 1))) {  
-	                      int j = i + 2;  
-	                      while (j < length && Character.isJavaIdentifierPart(query.charAt(j))) {  
-	                           ++j;  
-	                      }  
-	                      final String name = query.substring(i + 1, j);  
-	                      c = '?'; // replace the parameter with a question mark  
-	                      i += name.length(); // skip past the end of the parameter  
-	                 }  
-	            }  
-	            parsedQuery.append(c);  
-	       }  
-	       return parsedQuery.toString();  
-	  }  
-	   
+	/**
+	 * Classe utilizada pelo método find com sql para mapear os dados em List<Map<String, Object>> 
+	 * @author Everton de Vargas Agilar
+	 */
+	public static class EmsAliasToEntityMapResultTransformer extends org.hibernate.transform.AliasedTupleSubsetResultTransformer {
+
+		private static final long serialVersionUID = 1L;
+		public static final EmsAliasToEntityMapResultTransformer INSTANCE = new EmsAliasToEntityMapResultTransformer();
+
+		/**
+		 * Disallow instantiation of AliasToEntityMapResultTransformer.
+		 */
+		private EmsAliasToEntityMapResultTransformer() {
+		}
+
+		@Override
+		public Object transformTuple(Object[] tuple, String[] aliases) {
+			int tupleLengh = tuple.length;
+			if (aliases[tupleLengh-1].startsWith("__")){
+				--tupleLengh; 
+			}
+			Map result = new HashMap(tupleLengh);
+			for ( int i=0; i<tupleLengh; i++ ) {
+				String alias = aliases[i];
+				if ( alias!=null ) {
+					result.put( alias, tuple[i] );
+				}
+			}
+			return result;
+		}
+
+		@Override
+		public boolean isTransformedValueATupleElement(String[] aliases, int tupleLength) {
+			return false;
+		}
+
+		/**
+		 * Serialization hook for ensuring singleton uniqueing.
+		 *
+		 * @return The singleton instance : {@link #INSTANCE}
+		 */
+		private Object readResolve() {
+			return INSTANCE;
+		}
 	}
-	
-	private Map<String, Integer> getColumnNameToIndexMap(final String queryString) throws SQLException {  
-		  final Session session = entityManager.unwrap(Session.class); // ATTENTION! This is Hibernate-specific!  
-		  final AtomicReference<ResultSetMetaData> msRef = new AtomicReference<>();  
-		  session.doWork((c) -> {  
-		       try (final PreparedStatement statement = PreparedStatementFactory.create(c, queryString)) {  
-		       // I'm not setting parameters here, because I just want to find out about the return values' column names  
-		       msRef.set(statement.getMetaData());  
-		       }  
-		  });  
-		  final ResultSetMetaData metaData = msRef.get();  
-		  // LinkedHashmap preserves order of insertion:  
-		  final Map<String, Integer> columnNameToColumnIndex = new LinkedHashMap<>();   
-		  for (int t = 0; t < metaData.getColumnCount(); ++t) {  
-		       // important, first index in the metadata is "1", the first index for the result array must be "0"  
-		       columnNameToColumnIndex.put(metaData.getColumnName(t + 1), t);  
-		  }  
-		  return columnNameToColumnIndex;  
-		}  	
-	
-	
-	private Map<String, Object> getColumNameToValueMapFromRowValueArray(final Object[] rowValueArray, final Map<String, Integer> columnNameToIndexMap) {  
-		  // stream().collect(toMap(keyFunct, valueFunct)...) will not accept "null" values, so we do it this way:  
-		  final Map<String, Object> result = new LinkedHashMap<>();  
-		  columnNameToIndexMap.entrySet().forEach(nameToIndexEntry -> result.put(nameToIndexEntry.getKey(), rowValueArray[nameToIndexEntry.getValue()]));  
-		  return result;  
-	}
-	
 	
 }
 
