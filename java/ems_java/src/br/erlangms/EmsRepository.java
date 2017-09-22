@@ -28,9 +28,10 @@ import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
 import org.hibernate.transform.AliasToEntityMapResultTransformer;
-import org.hibernate.transform.Transformers;
 import org.jinq.jpa.JPAJinqStream;
 import org.jinq.jpa.JinqJPAStreamProvider;
+
+import br.erlangms.EmsUtil.EmsFilterStatement;
 
 public abstract class EmsRepository<Model> {
 	public abstract Class<Model> getClassOfModel();
@@ -117,115 +118,111 @@ public abstract class EmsRepository<Model> {
 	 * @author Everton de Vargas Agilar
 	 */
 	public <T> JPAJinqStream<T> getStreams(final Class<T> classOfModel){
-		JinqJPAStreamProvider streams = new JinqJPAStreamProvider(entityManager.getMetamodel());
-		return streams.streamAll(entityManager, classOfModel);
+		if (classOfModel != null){
+			JinqJPAStreamProvider streams = new JinqJPAStreamProvider(entityManager.getMetamodel());
+			return streams.streamAll(entityManager, classOfModel);
+		}else{
+			throw new EmsValidationException("Parâmetro classOfModel não pode ser null para EsRepository.getStreams.");
+		}
 	}
 	
 	
-	public List<Map<String, Object>> findGenerico(final IEmsRequest request){
-		String filter = request.getQuery("filter");
-		String fields = request.getQuery("fields");
-		int limit = request.getQueryAsInt("limit", 100);
-		int offset = request.getQueryAsInt("offset", 0);
-		String sort = request.getQuery("sort");
-		return findGenerico(filter, fields, limit, offset, sort);
+	/**
+	 * Retorna uma lista de objetos a partir de um objeto request.
+	 * O objeto request deve possuir os seguintes atributos padrão:
+	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
+	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
+	 * @param limit Quantidade objetos trazer na pesquisa
+	 * @param offset A partir de que posição. Iniciando em 1
+	 * @param sort trazer ordenado por quais campos o conjunto de dados
+	 * @return list of maps 
+	 * @author Everton de Vargas Agilar
+	 */
+	public List<Map<String, Object>> findAsMap(final IEmsRequest request){
+		if (request != null){
+			String filter = request.getQuery("filter");
+			String fields = request.getQuery("fields");
+			int limit = request.getQueryAsInt("limit", 100);
+			int offset = request.getQueryAsInt("offset", 0);
+			String sort = request.getQuery("sort");
+			return findAsMap(filter, fields, limit, offset, sort);
+		}else{
+			throw new EmsValidationException("Parâmetro request não pode ser null para EsRepository.findAsMap.");
+		}
 	}
 
-	
-	/*
-	
-	public List<Map<String, Object>> findAlunoGenerico(IEmsRequest request) {
-		Query query = createNativeNamedQuery("listaAlunos", "select TOP(5) aluno0_.alumatricula as matricula, aluno0_.alucelular as celular, aluno0_.alunome as nome from BDSiac.dbo.Aluno aluno0_", null);
-		Object result = query.getResultList(); 
-
-		org.hibernate.Query q = (org.hibernate.Query) query.unwrap(org.hibernate.Query.class);
-		String sql = q.getQueryString();
-		q.setResultTransformer(AliasToEntityMapResultTransformer.INSTANCE);
-		List<Map<String,Object>> aliasToValueMapList=q.list();
-		return aliasToValueMapList;
-	}*/
-
-	public List<Map<String, Object>> find(final String sql) {
-		String namedQuery = prefixFindNamedQuery + EmsUtil.toBase64(EmsUtil.toSHA1(sql));
-		Query query = createNativeNamedQuery(namedQuery, sql, null); // apenas retorna referência se já existe!
+	/**
+	 * Retorna uma lista de objetos.
+	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
+	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
+	 * @param limit Quantidade objetos trazer na pesquisa
+	 * @param offset A partir de que posição. Iniciando em 1
+	 * @param sort trazer ordenado por quais campos o conjunto de dados
+	 * @return list of maps 
+	 * @author Everton de Vargas Agilar
+	 */
+	public List<Map<String, Object>> findAsMap(final String filter, final String fields, int limit, int offset, final String sort){
+		Query query = parseQuery(filter, fields, limit, offset, sort, null);
+		query.setFirstResult(offset);
+		query.setMaxResults(limit);
 		org.hibernate.Query q = (org.hibernate.Query) query.unwrap(org.hibernate.Query.class);
 		q.setResultTransformer(AliasToEntityMapResultTransformer.INSTANCE);
+		@SuppressWarnings("unchecked")
 		List<Map<String,Object>> result = q.list();
 		return result;
 	}
 	
+	/**
+	 * Retorna uma lista de objetos a partir de um sql nativo.
+	 * Obs.: Somente sql nativo é suportado.
+	 * @return list of maps 
+	 * @author Everton de Vargas Agilar
+	 */
+	public List<Map<String, Object>> findAsMap(final String sql) {
+		if (sql != null && !sql.isEmpty()){
+			String namedQuery = prefixFindNamedQuery + EmsUtil.toBase64(EmsUtil.toSHA1(sql));
+			Query query = createNativeNamedQuery(namedQuery, sql, null); // apenas retorna referência se já existe!
+			org.hibernate.Query q = (org.hibernate.Query) query.unwrap(org.hibernate.Query.class);
+			q.setResultTransformer(AliasToEntityMapResultTransformer.INSTANCE);
+			@SuppressWarnings("unchecked")
+			List<Map<String,Object>> result = q.list();
+			return result;
+		}else{
+			throw new EmsValidationException("Parâmetro sql não pode ser null para EmsRepository.find.");
+		}
+	}
 	
-	public List<Map<String, Object>> find(final String sql, final String filter, final String fields, int limit, int offset, final String sort) {
+	
+	/**
+	 * Retorna uma lista de objetos a partir de um sql nativo.
+	 * Obs.: Somente sql nativo é suportado.
+	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
+	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
+	 * @param limit Quantidade objetos trazer na pesquisa
+	 * @param offset A partir de que posição. Iniciando em 1
+	 * @param sort trazer ordenado por quais campos o conjunto de dados
+	 * @return list of maps 
+	 * @author Everton de Vargas Agilar
+	 */
+	@SuppressWarnings("unchecked")
+	public List<Map<String, Object>> findAsMap(final String sql, String filter, String fields, int limit, int offset, String sort) {
 		Query query = null;
 		StringBuilder field_smnt = null;
-		StringBuilder where = null;
+		EmsFilterStatement where = null;
 		StringBuilder sort_smnt = null;
-		Map<String, Object> filtro_obj = null;
 		if (!(limit > 0 && limit <= 999999999)){
 			throw new EmsValidationException("Parâmetro limit da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor ou igual que 999999999");
 		}
-	
 		if (!(offset >= 0 && offset < 999999999)){
 			throw new EmsValidationException("Parâmetro offset da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor que 999999999");
 		}
-
+		if (filter == null)	filter = "";
+		if (fields == null)	fields = "";
+		if (sort == null)	sort = "";
 		String namedQuery = prefixFindNamedQuery + EmsUtil.toBase64(EmsUtil.toSHA1(sql + filter + fields + sort));
 		if (!cachedNativeNamedQuery.contains(namedQuery)){
-			// tem filtro?
-			if (filter != null && filter.length() > 5){
-				try{
-					boolean useAnd = false; 
-					filtro_obj = (Map<String, Object>) EmsUtil.fromJson(filter, HashMap.class);
-					where = new StringBuilder(" where ");
-					for (String field : filtro_obj.keySet()){
-						if (useAnd){
-							where.append(" and ");
-						}
-						String[] field_defs = field.split("__");
-						String fieldName;
-						String fieldOperator;
-						String sqlOperator;
-						int field_len = field_defs.length; 
-						if (field_len == 1){
-							fieldName = field;
-							fieldOperator = "=";
-							sqlOperator = "=";
-						} else if (field_len == 2){
-							fieldName = field_defs[0];
-							fieldOperator = field_defs[1];
-							sqlOperator = EmsUtil.fieldOperatorToSqlOperator(fieldOperator);
-						}else{
-							throw new EmsValidationException("Campo de pesquisa "+ field + " inválido.");
-						}
-						if (fieldName.equals("pk")){
-							fieldName = idField.getName();
-						}
-						if (field_len == 2){
-							if (fieldOperator.equals("isnull")){
-								boolean fieldBoolean = EmsUtil.parseAsBoolean(filtro_obj.get(field)); 
-								if (fieldBoolean){
-									where.append(fieldName).append(" is null ");
-								}else{
-									where.append(fieldName).append(" is not null ");
-								}
-							} else if(fieldOperator.equals("icontains") || fieldOperator.equals("ilike")){
-								fieldName = String.format("lower(this.%s)", fieldName);
-								where.append(fieldName).append(sqlOperator).append("?");
-							}else{
-								fieldName = String.format("this.%s", fieldName);
-								where.append(fieldName).append(sqlOperator).append("?");
-							}
-						}else{
-							fieldName = String.format("this.%s", fieldName);
-							where.append(fieldName).append(sqlOperator).append("?");
-						}
-						useAnd = true;
-					}
-				}catch (Exception e){
-					throw new EmsValidationException("Filtro da pesquisa inválido. Erro interno: "+ e.getMessage());
-				}
-			}
-		
+			where = EmsUtil.parseSqlNativeFilter(filter);
+	
 			// Inclui a lista de campos no sql 
 			if (fields != null && !fields.isEmpty()){
 				try{
@@ -278,8 +275,6 @@ public abstract class EmsRepository<Model> {
 					throw new EmsValidationException("Sort da pesquisa inválido. Erro interno: "+ e.getMessage());
 				}
 			}
-			
-		
 		
 			try{
 				// formata o sql
@@ -288,7 +283,7 @@ public abstract class EmsRepository<Model> {
 			    		.append(field_smnt == null ? "*" : field_smnt)
 			    		.append(" from (").append(sql).append(") this ");
 				if (where != null){
-					sqlBuilder.append(where.toString());
+					sqlBuilder.append(where.where.toString());
 				}	
 				if (sort_smnt != null){
 					sqlBuilder.append(sort_smnt.toString());
@@ -298,46 +293,26 @@ public abstract class EmsRepository<Model> {
 			}catch (Exception e){
 				throw new EmsValidationException("Não foi possível criar a query da pesquisa. Erro interno: "+ e.getMessage());
 			}
+		}else{
+			query = getNamedQuery(namedQuery);
+			where = EmsUtil.parseSqlNativeFilter(filter);
 		}
 		
 		// Seta os parâmetros da query para cada campo do filtro
 		if (where != null){
-			EmsUtil.setQueryParameterFromMap(query, filtro_obj);
+			EmsUtil.setQueryParameterFromMap(query, where.filtro_obj);
 		}
 		query.setFirstResult(offset);
 		query.setMaxResults(limit);
-		
 		org.hibernate.Query q = (org.hibernate.Query) query.unwrap(org.hibernate.Query.class);
 		q.setResultTransformer(EmsAliasToEntityMapResultTransformer.INSTANCE);
 		List<Map<String,Object>> result = q.list();
 		return result;
 	}
 	
-	public List<Map<String, Object>> findGenerico(final String filter, final String fields, int limit, int offset, final String sort){
-		Query query = parseQuery(filter, fields, limit, offset, sort, null);
-		query.setFirstResult(offset);
-		query.setMaxResults(limit);
-		@SuppressWarnings("unchecked")
-		//List<Object[]> result = query.getResultList();
-		List<Object[]> result = null;
-		if (fields == null || fields.isEmpty()){
-			org.hibernate.Query q = (org.hibernate.Query) query.unwrap(org.hibernate.Query.class);
-			String sql = q.getQueryString();
-			q.setResultTransformer(AliasToEntityMapResultTransformer.INSTANCE);
-			List<Map<String,Object>> aliasToValueMapList=q.list();
-			System.out.println(q.getReturnAliases());
-
-			List<List<Object>> dados = q.setResultTransformer(Transformers.ALIAS_TO_ENTITY_MAP).list();
-				
-			System.out.println(aliasToValueMapList);
-		}
-		
-		return EmsUtil.getObjGenerico(fields, result);
-	}
-
 	
 	/**
-	 * Pesquisa uma lista de objetos a partir de um filtro no formato json
+	 * Retorna uma lista de objetos a partir de um filtro no formato json
 	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
 	 * @param fields lista de campos que devem retornar ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param limit Quantidade objetos trazer na pesquisa
@@ -357,7 +332,7 @@ public abstract class EmsRepository<Model> {
 
 
 	/**
-	 * Pesquisa uma lista de objetos a partir de um objeto request.
+	 * Retorna uma lista de objetos a partir de um objeto request.
 	 * O objeto request deve possuir os seguintes atributos padrão:
 	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
 	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
@@ -368,17 +343,21 @@ public abstract class EmsRepository<Model> {
 	 * @author Everton de Vargas Agilar
 	 */
 	public List<Model> find(IEmsRequest request){
-		String filter = request.getQuery("filter");
-		String fields = request.getQuery("fields");
-		int limit = request.getQueryAsInt("limit", 100);
-		int offset = request.getQueryAsInt("offset", 0);
-		String sort = request.getQuery("sort");
-		return find(filter, fields, limit, offset, sort);
+		if (request != null){
+			String filter = request.getQuery("filter");
+			String fields = request.getQuery("fields");
+			int limit = request.getQueryAsInt("limit", 100);
+			int offset = request.getQueryAsInt("offset", 0);
+			String sort = request.getQuery("sort");
+			return find(filter, fields, limit, offset, sort);
+		}else{
+			throw new EmsValidationException("Parâmetro request não pode ser null para EsRepository.find.");
+		}
 	}
 
 	
 	/**
-	 * Recupera uma lista de objeto a partir de um objeto pai, utilizando os filtros. Variação do método find, acrescentando o objeto pai. 
+	 * Retorna uma lista de objeto a partir de um objeto pai, utilizando os filtros. Variação do método find, acrescentando o objeto pai. 
 	 * @param filter objeto json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
 	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param limit Quantidade objetos trazer na pesquisa
@@ -411,7 +390,7 @@ public abstract class EmsRepository<Model> {
 	}
 	
 	/**
-	 * Recupera uma lista de objeto a partir de um filtro por HashMap. 
+	 * Retorna uma lista de objeto a partir de um filtro por HashMap. 
 	 * @param filter HashMap com os campos do filtro.
 	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param limit Quantidade objetos trazer na pesquisa
@@ -436,15 +415,19 @@ public abstract class EmsRepository<Model> {
 	 * @author Everton de Vargas Agilar
 	 */
 	public Model findById(IEmsRequest request){
-		Integer id = request.getParamAsInt("id"); 
-		if (id != null && id >= 0){
-			Model obj = entityManager.find(classOfModel, id);
-			if (obj == null){
-				throw new EmsNotFoundException(classOfModel.getSimpleName() + " não encontrado: "+ id.toString());
+		if (request != null){
+			Integer id = request.getParamAsInt("id"); 
+			if (id != null && id >= 0){
+				Model obj = entityManager.find(classOfModel, id);
+				if (obj == null){
+					throw new EmsNotFoundException(classOfModel.getSimpleName() + " não encontrado: "+ id.toString());
+				}
+				return obj;
+			}else{
+				throw new EmsValidationException("Parâmetro id não pode ser null para EmsRepository.findById.");
 			}
-			return obj;
 		}else{
-			throw new EmsValidationException("Parâmetro id não pode ser null para EmsRepository.findById.");
+			throw new EmsValidationException("Parâmetro request não pode ser null para EsRepository.find.");	
 		}
 	}
 	
@@ -468,6 +451,7 @@ public abstract class EmsRepository<Model> {
 
 	/**
 	 * Retorna uma lista de objetos pesquisando por determinado campo.
+	 * Obs.: O campo deve existir no model.
 	 * @param field field do model que será pesquisado.
 	 * @param value valor a ser pesquisado
 	 * @return lista of model
@@ -1191,7 +1175,7 @@ public abstract class EmsRepository<Model> {
 
 	
 	/**
-	 * Classe utilizada pelo método find com sql para mapear os dados em List<Map<String, Object>> 
+	 * Classe utilizada pelo método find(String sql) para mapear os dados em List<Map<String, Object>> 
 	 * @author Everton de Vargas Agilar
 	 */
 	public static class EmsAliasToEntityMapResultTransformer extends org.hibernate.transform.AliasedTupleSubsetResultTransformer {
@@ -1205,6 +1189,7 @@ public abstract class EmsRepository<Model> {
 		private EmsAliasToEntityMapResultTransformer() {
 		}
 
+		@SuppressWarnings({ "rawtypes", "unchecked" })
 		@Override
 		public Object transformTuple(Object[] tuple, String[] aliases) {
 			int tupleLengh = tuple.length;

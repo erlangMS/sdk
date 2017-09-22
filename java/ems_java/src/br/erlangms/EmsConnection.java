@@ -79,11 +79,15 @@ public class EmsConnection extends Thread{
 	}
 
 	public void close(){
-		if (myMbox != null){
-			myMbox.close();
-		}
-		if (myNode != null){
-			myNode.close();
+		try{
+			if (myMbox != null){
+				myMbox.close();
+			}
+			if (myNode != null){
+				myNode.close();
+			}
+		}catch (Exception e) {
+			// Neste local é segudo não propagar exceptions
 		}
 	}
 	
@@ -196,7 +200,7 @@ public class EmsConnection extends Thread{
 	
 
 	/**
-	 * Permite invocar o método referente um Web Service  e realizar todo o tratamento necessário.
+	 * Permite invocar o método referente um web Service e realizar todo o tratamento necessário.
 	 * @author Everton de Vargas Agilar
 	 */
     private Object chamaMetodo(final String modulo, final String metodo, final IEmsRequest request)  {
@@ -247,49 +251,77 @@ public class EmsConnection extends Thread{
 	        // Use e.getCause() para descobrir qual exceção foi gerada no método  
 	        // chamado e trata-la adequadamente.
 	    	Throwable cause = e.getCause();
-	    	if (cause instanceof EmsValidationException){
-	    		List<String> errors = ((EmsValidationException)cause).getErrors();
-	    		String msg = null;
-		    	if (errors.size() > 1){
-		    		msg = EmsUtil.toJson(errors);
-		    		msg_json = "{\"error\":\"validation\", \"message\" : " + msg + "}";
-		    	}else if (errors.size() == 1){
-		    		msg = EmsUtil.toJson(errors.get(0));
-		    		msg_json = "{\"error\":\"validation\", \"message\" : " + msg + "}";
-		    	}else{
-		    		msg_json = "{\"error\":\"validation\", \"message\" : \"\"}";
-		    	}
-		    	return new EmsResponse(400, msg_json);
-	    	}else if (cause instanceof EmsNotFoundException){
-	    		msg_json = "{\"error\":\"enoent\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
-	    		return new EmsResponse(404, msg_json);
-	    	}else if (cause instanceof javax.ejb.EJBException){
-	    		try{
-		    		Exception causeEx = ((javax.ejb.EJBException) cause).getCausedByException();
-		    		cause = causeEx.getCause().getCause();
-		    		String motivo = null;
-		    		int posMsgSql = cause.getMessage().toLowerCase().indexOf("unique index");
-	    			if (posMsgSql != -1){
-	    				motivo = "Registro duplicado, verifique.";
-	    			}else{
-			    		posMsgSql = cause.getMessage().indexOf("; SQL statement:");
-	    				if (posMsgSql > 0){
-			    			motivo = cause.getMessage().substring(0, posMsgSql-1);
-			    		}else{
-		    				motivo = cause.getMessage();	
+	    	if (cause != null){
+		    	if (cause instanceof EmsValidationException){
+		    		List<String> errors = ((EmsValidationException)cause).getErrors();
+		    		String msg = null;
+			    	if (errors.size() > 1){
+			    		msg = EmsUtil.toJson(errors);
+			    		msg_json = "{\"error\":\"validation\", \"message\" : " + msg + "}";
+			    	}else if (errors.size() == 1){
+			    		msg = EmsUtil.toJson(errors.get(0));
+			    		msg_json = "{\"error\":\"validation\", \"message\" : " + msg + "}";
+			    	}else{
+			    		msg_json = "{\"error\":\"validation\", \"message\" : \"\"}";
+			    	}
+			    	return new EmsResponse(400, msg_json);
+		    	}else if (cause instanceof EmsNotFoundException){
+		    		msg_json = "{\"error\":\"enoent\", \"message\" : " + EmsUtil.toJson(cause.getMessage()) + "}";
+		    		return new EmsResponse(404, msg_json);
+		    	}else if (cause instanceof javax.ejb.EJBException){
+		    		try{
+			    		Exception causeEx = ((javax.ejb.EJBException) cause).getCausedByException();
+			    		if (causeEx != null){
+				    		if (causeEx.getCause() != null){
+				    			cause = causeEx.getCause();
+				    			if (causeEx.getCause().getCause() != null){
+					    			cause = causeEx.getCause().getCause();
+				    			}
+				    		}
 			    		}
-	    			}
-		    		msg_json = "{\"error\":\"validation\", \"message\" : " + EmsUtil.toJson(motivo) + "}";
-		    		return new EmsResponse(400, msg_json);
-	    		}catch (final Exception ex){
-			    	String erro = "O método "+ modulo + "." + metodo + " gerou um erro: " + e.getCause() + "."; 
-			    	msg_json = "{\"error\":\"validation\", \"message\" : \"" + erro + "\"}"; 
-			    	logger.info(erro);
-			    	return new EmsResponse(400, msg_json); 
-	    		}
+			    		String motivo = null;
+			    		int posMsgSql = cause.getMessage().toLowerCase().indexOf("unique index");
+		    			if (posMsgSql != -1){
+		    				motivo = "Registro duplicado, verifique.";
+		    			}else{
+				    		posMsgSql = cause.getMessage().indexOf("; SQL statement:");
+		    				if (posMsgSql > 0){
+				    			motivo = cause.getMessage().substring(0, posMsgSql-1);
+				    		}else{
+			    				motivo = cause.getMessage();	
+				    		}
+		    			}
+			    		msg_json = "{\"error\":\"validation\", \"message\" : " + EmsUtil.toJson(motivo) + "}";
+			    		return new EmsResponse(400, msg_json);
+		    		}catch (final Exception ex){
+				    	String erro = "O método "+ modulo + "." + metodo + " gerou um erro: " + e.getCause() + "."; 
+				    	msg_json = "{\"error\":\"validation\", \"message\" : \"" + erro + "\"}"; 
+				    	logger.info(erro);
+				    	return new EmsResponse(400, msg_json); 
+		    		}
+		    	}else{
+		    		Throwable target = e.getTargetException();
+	    			msg_json = "{\"error\":\"validation\", \"message\" : \"Requisição inválida.\"}";
+		    		if (target != null){
+		    			cause = e.getCause();
+		    			if (cause != null){
+	    	    			String erro = "O método "+ modulo + "." + metodo + " gerou um erro: " + cause.getMessage() + ".";
+		    	    		logger.info(erro);
+		    	    		return new EmsResponse(404, msg_json);
+		    			}else{
+		    				String erro = "O método "+ modulo + "." + metodo + " gerou um erro: " + e.getMessage() + ".";
+		    				logger.info(erro);
+		    				return new EmsResponse(404, msg_json);
+		    			}
+		    		}else{
+    	    			String erro = "O método "+ modulo + "." + metodo + " gerou um erro: " + e.getMessage() + ".";
+	    	    		logger.info(erro);
+	    	    		return new EmsResponse(404, msg_json);
+		    		}
+		    	}
 	    	}else{
 		    	String erro = "O método "+ modulo + "." + metodo + " gerou um erro: " + e.getCause() + "."; 
-		    	msg_json = "{\"error\":\"validation\", \"message\" : " + EmsUtil.toJson(erro) + "}";
+		    	msg_json = "{\"error\":\"validation\", \"message\" : \"Requisição inválida.\"}";
 		    	logger.info(erro);
 		    	return new EmsResponse(400, msg_json);
 	    	}

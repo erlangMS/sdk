@@ -92,6 +92,9 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public String getParam(final String nome) {
+		if (nome == null){
+			throw new EmsValidationException("Propriedade nome não pode ser null para EmsRequest.getParam.");
+		}
 		try{
 			if (getParamsCount() > 0){
 				OtpErlangMap params = ((OtpErlangMap) otp_request.elementAt(3));
@@ -190,6 +193,9 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public String getQuery(final String nome) {
+		if (nome == null){
+			throw new EmsValidationException("Propriedade nome não pode ser null para EmsRequest.getQuery.");
+		}
 		if (getQueryCount() > 0){
 			try{
 				OtpErlangMap Queries = ((OtpErlangMap) otp_request.elementAt(4));
@@ -210,13 +216,16 @@ public class EmsRequest implements IEmsRequest {
 	}
 
 	/**
-	 * Retorna uma querystring pelo nome ou um valor default se não informado.
+	 * Retorna uma querystring pelo nome ou um valor default se não informado no request.
 	 * @param nome da querystring
 	 * @return valor da querystring como texto
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
 	public String getQuery(final String nome, final String defaultValue) {
+		if (nome == null){
+			throw new EmsValidationException("Propriedade nome não pode ser null para EmsRequest.getQuery.");
+		}
 		if (getQueryCount() > 0){
 			try{
 				OtpErlangMap Queries = ((OtpErlangMap) otp_request.elementAt(4));
@@ -352,6 +361,9 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public Object getProperty(final String nome){
+		if (nome == null){
+			throw new EmsValidationException("Propriedade nome não pode ser null para EmsRequest.getProperty.");
+		}
 		if (properties == null){
 			throw new EmsValidationException("Propriedade "+ nome + " não existe na requisição.");
 		}
@@ -370,6 +382,9 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public Object getProperty(final String nome, final Object defaultValue){
+		if (nome == null){
+			throw new EmsValidationException("Propriedade nome não pode ser null para EmsRequest.getProperty.");
+		}
 		if (properties == null){
 			throw new EmsValidationException("Propriedade "+ nome + " não existe na requisição.");
 		}
@@ -384,6 +399,9 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public void setProperty(final String nome, final Object value){
+		if (nome == null){
+			throw new EmsValidationException("Propriedade nome não pode ser null para EmsRequest.setProperty.");
+		}
 		if (properties == null){
 			properties = new java.util.HashMap<String, Object>();
 		}
@@ -457,7 +475,7 @@ public class EmsRequest implements IEmsRequest {
 	}
 
 	/**
-	 * Realiza o merge dos atributos do objeto com o objeto JSON do request
+	 * Realiza o merge dos atributos do objeto com o objeto JSON do request.
 	 * Útil para métodos que fazem o update dos dados no banco de dados
 	 * @param obj Objeto para fazer merge com o payload
 	 * @return objeto após merge

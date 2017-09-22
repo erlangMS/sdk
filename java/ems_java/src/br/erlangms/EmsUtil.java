@@ -68,10 +68,7 @@ import javax.persistence.UniqueConstraint;
 import javax.ws.rs.client.ClientBuilder;
 
 import org.hibernate.Hibernate;
-import org.hibernate.internal.AbstractQueryImpl;
-import org.hibernate.internal.SQLQueryImpl;
 import org.hibernate.proxy.HibernateProxy;
-import org.hibernate.transform.AliasToEntityMapResultTransformer;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
@@ -119,13 +116,13 @@ public final class EmsUtil {
 	public static final OtpErlangBinary result_list_empty = new OtpErlangBinary("[]".getBytes());
 	public static final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
 	public static final Logger logger = Logger.getLogger("erlangms");
-	public static NumberFormat doubleFormatter = null;
+	private static NumberFormat doubleFormatter = null;
 	private static Gson gson = null;
 	private static Gson gson2 = null;
 	public static EmsProperties properties = null;
-	public static final SimpleDateFormat dateFormatDDMMYYYY = new SimpleDateFormat("dd/MM/yyyy");
-	public static final SimpleDateFormat dateFormatDDMMYYYY_HHmm = new SimpleDateFormat("dd/MM/yyyy HH:mm");
-	public static final SimpleDateFormat dateFormatDDMMYYYY_HHmmss = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+	private static final SimpleDateFormat dateFormatDDMMYYYY = new SimpleDateFormat("dd/MM/yyyy");
+	private static final SimpleDateFormat dateFormatDDMMYYYY_HHmm = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+	private static final SimpleDateFormat dateFormatDDMMYYYY_HHmmss = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 	private static MessageDigest messageDigestSHA1 = null;
 	private static java.util.Base64.Encoder base64Encoder = null;
 	static{
@@ -406,7 +403,6 @@ public final class EmsUtil {
 	
 	public static String getClassAnnotationValue(@SuppressWarnings("rawtypes") Class classType, @SuppressWarnings("rawtypes") Class annotationType, String attributeName) {
         String value = null;
- 
         @SuppressWarnings("unchecked")
 		Annotation annotation = classType.getAnnotation(annotationType);
         if (annotation != null) {
@@ -415,7 +411,6 @@ public final class EmsUtil {
             } catch (Exception ex) {
             }
         }
- 
         return value;
     }
 	
@@ -1163,7 +1158,7 @@ public final class EmsUtil {
 	}
 
 	/**
-	 * Converte um objeto Java para um objeto de requisição.
+	 * Converte um objeto Java para um objeto de requisição no formato Erlang.
 	 * @param ret objeto
 	 * @param from pid de quem enviou mensagem
 	 * @return OtpErlangTuple
@@ -1237,7 +1232,6 @@ public final class EmsUtil {
 
 	public static boolean isFieldObjectValid(final Object obj){
 		return (obj != null  ? true : false);
-		
 	}
 
 	public static Object mergeObjects(final Object obj1, final Object obj2){
@@ -1264,28 +1258,40 @@ public final class EmsUtil {
 			case "isnull": return " is null ";
 			case "equal": return " = ";
 		}
-		throw new EmsValidationException("Operador do campo de pesquisa "+ fieldOperator + " inválido");
+		throw new EmsValidationException("Operador do campo de pesquisa "+ fieldOperator + " inválido.");
 	}
 	
 	public static String listFunctionToSqlFunction(final List<String> listFunction){
-		if (listFunction.isEmpty() || (listFunction.size() != 2)){
-			throw new EmsValidationException("Função SQL precisa de um operador e de uma coluna.");
+		if (listFunction != null){
+			if (listFunction.isEmpty() || (listFunction.size() != 2)){
+				throw new EmsValidationException("Função SQL precisa de um operador e de uma coluna para EmsUtil.listFunctionToSqlFunction.");
+			}
+			String function = listFunction.get(0);
+			switch (function){
+				case "avg": return " avg (" + listFunction.get(1) + ") ";  
+				case "count": return " count (" + listFunction.get(1) + ") ";
+				case "first": return " first (" + listFunction.get(1) + ") ";
+				case "last": return " last (" + listFunction.get(1) + ") "; 
+				case "max": return " max (" + listFunction.get(1) + ") "; 
+				case "min": return " min (" + listFunction.get(1) + ") ";
+				case "sum": return " sum (" + listFunction.get(1) + ") ";
+			}
+			throw new EmsValidationException("Função SQL "+ function + " inválido para EmsUtil.listFunctionToSqlFunction.");
+		}else{
+			throw new EmsValidationException("Parâmetro listFunction não pode ser null para EmsUtil.listFunctionToSqlFunction.");
 		}
-		String function = listFunction.get(0);
-		switch (function){
-			case "avg": return " avg (" + listFunction.get(1) + ") ";  
-			case "count": return " count (" + listFunction.get(1) + ") ";
-			case "first": return " first (" + listFunction.get(1) + ") ";
-			case "last": return " last (" + listFunction.get(1) + ") "; 
-			case "max": return " max (" + listFunction.get(1) + ") "; 
-			case "min": return " min (" + listFunction.get(1) + ") ";
-			case "sum": return " sum (" + listFunction.get(1) + ") ";
-		}
-			throw new EmsValidationException("Função SQL "+ function + " inválido");
 	}
 	
+	/**
+	 * Parse um objeto String, Double ou Boolean em um valor boolean.
+	 * @param value_field valor String, Double ou Boolean.
+	 * @return boolean 
+	 * @author Everton de Vargas Agilar (revisão)
+	 */
 	public static boolean parseAsBoolean(final Object value_field){
-		if (value_field instanceof String){
+		if (value_field == null){
+			return false;
+		}else if (value_field instanceof String){
 			if (((String) value_field).equalsIgnoreCase("true")){
 				return true;	
 			}else if  (((String) value_field).equalsIgnoreCase("false")){
@@ -1316,13 +1322,23 @@ public final class EmsUtil {
 		}
 	}
 
+	/**
+	 * Parse um objeto String, Double ou Float em um valor Double.
+	 * @param value_field valor String, Double ou Float.
+	 * @return Double ou null 
+	 * @author Everton de Vargas Agilar (revisão)
+	 */
 	public static Double parseAsDouble(final Object value_field){
-		if (value_field instanceof String){
-			return Double.parseDouble((String) value_field);
-		}else if (value_field instanceof Double){
-			return ((Double) value_field).doubleValue();
+		if (value_field != null){
+			if (value_field instanceof String){
+				return Double.parseDouble((String) value_field);
+			}else if (value_field instanceof Double){
+				return ((Double) value_field).doubleValue();
+			}else{
+				return ((Float) value_field).doubleValue();
+			}
 		}else{
-			return ((Float) value_field).doubleValue();
+			return null;
 		}
 	}
 	
@@ -1382,7 +1398,7 @@ public final class EmsUtil {
 				throw new EmsValidationException("Não foi possível gerar o pdf pois um erro interno ocorreu: "+ e.getLocalizedMessage());
 			}
 		}else{
-			throw new EmsValidationException("Informe params ou listaObj, templateJasper e owner para EmsUtil.printPdf");
+			throw new EmsValidationException("Parâmetros params ou listaObj, templateJasper e owner devem ser informados para EmsUtil.printPdf");
 		}
 	}
 
@@ -1392,45 +1408,57 @@ public final class EmsUtil {
 	 * @author Everton de Vargas Agilar
 	 */
 	public static UniqueConstraint[] getTableUniqueConstraints(final Class<?> classOfModel){
-		Table tableAnnotation = classOfModel.getAnnotation(Table.class);
-		return  tableAnnotation.uniqueConstraints();
+		if (classOfModel != null){
+			Table tableAnnotation = classOfModel.getAnnotation(Table.class);
+			return  tableAnnotation.uniqueConstraints();
+		}else{
+			throw new EmsValidationException("Parâmetro classOfModel não pode ser null para EmsUtil.getTableUniqueConstraints.");
+		}
 	}
 
 	/**
 	 * Obter a lista de fields com unique constraint de um model.
-	 * Obs.: Id não é retornado embora tenha a constraint unique  
+	 * Obs.: Id não é retornado embora tenha a constraint unique.  
 	 * @return List<Field> 
 	 * @author Everton de Vargas Agilar
 	 */
 	public static List<Field> getFieldsWithUniqueConstraint(final Class<?> classOfModel){
-		Field[] fields = classOfModel.getDeclaredFields();
-		List<Field> result = new ArrayList<>();
-		for (int i = 0; i < fields.length; i++){
-			Field field = fields[i];
-			if (field.isAnnotationPresent(Column.class) && field.getAnnotation(Column.class).unique() && !field.isAnnotationPresent(Id.class)){
-				result.add(field);
+		if (classOfModel != null){
+			Field[] fields = classOfModel.getDeclaredFields();
+			List<Field> result = new ArrayList<>();
+			for (int i = 0; i < fields.length; i++){
+				Field field = fields[i];
+				if (field.isAnnotationPresent(Column.class) && field.getAnnotation(Column.class).unique() && !field.isAnnotationPresent(Id.class)){
+					result.add(field);
+				}
 			}
+			return result;
+		}else{
+			throw new EmsValidationException("Parâmetro classOfModel não pode ser null para EmsUtil.getFieldsWithUniqueConstraint.");
 		}
-		return result;
 	}
 
 
 	/**
 	 * Obter a lista de fields de um model.
-	 * Obs.: somente fields com a anotação Column.  
+	 * Obs.: somente fields com a anotação Column são retornados.  
 	 * @return List<Field> 
 	 * @author Everton de Vargas Agilar
 	 */
 	public static List<Field> getFieldsFromModel(final Class<?> classOfModel){
-		Field[] fields = classOfModel.getDeclaredFields();
-		List<Field> result = new ArrayList<>();
-		for (int i = 0; i < fields.length; i++){
-			Field field = fields[i];
-			if (field.isAnnotationPresent(Column.class)){
-				result.add(field);
+		if (classOfModel != null){
+			Field[] fields = classOfModel.getDeclaredFields();
+			List<Field> result = new ArrayList<>();
+			for (int i = 0; i < fields.length; i++){
+				Field field = fields[i];
+				if (field.isAnnotationPresent(Column.class)){
+					result.add(field);
+				}
 			}
+			return result;
+		}else{
+			throw new EmsValidationException("Parâmetro classOfModel não pode ser null para EmsUtil.getFieldsFromModel.");
 		}
-		return result;
 	}
 
 	
@@ -1451,49 +1479,69 @@ public final class EmsUtil {
 	 * @author Everton de Vargas Agilar
 	 */
 	public static Object ldapSearch(final String login) {
-		Hashtable<String, String> env = new Hashtable<String, String>(11);
-		env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
-		env.put(Context.PROVIDER_URL, properties.ldapUrl);  
-		env.put(Context.SECURITY_AUTHENTICATION, "simple");
-		env.put(Context.SECURITY_PRINCIPAL, properties.ldapAdmin);
-		env.put(Context.SECURITY_CREDENTIALS, properties.ldapAdminPasswd);  // admin password in ems_ldap_server.json catalog
-		LdapContext ctx = null;
-		try{
-			ctx = new InitialLdapContext(env, null);
+		if (login != null){
+			Hashtable<String, String> env = new Hashtable<String, String>(11);
+			env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
+			env.put(Context.PROVIDER_URL, properties.ldapUrl);  
+			env.put(Context.SECURITY_AUTHENTICATION, "simple");
+			env.put(Context.SECURITY_PRINCIPAL, properties.ldapAdmin);
+			env.put(Context.SECURITY_CREDENTIALS, properties.ldapAdminPasswd);  // admin password in ems_ldap_server.json catalog
+			LdapContext ctx = null;
 			try{
-				NamingEnumeration<SearchResult> answer = ctx.search("dc=unb,dc=br", "uid="+ login, null);
-				return answer.next().getAttributes();
-			}finally{
-				ctx.close();
+				ctx = new InitialLdapContext(env, null);
+				try{
+					NamingEnumeration<SearchResult> answer = ctx.search("dc=unb,dc=br", "uid="+ login, null);
+					return answer.next().getAttributes();
+				}finally{
+					ctx.close();
+				}
+			} catch (javax.naming.AuthenticationException e) {
+				throw new EmsValidationException("Invalid ldap admin credentials.");
+			} catch (NamingException e){
+				throw new EmsValidationException("Não foi possível pesquisar usuário no servidor LDAP "+ properties.ldapUrl);
 			}
-		} catch (javax.naming.AuthenticationException e) {
-			throw new EmsValidationException("Invalid ldap admin credentials.");
-		} catch (NamingException e){
-			throw new EmsValidationException("Não foi possível pesquisar usuário no servidor LDAP "+ properties.ldapUrl);
+		}else{
+			throw new EmsValidationException("Parâmetro login não pode ser null para EmsUtil.ldapSearch.");
 		}
 	}
 
 	
-	public static List<Map<String, Object>> getObjGenerico(final Object fields, final List<?> listObj){		
-		String[] fieldNames = null;
-		if (fields instanceof String){
-			fieldNames = ((String)fields).split(",");
-		}else if (fields instanceof String[] ){
-			fieldNames = (String[])fields;
-		}else if (fields instanceof List<?>){
-			fieldNames = (String[]) ((List<?>)fields).toArray();
-		}
-		List<Map<String, Object>> result = new ArrayList<Map<String, Object>>(listObj.size());
-		int colSize = fieldNames.length;
-		for(Object obj : listObj){
-			int index = 0;
-			Map<String, Object> objVo = new HashMap<>(colSize);
-			for (String fieldName : fieldNames) {			
-				objVo.put(fieldName, ((Object[])obj)[index++]);
+	/**
+	 * Realiza a conversão de um List<Object> para um List<Map<String, Object>>.
+	 * 
+	 * Para que seja posśivel a conversão é necessário passar a lista dos campos (fields).
+	 * 
+	 * @param fields lista de campos. Pode ser passado como um array de campos, string de campos separado por vírgula ou lista de campos.
+	 * @return List<Map<String, Object>> ou exception EmsValidationException
+	 * @author Everton de Vargas Agilar, 
+	 * @author Rogério Guimarães Sampaio
+	 */
+	public static List<Map<String, Object>> ListObjectToListMap(final Object fields, final List<?> listObj){		
+		if (fields != null && listObj != null){
+			String[] fieldNames = null;
+			if (fields instanceof String){
+				fieldNames = ((String)fields).split(",");
+			}else if (fields instanceof String[] ){
+				fieldNames = (String[])fields;
+			}else if (fields instanceof List<?>){
+				fieldNames = (String[]) ((List<?>)fields).toArray();
+			}else{
+				throw new EmsValidationException("Parâmetro fields não é do tipo correto para EmsUtil.ListObjectToListMap.");
 			}
-			result.add(objVo);
-		}			
-		return result;		
+			List<Map<String, Object>> result = new ArrayList<Map<String, Object>>(listObj.size());
+			int colSize = fieldNames.length;
+			for(Object obj : listObj){
+				int index = 0;
+				Map<String, Object> objVo = new HashMap<>(colSize);
+				for (String fieldName : fieldNames) {			
+					objVo.put(fieldName, ((Object[])obj)[index++]);
+				}
+				result.add(objVo);
+			}			
+			return result;
+		}else{
+			throw new EmsValidationException("Parâmetros fields e ListObj não podem ser null para EmsUtil.ListObjectToListMap.");
+		}
 	}	
 
 	/**
@@ -1948,9 +1996,9 @@ public final class EmsUtil {
 	 */
     @SuppressWarnings("unused")
 	private static void sendHtmlMail(final String to, 
-									final String subject, 
-									final String content,
-									final String[] attachment){
+									 final String subject, 
+									 final String content,
+									 final String[] attachment){
     	MailSenderInfo mailInfo = new MailSenderInfo();
         mailInfo.setMailServerHost(properties.smtp);
         mailInfo.setMailServerPort(Integer.toString(properties.smtpPort));
@@ -2011,7 +2059,11 @@ public final class EmsUtil {
 	 * @author Everton de Vargas Agilar
 	 */
     public static String toSHA1(final String value) {
-        return new String(messageDigestSHA1.digest(value.getBytes()));
+        if (value != null){
+        	return new String(messageDigestSHA1.digest(value.getBytes()));
+        }else{
+        	return "";
+        }
     }
     
 	/**
@@ -2019,7 +2071,92 @@ public final class EmsUtil {
 	 * @author Everton de Vargas Agilar
 	 */
     public static String toBase64(final String value){
-    	return base64Encoder.encodeToString(value.getBytes());
+    	if (value != null){
+    		return base64Encoder.encodeToString(value.getBytes());
+    	}else{
+    		return "";
+    	}
+    }
+
+    
+	/**
+	 * Classe responsável por representar um filtro após o parser.
+	 * @author Everton de Vargas Agilar
+	 */
+    public static class EmsFilterStatement {
+    	StringBuilder where = null;
+    	Map<String, Object> filtro_obj = null;
+    	public EmsFilterStatement(final StringBuilder where, final Map<String, Object> filtro_obj){
+    		this.where = where;
+    		this.filtro_obj = filtro_obj;
+    	}
+    }
+    
+	/**
+	 * Faz o parser do parâmetro filter e retorna a cláusula where para um sql nativo.
+	 * Se não for informado o parâmetro filter ou o filtro for vazio, retorna null.
+	 * Se o filter estiver com sintáxe incorreta, retorna exception EmsValidationException.
+	 * @param filter filtro. Ex.: {"nome":"Everton de Vargas Agilar", "ativo":true}
+	 * @return filtro ou null
+	 * @author Everton de Vargas Agilar
+	 */
+    @SuppressWarnings("unchecked")
+	public static EmsFilterStatement parseSqlNativeFilter(final String filter){
+    	if (filter != null && filter.length() > 5){
+			try{
+				StringBuilder where = null;
+				Map<String, Object> filtro_obj = null;
+				boolean useAnd = false; 
+				filtro_obj = (Map<String, Object>) EmsUtil.fromJson(filter, HashMap.class);
+				where = new StringBuilder(" where ");
+				for (String field : filtro_obj.keySet()){
+					if (useAnd){
+						where.append(" and ");
+					}
+					String[] field_defs = field.split("__");
+					String fieldName;
+					String fieldOperator;
+					String sqlOperator;
+					int field_len = field_defs.length; 
+					if (field_len == 1){
+						fieldName = field;
+						fieldOperator = "=";
+						sqlOperator = "=";
+					} else if (field_len == 2){
+						fieldName = field_defs[0];
+						fieldOperator = field_defs[1];
+						sqlOperator = EmsUtil.fieldOperatorToSqlOperator(fieldOperator);
+					}else{
+						throw new EmsValidationException("Campo de pesquisa "+ field + " inválido.");
+					}
+					if (field_len == 2){
+						if (fieldOperator.equals("isnull")){
+							boolean fieldBoolean = EmsUtil.parseAsBoolean(filtro_obj.get(field)); 
+							if (fieldBoolean){
+								where.append(fieldName).append(" is null ");
+							}else{
+								where.append(fieldName).append(" is not null ");
+							}
+						} else if(fieldOperator.equals("icontains") || fieldOperator.equals("ilike")){
+							fieldName = String.format("lower(this.%s)", fieldName);
+							where.append(fieldName).append(sqlOperator).append("?");
+						}else{
+							fieldName = String.format("this.%s", fieldName);
+							where.append(fieldName).append(sqlOperator).append("?");
+						}
+					}else{
+						fieldName = String.format("this.%s", fieldName);
+						where.append(fieldName).append(sqlOperator).append("?");
+					}
+					useAnd = true;
+				}
+				return new EmsFilterStatement(where, filtro_obj);
+			}catch (Exception e){
+				throw new EmsValidationException("Filtro da pesquisa inválido. Erro interno: "+ e.getMessage());
+			}
+    	}else{
+    		return null;
+    	}
     }
     
 }
