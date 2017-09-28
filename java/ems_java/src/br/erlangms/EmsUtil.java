@@ -8,15 +8,20 @@
  
 package br.erlangms;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -53,6 +58,7 @@ import javax.naming.NamingException;
 import javax.naming.directory.SearchResult;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
+import javax.net.ssl.HttpsURLConnection;
 import javax.persistence.Column;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
@@ -84,6 +90,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
@@ -404,6 +411,48 @@ public final class EmsUtil {
  
         return value;
     }
+	
+	public static String authenticationOauth2(String url, String params) {
+		Gson gson = new Gson();
+		JsonElement element = gson.fromJson(sendPost(url,params), JsonElement.class);
+		JsonObject jsonObj = element.getAsJsonObject();
+		String access_token[] = jsonObj.get("access_token").toString().split("\"");
+		return "Bearer "+access_token[1];
+	}
+	
+	private static String sendPost(String url,String params)  {
+		try {
+			URL obj = new URL(url);
+			HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+	
+			con.setRequestMethod("POST");
+			con.setRequestProperty("User-Agent", "\"Mozilla/5.0\"");
+			con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+	
+			String urlParameters = params;
+	
+			con.setDoOutput(true);
+			DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+			wr.writeBytes(urlParameters);
+			wr.flush();
+			wr.close();
+	
+			BufferedReader in = new BufferedReader(
+			        new InputStreamReader(con.getInputStream()));
+			String inputLine;
+			StringBuffer response = new StringBuffer();
+	
+			while ((inputLine = in.readLine()) != null) {
+				response.append(inputLine);
+			}
+			in.close();
+
+			return response.toString();
+		}catch(Exception e) {
+			throw new RuntimeException("Erro ao obter o token de authenticação");
+		}
+
+	}
 	
 	private static class SerializeStrategy implements ExclusionStrategy {
         public boolean shouldSkipClass(Class<?> c) {

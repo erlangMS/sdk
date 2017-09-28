@@ -1,5 +1,6 @@
 package br.erlangms;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -41,11 +42,37 @@ public class EmsServiceStream {
 					   		.get(String.class);
 		return this;
 	}
+	
+	public <T> List<T> requestOauth2( final String url, final Class<T> classOfObj) {
+		EmsUtil.properties.authorizationHeaderValue = EmsUtil
+				.authenticationOauth2(EmsUtil.properties.ESB_URL+"/authorize","grant_type=client_credentials&client_id=168&client_secret=CPD");
+
+		this.response = EmsUtil.getRestStream()
+					   		.target(EmsUtil.properties.ESB_URL + url)
+					   		.request("application/json")
+					   		.header(EmsUtil.properties.authorizationHeaderName, EmsUtil.properties.authorizationHeaderValue)
+					   		.get(String.class);
+		
+		String verifyList = this.response.substring(0, 1);
+		
+		if(verifyList =="[") {
+			return EmsUtil.fromListJson(this.response, classOfObj);
+		}else {
+			ArrayList<T> listObject = new ArrayList<T>();
+			listObject.add(EmsUtil.fromJson(this.response, classOfObj));
+			return listObject;
+		}
+		
+	}
 
 	public <T> List<T> toList(final Class<T> classOfModel) {
 		return EmsUtil.fromListJson(response.toString(), classOfModel, null);
 	}
-
+	
+	public <T> List<T> toList(final String jsonUrl,final Class<T> classOfModel) {
+		return EmsUtil.fromListJson(jsonUrl, classOfModel, null);
+	}
+	
 	@SuppressWarnings("unchecked")
 	public List<Object> toList() {
 		return (List<Object>) EmsUtil.fromJson(response.toString(), List.class);
