@@ -45,7 +45,6 @@ public class EmsServiceStream {
 	
 	public <T> List<T> requestOauth2( final String url,final Map<String, Object> client, final Class<T> classOfObj) {
 		Double codigo = Double.parseDouble(client.get("codigo").toString());
-		System.out.println(EmsUtil.properties.authorizationHeaderValue);
 		EmsUtil.properties.authorizationHeaderValue = EmsUtil
 				.authenticationOauth2(EmsUtil.properties.ESB_URL+"/authorize"
 						,"grant_type=client_credentials&client_id="+codigo.intValue()
