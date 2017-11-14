@@ -123,6 +123,9 @@ public final class EmsUtil {
 	private static final SimpleDateFormat dateFormatDDMMYYYY = new SimpleDateFormat("dd/MM/yyyy");
 	private static final SimpleDateFormat dateFormatDDMMYYYY_HHmm = new SimpleDateFormat("dd/MM/yyyy HH:mm");
 	private static final SimpleDateFormat dateFormatDDMMYYYY_HHmmss = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+	private static final SimpleDateFormat dateFormatYYYYMMDD = new SimpleDateFormat("yyyy-MM-dd");
+	private static final SimpleDateFormat dateFormatYYYYMMDD_HHmm = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+	private static final SimpleDateFormat dateFormatYYYYMMDD_HHmmss = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	private static MessageDigest messageDigestSHA1 = null;
 	private static java.util.Base64.Encoder base64Encoder = null;
 	static{
@@ -875,7 +878,22 @@ public final class EmsUtil {
 	    							throw new EmsValidationException(m_erro);
 	    						}
 							} catch (ParseException e) {
-								throw new EmsValidationException(m_erro);
+								try {
+									if (len_value == 0){
+										field.set(obj, null);
+									}
+									else if (len_value >= 6 && len_value <= 10){
+		                        		field.set(obj, dateFormatYYYYMMDD.parse((String) new_value));
+		    						}else if (len_value == 16){
+		                        		field.set(obj, dateFormatYYYYMMDD_HHmm.parse((String) new_value));
+		    						}else if (len_value == 19){
+		    							field.set(obj, dateFormatYYYYMMDD_HHmmss.parse((String) new_value));
+		    						}else{
+		    							throw new EmsValidationException(m_erro);
+		    						}
+								} catch (ParseException em) {
+									throw new EmsValidationException(m_erro);
+								}
 							}
 						}else{
 							throw new EmsValidationException(m_erro);
@@ -898,7 +916,22 @@ public final class EmsUtil {
 	    							throw new EmsValidationException(m_erro);
 	    						}
 							} catch (ParseException e) {
-								throw new EmsValidationException(m_erro);
+								try {
+									if (len_value == 0){
+										field.set(obj, null);
+									}
+									else if (len_value >= 6 && len_value <= 10){
+		                        		field.set(obj, new java.sql.Date(dateFormatYYYYMMDD.parse((String) new_value).getTime()));
+		    						}else if (len_value == 16){
+		                        		field.set(obj, new java.sql.Date(dateFormatYYYYMMDD_HHmm.parse((String) new_value).getTime()));
+		    						}else if (len_value == 19){
+		    							field.set(obj, new java.sql.Date(dateFormatYYYYMMDD_HHmmss.parse((String) new_value).getTime()));
+		    						}else{
+		    							throw new EmsValidationException(m_erro);
+		    						}
+								}catch (ParseException em) {
+									throw new EmsValidationException(m_erro);
+								}
 							}
 						}else{
 							throw new EmsValidationException(m_erro);
@@ -922,7 +955,22 @@ public final class EmsUtil {
 	    							throw new EmsValidationException(m_erro);
 	    						}
 							} catch (ParseException e) {
-								throw new EmsValidationException(m_erro);
+								try {
+									if (len_value == 0){
+										field.set(obj, null);
+									}
+									else if (len_value >= 6 && len_value <= 10){
+		                        		field.set(obj, new java.sql.Date(dateFormatYYYYMMDD.parse((String) new_value).getTime()));
+		    						}else if (len_value == 16){
+		                        		field.set(obj, new java.sql.Date(dateFormatYYYYMMDD_HHmm.parse((String) new_value).getTime()));
+		    						}else if (len_value == 19){
+		    							field.set(obj, new java.sql.Date(dateFormatYYYYMMDD_HHmmss.parse((String) new_value).getTime()));
+		    						}else{
+		    							throw new EmsValidationException(m_erro);
+		    						}
+								}catch (ParseException em) {
+									throw new EmsValidationException(m_erro);
+								}
 							}
 							field.set(obj, new_time);
 						}else{
