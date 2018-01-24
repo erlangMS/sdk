@@ -21,10 +21,12 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -37,6 +39,10 @@ import java.util.logging.Logger;
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.activation.FileDataSource;
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import javax.mail.Address;
 import javax.mail.Authenticator;
 import javax.mail.BodyPart;
@@ -66,6 +72,7 @@ import javax.persistence.OneToOne;
 import javax.persistence.Query;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
+import javax.swing.text.MaskFormatter;
 import javax.ws.rs.client.ClientBuilder;
 
 import org.hibernate.Hibernate;
@@ -129,6 +136,9 @@ public final class EmsUtil {
 	private static final SimpleDateFormat dateFormatYYYYMMDD_HHmmss = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	private static MessageDigest messageDigestSHA1 = null;
 	private static java.util.Base64.Encoder base64Encoder = null;
+	private final static String HEX = "0123456789ABCDEF";
+	private final static String seed = "LDAPCorp_pwdupdate";
+
 	static{
 		doubleFormatter = NumberFormat.getInstance(Locale.US);
 		doubleFormatter.setMaximumFractionDigits(2); 
@@ -2221,5 +2231,119 @@ public final class EmsUtil {
     		return null;
     	}
     }
+
     
+	public static String encrypt(String cleartext) throws Exception {
+		byte[] rawKey = getRawKey(seed.getBytes());
+		byte[] result = encrypt(rawKey, cleartext.getBytes());
+		return toHex(result);
+	}
+    
+	public static String decrypt(String encrypted) throws Exception {
+		byte[] rawKey = getRawKey(seed.getBytes());
+		byte[] enc = toByte(encrypted);
+		byte[] result = decrypt(rawKey, enc);
+		return new String(result);
+	}
+
+	private static byte[] getRawKey(byte[] seed) throws Exception {
+		KeyGenerator kgen = KeyGenerator.getInstance("AES");
+		SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
+		sr.setSeed(seed);
+		kgen.init(128, sr); // 192 and 256 bits may not be available
+		SecretKey skey = kgen.generateKey();
+		byte[] raw = skey.getEncoded();
+		return raw;
+	}
+
+	private static byte[] encrypt(byte[] raw, byte[] clear) throws Exception {
+		SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
+		Cipher cipher = Cipher.getInstance("AES");
+		cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
+		byte[] encrypted = cipher.doFinal(clear);
+		return encrypted;
+	}
+
+	private static byte[] decrypt(byte[] raw, byte[] encrypted) throws Exception {
+		SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
+		Cipher cipher = Cipher.getInstance("AES");
+		cipher.init(Cipher.DECRYPT_MODE, skeySpec);
+		byte[] decrypted = cipher.doFinal(encrypted);
+		return decrypted;
+	}
+
+	public static String toHex(String txt) {
+		return toHex(txt.getBytes());
+	}
+
+	public static String fromHex(String hex) {
+		return new String(toByte(hex));
+	}
+
+	public static byte[] toByte(String hexString) {
+		int len = hexString.length()/2;
+		byte[] result = new byte[len];
+		for (int i = 0; i < len; i++)
+			result[i] = Integer.valueOf(hexString.substring(2*i, 2*i+2), 16).byteValue();
+		return result;
+	}
+
+	public static String toHex(byte[] buf) {
+		if (buf == null)
+			return "";
+		StringBuffer result = new StringBuffer(2*buf.length);
+		for (int i = 0; i < buf.length; i++) {
+			appendHex(result, buf[i]);
+		}
+		return result.toString();
+	}
+
+	private static void appendHex(StringBuffer sb, byte b) {
+		sb.append(HEX.charAt((b>>4)&0x0f)).append(HEX.charAt(b&0x0f));
+	}
+	
+	public static byte[] toSHA1(byte[] convertme) {
+	    MessageDigest md = null;
+	    try {
+	        md = MessageDigest.getInstance("SHA-1");
+	    }
+	    catch(NoSuchAlgorithmException e) {
+	        e.printStackTrace();
+	    } 
+	    return md.digest(convertme);
+	}
+	
+	public static String encode64(String str){	        
+		String strenc = "";
+		try{
+            Base64.Encoder enc= Base64.getEncoder();	            
+            strenc = new String(enc.encode(str.getBytes("UTF-8")));
+        }
+        catch(Exception e){
+            System.out.println("Exception");
+        }
+        
+        return strenc;
+	}
+	public static String decode64(String str){
+		
+		String strdec = "";
+		
+		try{		
+	        Base64.Decoder dec= Base64.getDecoder(); 
+	        strdec = new String(dec.decode(str.getBytes("UTF-8")));
+		}
+        catch(Exception e){
+            System.out.println("Exception");
+        }		
+		return strdec;
+	
+	}	
+
+    public static String formatarString(final String texto, final String mascara) throws ParseException {
+        MaskFormatter mf = new MaskFormatter(mascara);
+        mf.setValueContainsLiteralCharacters(false);
+        return mf.valueToString(texto);
+    }
+	
 }
