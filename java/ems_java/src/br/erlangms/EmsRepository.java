@@ -619,6 +619,17 @@ public abstract class EmsRepository<Model> {
 	 * @author Everton de Vargas Agilar
 	 */
 	public Model update(final Model obj){
+		return update(obj, true);
+	}
+	
+	/**
+	 * Persiste as modificações de um objeto.
+	 * @param obj objeto que será persistido
+	 * @param flush indica se deve fazer flush no hibernate
+	 * @return objeto persistido
+	 * @author Everton de Vargas Agilar
+	 */
+	public Model update(final Model obj, boolean flush){
 		if (obj != null){
 			Integer idValue = EmsUtil.getIdFromObject(obj);
 			if (idValue != null && idValue >= 0){
@@ -627,13 +638,14 @@ public abstract class EmsRepository<Model> {
 			}else{
 				throw new EmsValidationException("Não é possível atualizar objeto sem id em EmsRepository.update.");
 			}
-			entityManager.flush();
+			if (flush)
+				entityManager.flush();
 			return obj;
 		}else{
 			throw new EmsValidationException("Parâmetro obj não pode ser null para EmsRepository.update.");
 		}
 	}
-	
+
 	/**
 	 * Insere um novo objeto.
 	 * @param obj objeto que será inserido
@@ -641,6 +653,17 @@ public abstract class EmsRepository<Model> {
 	 * @author Everton de Vargas Agilar
 	 */
 	public Model insert(final Model obj){
+		return insert(obj, true);
+	}
+
+	/**
+	 * Insere um novo objeto.
+	 * @param obj objeto que será inserido
+     * @param flush indica se deve fazer flush no hibernate
+	 * @return objeto inserido
+	 * @author Everton de Vargas Agilar
+	 */
+	public Model insert(final Model obj, boolean flush){
 		if (obj != null){
 			if (getIdFromObject(obj) != null){
 				throw new EmsValidationException("Não é possível incluir objeto que já possui identificador.");
@@ -648,7 +671,8 @@ public abstract class EmsRepository<Model> {
 				if (hasContraints) checkConstraints(obj, true);
 				entityManager.persist(obj);
 			}
-			entityManager.flush();
+			if (flush)
+				entityManager.flush();
 			return obj;
 		}else{
 			throw new EmsValidationException("Parâmetro obj não pode ser null para EmsRepository.insert.");
@@ -706,6 +730,17 @@ public abstract class EmsRepository<Model> {
 	 * @author Everton de Vargas Agilar
 	 */
 	public Model insertOrUpdate(final Model obj){
+		return insertOrUpdate(obj, true);
+	}
+	
+	/**
+	 * Insere ou atualiza um objeto.
+	 * @param obj objeto que será inserido ou atualizado.
+	 * @param flush indica se deve fazer flush no hibernate
+	 * @return objeto inserido ou atualizado
+	 * @author Everton de Vargas Agilar
+	 */
+	public Model insertOrUpdate(final Model obj, boolean flush){
 		if (obj != null){
 			Integer idValue = EmsUtil.getIdFromObject(obj);
 			if (idValue != null && idValue >= 0){
@@ -715,13 +750,14 @@ public abstract class EmsRepository<Model> {
 				if (hasContraints) checkConstraints(obj, true);
 				entityManager.persist(obj);
 			}
-			entityManager.flush();
+			if (flush)
+				entityManager.flush();
 			return obj;
 		}else{
 			throw new EmsValidationException("Parâmetro obj não pode ser null para EmsRepository.insertOrUpdate.");
 		}
 	}
-	
+
 	/**
 	 * Exclui um objeto.
 	 * @param id identificador do objeto

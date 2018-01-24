@@ -18,6 +18,7 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.NumberFormat;
@@ -758,6 +759,15 @@ public final class EmsUtil {
 	}
 	
 		
+	public static byte[] toByteArray(List new_value) {
+	    final int n = new_value.size(); 
+	    byte ret[] = new byte[n];
+	    for (int i = 0; i < n; i++) {
+	      double valor = (double)new_value.get(i);
+	      ret[i] = (byte) valor;
+	    }
+	    return ret;
+	}	
 	
 	/**
 	 * Seta os valores no objeto a partir de um map.
@@ -995,6 +1005,11 @@ public final class EmsUtil {
 						}catch (Exception e){
 							throw new EmsValidationException(field_name + " não é válido.");
 						}
+					}else if (tipo_field == byte[].class){
+						byte[] value = null;
+						value = toByteArray((ArrayList)new_value);
+						
+						field.set(obj, value);
 					}else if (tipo_field instanceof Object && 
 							  findFieldByAnnotation(tipo_field, Id.class) != null){
 						try{
