@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
+import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
 import com.ericsson.otp.erlang.OtpErlangExit;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -29,6 +30,7 @@ import com.ericsson.otp.erlang.OtpNode;
 import br.erlangms.EmsUtil.EmsProperties;
 
 public class EmsConnection extends Thread{
+	public static final OtpErlangAtom ok_atom = new OtpErlangAtom("ok");
 	private static final EmsProperties properties = EmsUtil.properties;
 	private static final OtpErlangBinary result_ok = EmsUtil.result_ok; 
 	private static final Logger logger = EmsUtil.logger;
@@ -142,10 +144,11 @@ public class EmsConnection extends Thread{
 	           while(true){ 
 	        	   try {
 	                   if (Thread.interrupted()) throw new InterruptedException();
-	                   myObject = myMbox.receive(properties.msg_timeout);  
+	                   //myObject = myMbox.receive(properties.msg_timeout);
+	                   myObject = myMbox.receive();
 	                   if (Thread.interrupted()) throw new InterruptedException();
 	                   // quando a mensagem for null é um timeout de inatividade. Reinicia tudo
-	                   if (myObject == null){
+	                   /*if (myObject == null){
 	                		   if (debug){
 	                			   logger.info(msgReinicio);
 	                		   }
@@ -153,11 +156,14 @@ public class EmsConnection extends Thread{
 	                		   myNode.close();
 	                		   printInfo = false;
 	                		   continue InitWork;
-	                   }
+	                   }*/
 	                   myMsg = (OtpErlangTuple) myObject;
+	                   dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
+	                   myMbox.send(dispatcherPid, ok_atom);
+
 	                   otp_request = (OtpErlangTuple) myMsg.elementAt(0);
 	                   request = new EmsRequest(otp_request);
-	                   dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
+
 	                   msg_task.setLength(0);
 	                   msg_task.append(request.getMetodo()).append(" ").append(request.getModulo())
 	    						.append(".").append(request.getFunction()).append(" [RID: ")
@@ -166,7 +172,10 @@ public class EmsConnection extends Thread{
 	                    
 	                    // Delega o trabalho para um worker
 	                    pool.submit(new Task(dispatcherPid, request, myMbox));
-	        	   
+		               	//Object ret = chamaMetodo(request.getModulo(), request.getFunction(), request);
+		            	//OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
+		            	//myMbox.send(dispatcherPid, response);
+
 	        	   } catch(final OtpErlangExit e3) {
 	        		   // Somente sai do loop se a thead foi interrompida
 	        		   if (Thread.interrupted()){
