@@ -164,17 +164,18 @@ public class EmsConnection extends Thread{
 	                   otp_request = (OtpErlangTuple) myMsg.elementAt(0);
 	                   request = new EmsRequest(otp_request);
 
+                    
+	                    // Delega o trabalho para um worker
+	                   pool.submit(new Task(dispatcherPid, request, myMbox));
+		               	//Object ret = chamaMetodo(request.getModulo(), request.getFunction(), request);
+		            	//OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
+		            	//myMbox.send(dispatcherPid, response);
+
 	                   msg_task.setLength(0);
 	                   msg_task.append(request.getMetodo()).append(" ").append(request.getModulo())
 	    						.append(".").append(request.getFunction()).append(" [RID: ")
 	    						.append(request.getRID()).append(", ").append(request.getUrl()).append("]");
 	                   logger.info(msg_task.toString());
-	                    
-	                    // Delega o trabalho para um worker
-	                    pool.submit(new Task(dispatcherPid, request, myMbox));
-		               	//Object ret = chamaMetodo(request.getModulo(), request.getFunction(), request);
-		            	//OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
-		            	//myMbox.send(dispatcherPid, response);
 
 	        	   } catch(final OtpErlangExit e3) {
 	        		   // Somente sai do loop se a thead foi interrompida
