@@ -35,7 +35,7 @@ public class EmsConnection extends Thread{
 	private static final OtpErlangBinary result_ok = EmsUtil.result_ok; 
 	private static final Logger logger = EmsUtil.logger;
 	private String otpNodeName;
-	private final String nomeService;
+	private final String nameService;
 	private final EmsServiceFacade facade;
 	private Class<? extends EmsServiceFacade> classOfFacade;
 	private static OtpErlangPid dispatcherPid;
@@ -49,11 +49,11 @@ public class EmsConnection extends Thread{
 	private OtpMbox myMbox;
 
 	
-	public EmsConnection(final EmsServiceFacade facade){
+	public EmsConnection(final EmsServiceFacade facade, final String otpNodeName){
 		this.facade = facade;
 		this.classOfFacade = facade.getClass();
-		this.nomeService = classOfFacade.getName();
-		this.otpNodeName = this.nomeService.replace(".",  "_") + "_" + properties.nodeName;
+		this.nameService = this.classOfFacade.getName();
+		this.otpNodeName = otpNodeName.replace(".",  "_") + "_" + properties.nodeName;
 		this.connectionErrorMessage = "Não foi possível realizar conexão ao barramento ERLANGMS. Verifique se o servidor de nome epmd foi iniciado.";
 		getMethodNamesTable();
 	}
@@ -104,9 +104,9 @@ public class EmsConnection extends Thread{
         ExecutorService pool = Executors.newCachedThreadPool();
         boolean printInfo = true;
         boolean debug = EmsUtil.properties.debug;
-        final String msgReinicio = "Reiniciando serviço "+ nomeService + " ocioso para renovar recursos.";
-        final String msgFinalizadoSucesso = nomeService + " finalizado com sucesso.";
-        final String msgReiniciarException = "Serviço "+ nomeService + " será reiniado devido erro interno: ";
+        final String msgReinicio = "Reiniciando serviço "+ nameService + " ocioso para renovar recursos.";
+        final String msgFinalizadoSucesso = nameService + " finalizado com sucesso.";
+        final String msgReiniciarException = "Serviço "+ nameService + " será reiniado devido erro interno: ";
         InitWork:
         while (true){
     		try {
@@ -135,9 +135,9 @@ public class EmsConnection extends Thread{
 	    		}
 	    	   
 	    	   myNode.setCookie(properties.cookie);
-	           myMbox = myNode.createMbox(nomeService);
+	           myMbox = myNode.createMbox(nameService);
 	           if (printInfo || debug){
-	        	   logger.info(nomeService + " node -> " + myNode.node());
+	        	   logger.info(nameService + " node -> " + myNode.node());
 	           }
 	           
 	           // Permanece neste loop aguardando mensagens do barramento
@@ -146,7 +146,6 @@ public class EmsConnection extends Thread{
 	                   if (Thread.interrupted()) throw new InterruptedException();
 	                   //myObject = myMbox.receive(properties.msg_timeout);
 	                   myObject = myMbox.receive();
-	                   if (Thread.interrupted()) throw new InterruptedException();
 	                   // quando a mensagem for null é um timeout de inatividade. Reinicia tudo
 	                   /*if (myObject == null){
 	                		   if (debug){
@@ -172,9 +171,9 @@ public class EmsConnection extends Thread{
 		            	//myMbox.send(dispatcherPid, response);
 
 	                   msg_task.setLength(0);
-	                   msg_task.append(request.getMetodo()).append(" ").append(request.getModulo())
-	    						.append(".").append(request.getFunction()).append(" [RID: ")
-	    						.append(request.getRID()).append(", ").append(request.getUrl()).append("]");
+	                   msg_task.append(this.otpNodeName)
+	    						.append(" [ ").append(request.getMetodo()).append(" ").append(request.getFunction()).append(" RID: ")
+	    						.append(request.getRID()).append("  Url: ").append(request.getUrl()).append("]");
 	                   logger.info(msg_task.toString());
 
 	        	   } catch(final OtpErlangExit e3) {
