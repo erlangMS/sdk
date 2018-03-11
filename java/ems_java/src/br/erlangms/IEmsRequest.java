@@ -50,4 +50,5 @@ public interface IEmsRequest {
 	public String getScope();
 	public long getT1();
 	public long getTimeout();
+	public boolean isPostOrUpdateRequest();
 }

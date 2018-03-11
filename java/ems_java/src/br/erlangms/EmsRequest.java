@@ -34,6 +34,18 @@ public class EmsRequest implements IEmsRequest {
 		this.properties = null;
 		this.queryCount = -1;
 	}
+
+	public EmsRequest(){
+		this.otp_request = null;
+		this.properties = null;
+		this.queryCount = -1;
+	}
+	
+	public void setOtpRequest(final OtpErlangTuple otp_request) {
+		this.otp_request = otp_request;
+		this.properties = null;
+		this.queryCount = -1;
+	}
 	
 	/**
 	 * Retorna o Request Identifier (RID) do request.
@@ -570,6 +582,11 @@ public class EmsRequest implements IEmsRequest {
 	@Override
 	public long getTimeout() {
 		return ((OtpErlangLong)otp_request.elementAt(14)).longValue();
+	}
+
+	public boolean isPostOrUpdateRequest() {
+		String method = getMetodo();
+		return method.equals("POST") || method.equals("PUT");
 	}
 	
 }

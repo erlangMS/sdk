@@ -34,17 +34,16 @@ public class EmsConnection extends Thread{
 	private static final EmsProperties properties = EmsUtil.properties;
 	private static final OtpErlangBinary result_ok = EmsUtil.result_ok; 
 	private static final Logger logger = EmsUtil.logger;
-	private String otpNodeName;
+	private static boolean erro_connection_epmd  = false;
+	private static final int THREAD_WAIT_TO_RESTART = 5000;
+	private static final String connectionErrorMessage = "Não foi possível realizar conexão ao barramento ERLANGMS. Verifique se o servidor de nome epmd foi iniciado.";
 	private final String nameService;
 	private final EmsServiceFacade facade;
 	private Class<? extends EmsServiceFacade> classOfFacade;
-	private static OtpErlangPid dispatcherPid;
 	private Method methods[];
 	private String method_names[];
 	private int method_count = 0;
-	private static boolean erro_connection_epmd  = false;
-	private static final int THREAD_WAIT_TO_RESTART = 5000;
-	private String connectionErrorMessage;
+	private String otpNodeName;
 	private OtpNode myNode;
 	private OtpMbox myMbox;
 
@@ -54,7 +53,6 @@ public class EmsConnection extends Thread{
 		this.classOfFacade = facade.getClass();
 		this.nameService = this.classOfFacade.getName();
 		this.otpNodeName = otpNodeName.replace(".",  "_") + "_" + properties.nodeName;
-		this.connectionErrorMessage = "Não foi possível realizar conexão ao barramento ERLANGMS. Verifique se o servidor de nome epmd foi iniciado.";
 		getMethodNamesTable();
 	}
 	
@@ -99,7 +97,8 @@ public class EmsConnection extends Thread{
         OtpErlangObject myObject;
         OtpErlangTuple myMsg;
         OtpErlangTuple otp_request;
-        IEmsRequest request;
+    	OtpErlangPid dispatcherPid;
+        EmsRequest request;
         StringBuilder msg_task = new StringBuilder();
         ExecutorService pool = Executors.newCachedThreadPool();
         boolean printInfo = true;
@@ -142,23 +141,28 @@ public class EmsConnection extends Thread{
 	           while(true){ 
 	        	   try {
 	                   if (Thread.interrupted()) throw new InterruptedException();
+	                   request = new EmsRequest();
+	                   msg_task.setLength(0);
+	                   msg_task.append(this.otpNodeName).append(" [ ");
 	                   myObject = myMbox.receive();
 	                   myMsg = (OtpErlangTuple) myObject;
+	                   otp_request = (OtpErlangTuple) myMsg.elementAt(0);
+	                   request.setOtpRequest(otp_request);
+	                   Long T2 = System.currentTimeMillis() - request.getT1();
+	                   if (T2 > request.getTimeout() || (T2 > 6000 && request.isPostOrUpdateRequest())) {
+	                	   logger.info("Serviço "+ nameService + " descartou mensagem tardia.");
+	                	   continue;
+	                   }
 	                   dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
 	                   myMbox.send(dispatcherPid, ok_atom);
-
-	                   otp_request = (OtpErlangTuple) myMsg.elementAt(0);
-	                   request = new EmsRequest(otp_request);
-                    
-	                    // Delega o trabalho para um worker
-	                   pool.submit(new Task(dispatcherPid, request, myMbox));
-
-	                   msg_task.setLength(0);
-	                   msg_task.append(this.otpNodeName)
-	    						.append(" [ ").append(request.getMetodo()).append(" ").append(request.getFunction()).append(" RID: ")
-	    						.append(request.getRID()).append("  Url: ").append(request.getUrl()).append("]");
+                	   pool.submit(new Task(dispatcherPid, request, myMbox));
+	                   msg_task.append(request.getMetodo()).append(" ")
+	                   			.append(request.getFunction()).append(" RID: ")
+	    						.append(request.getRID()).append("  Url: ")
+	    						.append(request.getUrl())
+	    						.append("  T2: ").append(Long.toString(T2))
+	    						.append(" ]");
 	                   logger.info(msg_task.toString());
-
 	        	   } catch(final OtpErlangExit e3) {
 	        		   // Somente sai do loop se a thead foi interrompida
 	        		   if (Thread.interrupted()){
@@ -174,6 +178,7 @@ public class EmsConnection extends Thread{
 	    	       }
 	           }
 	    	} catch (final InterruptedException e2) {
+	    		close();
 	    		logger.info(msgFinalizadoSucesso);
 	    		return;
 	    	} catch (final Exception e) {
@@ -181,6 +186,7 @@ public class EmsConnection extends Thread{
 	    		logger.warning(msgReiniciarException + e.getMessage());
 	    		e.printStackTrace();
 	    		printInfo = true;
+	    		close();
 	    		try {
 					Thread.sleep(THREAD_WAIT_TO_RESTART);
 				} catch (InterruptedException e1) {
