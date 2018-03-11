@@ -48,4 +48,6 @@ public interface IEmsRequest {
 	public Map<String, Object> getCatalog();
 	public String getContentType();
 	public String getScope();
+	public long getT1();
+	public long getTimeout();
 }

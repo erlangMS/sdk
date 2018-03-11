@@ -104,10 +104,8 @@ public class EmsConnection extends Thread{
         ExecutorService pool = Executors.newCachedThreadPool();
         boolean printInfo = true;
         boolean debug = EmsUtil.properties.debug;
-        final String msgReinicio = "Reiniciando serviço "+ nameService + " ocioso para renovar recursos.";
         final String msgFinalizadoSucesso = nameService + " finalizado com sucesso.";
         final String msgReiniciarException = "Serviço "+ nameService + " será reiniado devido erro interno: ";
-        InitWork:
         while (true){
     		try {
 	    		// Permanece neste loop até conseguir conexão com o barramento (EPMD deve estar ativo)
@@ -144,31 +142,16 @@ public class EmsConnection extends Thread{
 	           while(true){ 
 	        	   try {
 	                   if (Thread.interrupted()) throw new InterruptedException();
-	                   //myObject = myMbox.receive(properties.msg_timeout);
 	                   myObject = myMbox.receive();
-	                   // quando a mensagem for null é um timeout de inatividade. Reinicia tudo
-	                   /*if (myObject == null){
-	                		   if (debug){
-	                			   logger.info(msgReinicio);
-	                		   }
-	                	   	   myMbox.close();
-	                		   myNode.close();
-	                		   printInfo = false;
-	                		   continue InitWork;
-	                   }*/
 	                   myMsg = (OtpErlangTuple) myObject;
 	                   dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
 	                   myMbox.send(dispatcherPid, ok_atom);
 
 	                   otp_request = (OtpErlangTuple) myMsg.elementAt(0);
 	                   request = new EmsRequest(otp_request);
-
                     
 	                    // Delega o trabalho para um worker
 	                   pool.submit(new Task(dispatcherPid, request, myMbox));
-		               	//Object ret = chamaMetodo(request.getModulo(), request.getFunction(), request);
-		            	//OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
-		            	//myMbox.send(dispatcherPid, response);
 
 	                   msg_task.setLength(0);
 	                   msg_task.append(this.otpNodeName)

@@ -551,5 +551,25 @@ public class EmsRequest implements IEmsRequest {
 	public String getScope() {
 		return new String(((OtpErlangBinary)otp_request.elementAt(12)).binaryValue());
 	}
+
+	/**
+	 * Obter o T1 do request.
+	 * @return long 
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
+	public long getT1() {
+		return ((OtpErlangLong)otp_request.elementAt(13)).longValue();
+	}
+
+	/**
+	 * Obter o timeout do request.
+	 * @return int 
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
+	public long getTimeout() {
+		return ((OtpErlangLong)otp_request.elementAt(14)).longValue();
+	}
 	
 }
