@@ -24,27 +24,48 @@ import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
 public class EmsRequest implements IEmsRequest {
-	private OtpErlangTuple otp_request;
+	private OtpErlangTuple otp_request = null;
 	private static OtpErlangAtom undefined = new OtpErlangAtom("undefined");
-	private Map<String, Object> properties;
-	private int queryCount;
+	private Map<String, Object> properties = null;
+	private int queryCount = -1;
+	private long rid = 0L;
+	private long timeout = 0L;
+	private long t1 = 0L;
+	private boolean isPostOrUpdateRequestFlag = false;
+	private String method = null;
+	private String url = null;
+	private Map<String, Object> userJson = null;
+	private Map<String, Object> clientJson = null;
+	private String contentType = null;
+	private String modulo = null;
+	private String function = null;
+	private String payload = null;
+	private int paramCount = 0;
 
 	public EmsRequest(final OtpErlangTuple otp_request){
-		this.otp_request = otp_request;
-		this.properties = null;
-		this.queryCount = -1;
+		setOtpRequest(otp_request);
 	}
 
 	public EmsRequest(){
-		this.otp_request = null;
-		this.properties = null;
-		this.queryCount = -1;
 	}
 	
 	public void setOtpRequest(final OtpErlangTuple otp_request) {
 		this.otp_request = otp_request;
 		this.properties = null;
 		this.queryCount = -1;
+		this.rid = ((OtpErlangLong)otp_request.elementAt(0)).longValue();
+		this.timeout = ((OtpErlangLong)otp_request.elementAt(14)).longValue(); 
+		this.t1 = ((OtpErlangLong)otp_request.elementAt(13)).longValue();
+		this.method = ((OtpErlangString)otp_request.elementAt(2)).stringValue();
+		this.url = ((OtpErlangString)otp_request.elementAt(1)).stringValue();
+		this.isPostOrUpdateRequestFlag = method.equals("POST") || method.equals("PUT");
+		this.contentType = new String(((OtpErlangBinary)otp_request.elementAt(6)).binaryValue());
+		this.modulo = ((OtpErlangString)otp_request.elementAt(7)).stringValue();
+		this.function = ((OtpErlangString)otp_request.elementAt(8)).stringValue();
+		this.payload = new String(((OtpErlangBinary)otp_request.elementAt(5)).binaryValue());
+		this.paramCount = ((OtpErlangMap)otp_request.elementAt(3)).arity();
+		this.userJson = null;
+		this.clientJson = null;
 	}
 	
 	/**
@@ -54,7 +75,7 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public long getRID(){
-		return ((OtpErlangLong)otp_request.elementAt(0)).longValue();
+		return rid;
 	}
 
 	/**
@@ -64,7 +85,7 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public String getUrl(){
-		return ((OtpErlangString)otp_request.elementAt(1)).stringValue();
+		return url;
 	}
 	
 	/**
@@ -74,7 +95,7 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public String getMetodo(){
-		return ((OtpErlangString)otp_request.elementAt(2)).stringValue();
+		return method;
 	}
 
 	/**
@@ -84,16 +105,7 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public int getParamsCount(){
-		try{
-			OtpErlangObject Params = otp_request.elementAt(3);
-			if (!Params.equals(undefined)){
-				return ((OtpErlangMap) Params).arity();
-			}else{
-				return 0;
-			}
-		}catch (Exception e){
-			throw new EmsValidationException("Não foi possível obter a quantidade de parâmetros do request.");
-		}
+		return paramCount;
 	}
 
 	/**
@@ -337,7 +349,7 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public String getPayload(){
-		return new String(((OtpErlangBinary)otp_request.elementAt(5)).binaryValue());
+		return payload;
 	}
 
 	/**
@@ -441,7 +453,7 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public String getContentType(){
-		return ((OtpErlangString)otp_request.elementAt(6)).stringValue();
+		return contentType;
 	}
 
 	/**
@@ -451,7 +463,7 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public String getModulo(){
-		return ((OtpErlangString)otp_request.elementAt(7)).stringValue();
+		return modulo;
 	}
 
 	/**
@@ -461,7 +473,7 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public String getFunction(){
-		return ((OtpErlangString)otp_request.elementAt(8)).stringValue();
+		return function;
 	}
 
 	/**
@@ -514,12 +526,15 @@ public class EmsRequest implements IEmsRequest {
 	@SuppressWarnings("unchecked")
 	@Override
 	public Map<String, Object> getClient() {
-		try{
-			String clientJson = new String(((OtpErlangBinary)otp_request.elementAt(9)).binaryValue());
-			return (Map<String, Object>) EmsUtil.fromJson(clientJson, HashMap.class);
-		}catch (Exception e){
-			throw new EmsValidationException("Não foi possível obter o client do request. Erro interno: "+ e.getMessage());
+		if (clientJson == null) {
+			try{
+				String clientJsonString = new String(((OtpErlangBinary)otp_request.elementAt(9)).binaryValue());
+				clientJson = (Map<String, Object>) EmsUtil.fromJson(clientJsonString, HashMap.class);
+			}catch (Exception e){
+				throw new EmsValidationException("Não foi possível obter o client do request. Erro interno: "+ e.getMessage());
+			}
 		}
+		return clientJson;
 	}
 	
 	/**
@@ -530,12 +545,15 @@ public class EmsRequest implements IEmsRequest {
 	@SuppressWarnings("unchecked")
 	@Override
 	public Map<String, Object> getUser() {
-		try{
-			String userJson = new String(((OtpErlangBinary)otp_request.elementAt(10)).binaryValue());
-			return (Map<String, Object>) EmsUtil.fromJson(userJson, HashMap.class);
-		}catch (Exception e){
-			throw new EmsValidationException("Não foi possível obter o user do request. Erro interno: "+ e.getMessage());
+		if (userJson == null) {
+			try{
+				String userJsonString = new String(((OtpErlangBinary)otp_request.elementAt(10)).binaryValue());
+				userJson = (Map<String, Object>) EmsUtil.fromJson(userJsonString, HashMap.class);
+			}catch (Exception e){
+				throw new EmsValidationException("Não foi possível obter o user do request. Erro interno: "+ e.getMessage());
+			}
 		}
+		return userJson;
 	}
 
 	/**
@@ -571,7 +589,7 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public long getT1() {
-		return ((OtpErlangLong)otp_request.elementAt(13)).longValue();
+		return t1;
 	}
 
 	/**
@@ -581,12 +599,17 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public long getTimeout() {
-		return ((OtpErlangLong)otp_request.elementAt(14)).longValue();
+		return timeout;
 	}
 
+	/**
+	 * Is POST ou PUT request
+	 * @return boolean 
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
 	public boolean isPostOrUpdateRequest() {
-		String method = getMetodo();
-		return method.equals("POST") || method.equals("PUT");
+		return isPostOrUpdateRequestFlag;
 	}
 	
 }
