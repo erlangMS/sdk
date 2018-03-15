@@ -105,6 +105,7 @@ public class EmsConnection extends Thread{
         boolean debug = EmsUtil.properties.debug;
         final String msgFinalizadoSucesso = nameService + " finalizado com sucesso.";
         final String msgReiniciarException = "Serviço "+ nameService + " será reiniado devido erro interno: ";
+        int PostUpdateTimeout = EmsUtil.properties.postUpdateTimeout;
         while (true){
     		try {
 	    		// Permanece neste loop até conseguir conexão com o barramento (EPMD deve estar ativo)
@@ -149,7 +150,7 @@ public class EmsConnection extends Thread{
 	                   otp_request = (OtpErlangTuple) myMsg.elementAt(0);
 	                   request.setOtpRequest(otp_request);
 	                   Long T2 = System.currentTimeMillis() - request.getT1();
-	                   if (T2 > request.getTimeout() || (T2 > 7000 && request.isPostOrUpdateRequest())) {
+	                   if (T2 > request.getTimeout() || (T2 > PostUpdateTimeout && request.isPostOrUpdateRequest())) {
 	                	   logger.info("Serviço "+ nameService + "." + request.getMetodo() + " descartou mensagem tardia.");
 	                	   continue;
 	                   }

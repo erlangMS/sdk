@@ -768,6 +768,7 @@ public final class EmsUtil {
 	}
 	
 		
+	@SuppressWarnings("rawtypes")
 	public static byte[] toByteArray(List new_value) {
 	    final int n = new_value.size(); 
 	    byte ret[] = new byte[n];
@@ -1667,6 +1668,7 @@ public final class EmsUtil {
     	public String ldapUrl;				// Ex: ldap://localhost:2389
 		public String ldapAdmin;			// Ex: cn=admin,dc=unb,dc=br
 		public String ldapAdminPasswd;		// Ex: 123456
+		public int postUpdateTimeout;		// Ex: 30000
     }
     
 	/**
@@ -1845,6 +1847,20 @@ public final class EmsUtil {
 			prop.msg_timeout = 60000;
 		}
 
+		String tmp_postUpdateTimeout = System.getProperty("ems_post_update_timeout");
+		if (tmp_postUpdateTimeout != null){
+			try{
+				prop.postUpdateTimeout = Integer.parseInt(tmp_postUpdateTimeout);
+				if (prop.postUpdateTimeout < 15000) {
+					prop.postUpdateTimeout = prop.postUpdateTimeout  + 5000;
+				}
+			}catch (NumberFormatException e){
+				prop.postUpdateTimeout = 30000;
+			}
+		}else{
+			prop.postUpdateTimeout = 30000;
+		}
+		
 	   return prop;
 	}
 

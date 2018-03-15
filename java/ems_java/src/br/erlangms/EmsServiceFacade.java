@@ -20,6 +20,8 @@ public abstract class EmsServiceFacade {
 	private EmsConnection connection1 = null;
 	private EmsConnection connection2 = null;
 	private EmsConnection connection3 = null;
+	private EmsConnection connection4 = null;
+	private EmsConnection connection5 = null;
        	
     @PostConstruct
     public void initialize() {
@@ -32,6 +34,10 @@ public abstract class EmsServiceFacade {
         connection2.start();
         connection3 = new EmsConnection(this, className + "03");
         connection3.start();
+        connection4 = new EmsConnection(this, className + "04");
+        connection4.start();
+        connection5 = new EmsConnection(this, className + "05");
+        connection5.start();
     }
     
 	@PreDestroy
@@ -44,6 +50,10 @@ public abstract class EmsServiceFacade {
 		connection2.interrupt();
 		connection3.close();
 		connection3.interrupt();
+		connection4.close();
+		connection4.interrupt();
+		connection5.close();
+		connection5.interrupt();
 	}
 
    
