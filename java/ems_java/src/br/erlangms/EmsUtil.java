@@ -665,8 +665,10 @@ public final class EmsUtil {
 						}else if (value_field instanceof Double){
 							query.setParameter(p++, ((Double)value_field).intValue());
 						}else if( value_field instanceof ArrayList<?>){
+							//Used in the IN clause, accepts only homogeneous arrays of strings or doubles.
 							List<Integer> value_field_parameter = new ArrayList<Integer>();
 							if (((ArrayList) value_field).size() > 0) {
+								//Tests the type of the array using the first position
 								if (((ArrayList) value_field).get(0) instanceof String) {
 									for (String string : (ArrayList<String>)value_field) {
 										value_field_parameter.add(Integer.parseInt(string));
@@ -676,7 +678,6 @@ public final class EmsUtil {
 										value_field_parameter.add(doubleValue.intValue());
 									}
 								} 
-								
 							}
 							query.setParameter(p++, value_field_parameter);
 						}else{
@@ -685,6 +686,20 @@ public final class EmsUtil {
 					}else if (paramType == BigDecimal.class){
 						if (value_field instanceof String){
 							query.setParameter(p++, BigDecimal.valueOf(Double.parseDouble((String) value_field)));
+						}else if( value_field instanceof ArrayList<?>){
+							List<BigDecimal> value_field_parameter = new ArrayList<BigDecimal>();
+							if (((ArrayList) value_field).size() > 0) {
+								if (((ArrayList) value_field).get(0) instanceof String) {
+									for (String string : (ArrayList<String>)value_field) {
+										value_field_parameter.add(BigDecimal.valueOf(Double.valueOf(string)));
+									}
+								} else if (((ArrayList) value_field).get(0) instanceof Double) {
+									for (Double doubleValue : (ArrayList<Double>)value_field) {
+										value_field_parameter.add(BigDecimal.valueOf(doubleValue));
+									}
+								}
+							}
+							query.setParameter(p++, value_field_parameter);
 						}else{
 							query.setParameter(p++,  BigDecimal.valueOf((double) value_field));
 						}
