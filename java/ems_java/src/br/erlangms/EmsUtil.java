@@ -678,7 +678,7 @@ public final class EmsUtil {
 								} 
 								
 							}
-							query.setParameter(field_name, value_field_parameter);
+							query.setParameter(p++, value_field_parameter);
 						}else{
 							query.setParameter(p++, value_field);
 						}

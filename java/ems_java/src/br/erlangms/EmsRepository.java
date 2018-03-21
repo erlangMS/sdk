@@ -851,6 +851,7 @@ public abstract class EmsRepository<Model> {
 				boolean useAnd = false; 
 				filtro_obj = (Map<String, Object>) EmsUtil.fromJson(filter, HashMap.class);
 				where = new StringBuilder("where ");
+				int p = 1;
 				for (String field : filtro_obj.keySet()){
 					if (useAnd){
 						where.append(" and ");
@@ -887,20 +888,18 @@ public abstract class EmsRepository<Model> {
 							}
 						} else if(fieldOperator.equals("icontains") || fieldOperator.equals("ilike")){
 							fieldName = String.format("lower(this.%s)", fieldName);
-							where.append(fieldName).append(sqlOperator).append("?");
+							where.append(fieldName).append(sqlOperator).append("?").append(p++);
 						}else if(fieldOperator.equals("in")){
-							//filtro_obj.get(field);
-							String temp = fieldName;
 							fieldName = String.format("this.%s", fieldName);
-							where.append(fieldName).append(sqlOperator).append(":"+temp);
+							where.append(fieldName).append(sqlOperator).append("?").append(p++);
 						}else{
 							fieldName = String.format("this.%s", fieldName);
-							where.append(fieldName).append(sqlOperator).append("?");
+							where.append(fieldName).append(sqlOperator).append("?").append(p++);
 							System.out.println(where.toString());
 						}
 					}else{
 						fieldName = String.format("this.%s", fieldName);
-						where.append(fieldName).append(sqlOperator).append("?");
+						where.append(fieldName).append(sqlOperator).append("?").append(p++);
 					}
 					useAnd = true;
 				}
