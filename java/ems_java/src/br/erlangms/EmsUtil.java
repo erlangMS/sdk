@@ -655,7 +655,7 @@ public final class EmsUtil {
 						throw new EmsValidationException("Campo de pesquisa "+ field + " inválido");
 					}
 					Object value_field = values.get(field);
-					Class<?> paramType = query.getParameter(p).getParameterType();
+					Class<?> paramType = query.getParameters().iterator().next().getParameterType();
 					if (paramType == null){
 						paramType = value_field.getClass();
 					}
@@ -663,7 +663,22 @@ public final class EmsUtil {
 						if (value_field instanceof String){
 							query.setParameter(p++, Integer.parseInt((String) value_field));
 						}else if (value_field instanceof Double){
-							query.setParameter(p++, ((Double)value_field).intValue() );
+							query.setParameter(p++, ((Double)value_field).intValue());
+						}else if( value_field instanceof ArrayList<?>){
+							List<Integer> value_field_parameter = new ArrayList<Integer>();
+							if (((ArrayList) value_field).size() > 0) {
+								if (((ArrayList) value_field).get(0) instanceof String) {
+									for (String string : (ArrayList<String>)value_field) {
+										value_field_parameter.add(Integer.parseInt(string));
+									}
+								} else if (((ArrayList) value_field).get(0) instanceof Double) {
+									for (Double doubleValue : (ArrayList<Double>)value_field) {
+										value_field_parameter.add(doubleValue.intValue());
+									}
+								} 
+								
+							}
+							query.setParameter(field_name, value_field_parameter);
 						}else{
 							query.setParameter(p++, value_field);
 						}
@@ -1329,6 +1344,7 @@ public final class EmsUtil {
 			case "ne": return " != ";
 			case "isnull": return " is null ";
 			case "equal": return " = ";
+			case "in": return " IN ";
 		}
 		throw new EmsValidationException("Operador do campo de pesquisa "+ fieldOperator + " inválido.");
 	}

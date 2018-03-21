@@ -888,9 +888,15 @@ public abstract class EmsRepository<Model> {
 						} else if(fieldOperator.equals("icontains") || fieldOperator.equals("ilike")){
 							fieldName = String.format("lower(this.%s)", fieldName);
 							where.append(fieldName).append(sqlOperator).append("?");
+						}else if(fieldOperator.equals("in")){
+							//filtro_obj.get(field);
+							String temp = fieldName;
+							fieldName = String.format("this.%s", fieldName);
+							where.append(fieldName).append(sqlOperator).append(":"+temp);
 						}else{
 							fieldName = String.format("this.%s", fieldName);
 							where.append(fieldName).append(sqlOperator).append("?");
+							System.out.println(where.toString());
 						}
 					}else{
 						fieldName = String.format("this.%s", fieldName);
