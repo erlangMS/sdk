@@ -633,6 +633,7 @@ public final class EmsUtil {
 	 * @param values	Map com chave/valor dos dados que serão aplicados na query
 	 * @author Everton de Vargas Agilar
 	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static void setQueryParameterFromMap(final Query query, final Map<String, Object> values){
 		if (query != null && values != null && values.size() > 0){
 			int p = 1;
@@ -655,9 +656,13 @@ public final class EmsUtil {
 						throw new EmsValidationException("Campo de pesquisa "+ field + " inválido");
 					}
 					Object value_field = values.get(field);
-					Class<?> paramType = query.getParameters().iterator().next().getParameterType();
+					Class<?> paramType = query.getParameter(p).getParameterType();
 					if (paramType == null){
-						paramType = value_field.getClass();
+						if (value_field instanceof ArrayList<?>) {
+							paramType = ((ArrayList<?>) value_field).get(0).getClass();
+						}else {
+							paramType = value_field.getClass();
+						}
 					}
 					if (paramType == Integer.class){
 						if (value_field instanceof String){
@@ -677,7 +682,7 @@ public final class EmsUtil {
 									for (Double doubleValue : (ArrayList<Double>)value_field) {
 										value_field_parameter.add(doubleValue.intValue());
 									}
-								} 
+								}
 							}
 							query.setParameter(p++, value_field_parameter);
 						}else{
@@ -686,26 +691,30 @@ public final class EmsUtil {
 					}else if (paramType == BigDecimal.class){
 						if (value_field instanceof String){
 							query.setParameter(p++, BigDecimal.valueOf(Double.parseDouble((String) value_field)));
-						}else if( value_field instanceof ArrayList<?>){
-							List<BigDecimal> value_field_parameter = new ArrayList<BigDecimal>();
-							if (((ArrayList) value_field).size() > 0) {
-								if (((ArrayList) value_field).get(0) instanceof String) {
-									for (String string : (ArrayList<String>)value_field) {
-										value_field_parameter.add(BigDecimal.valueOf(Double.valueOf(string)));
-									}
-								} else if (((ArrayList) value_field).get(0) instanceof Double) {
-									for (Double doubleValue : (ArrayList<Double>)value_field) {
-										value_field_parameter.add(BigDecimal.valueOf(doubleValue));
-									}
-								}
-							}
-							query.setParameter(p++, value_field_parameter);
 						}else{
 							query.setParameter(p++,  BigDecimal.valueOf((double) value_field));
 						}
 					}else if (paramType == Double.class || paramType == double.class){
-						double valueDouble = parseAsDouble(value_field);
-						query.setParameter(p++, Double.valueOf(valueDouble));
+						if( value_field instanceof ArrayList<?>){
+							//Used in the IN clause, accepts only homogeneous arrays of strings or doubles.
+							List<Double> value_field_parameter = new ArrayList<Double>();
+							if (((ArrayList) value_field).size() > 0) {
+								//Tests the type of the array using the first position
+								if (((ArrayList) value_field).get(0) instanceof String) {
+									for (String string : (ArrayList<String>)value_field) {
+										value_field_parameter.add(Double.valueOf(string));
+									}
+								} else if (((ArrayList) value_field).get(0) instanceof Double) {
+									for (Double doubleValue : (ArrayList<Double>) value_field){
+										value_field_parameter.add(doubleValue);
+									}
+								}
+							}
+							query.setParameter(p++, value_field_parameter);
+						}else {
+							double valueDouble = parseAsDouble(value_field);
+							query.setParameter(p++, Double.valueOf(valueDouble));
+						}
 					}else if (paramType == String.class){
 						String valueString;
 						if (value_field instanceof Double){
