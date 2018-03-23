@@ -4,6 +4,7 @@ import javax.ejb.Singleton;
 import javax.ejb.Startup;
 
 import br.erlangms.EmsServiceFacade;
+import br.erlangms.EmsServiceStream;
 import br.erlangms.IEmsRequest;
 
 @Singleton
@@ -15,6 +16,18 @@ public class HelloWorldService extends EmsServiceFacade {
 	}
 
 	public String helloWorld(IEmsRequest request) {
+
+		
+
+			
+			EmsServiceStream rest = new EmsServiceStream();			
+			Object usuario = rest.from("/auth/user/:id?fields=email")
+				.setParameter(27879)
+				.request()
+				.getObject();
+			
+			System.out.println(usuario);	
+		
 		return "{\"message\":\"Hello World Java!!!\"}";
 	}
 	
