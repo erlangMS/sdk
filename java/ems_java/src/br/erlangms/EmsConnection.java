@@ -46,6 +46,7 @@ public class EmsConnection extends Thread{
 	private String otpNodeName;
 	private OtpNode myNode;
 	private OtpMbox myMbox;
+    boolean isLinux = true;
 
 	
 	public EmsConnection(final EmsServiceFacade facade, final String otpNodeName){
@@ -53,6 +54,7 @@ public class EmsConnection extends Thread{
 		this.classOfFacade = facade.getClass();
 		this.nameService = this.classOfFacade.getName();
 		this.otpNodeName = otpNodeName.replace(".",  "_") + "_" + properties.nodeName;
+		this.isLinux = EmsUtil.properties.isLinux;
 		getMethodNamesTable();
 	}
 	
@@ -150,7 +152,7 @@ public class EmsConnection extends Thread{
 	                   otp_request = (OtpErlangTuple) myMsg.elementAt(0);
 	                   request.setOtpRequest(otp_request);
 	                   Long T2 = System.currentTimeMillis() - request.getT1();
-	                   if (T2 > request.getTimeout() || (T2 > PostUpdateTimeout && request.isPostOrUpdateRequest())) {
+	                   if (isLinux && (T2 > request.getTimeout() || (T2 > PostUpdateTimeout && request.isPostOrUpdateRequest()))) {
 	                	   logger.info("Serviço "+ nameService + "." + request.getMetodo() + " descartou mensagem tardia.");
 	                	   continue;
 	                   }
@@ -346,11 +348,16 @@ public class EmsConnection extends Thread{
         public Boolean call() {  
         	Object ret = chamaMetodo(request.getModulo(), request.getFunction(), request);
             Long T3 = System.currentTimeMillis() - request.getT1();
-            if (T3 < request.getTimeout()) {
+            if (isLinux) {
+	            if (T3 < request.getTimeout()) {
+		        	OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
+		        	myMbox.send(from, response);
+	            }else{
+	            	logger.info("Serviço "+ nameService + "." + request.getMetodo() + " descartou envio do resultado após timeout.");
+	            }
+            }else {
 	        	OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
 	        	myMbox.send(from, response);
-            }else{
-            	logger.info("Serviço "+ nameService + "." + request.getMetodo() + " descartou envio do resultado após timeout.");
             }
 			return true;
         }  

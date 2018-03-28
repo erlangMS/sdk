@@ -1699,6 +1699,9 @@ public final class EmsUtil {
         public boolean debug;
         public int msg_timeout = 60000;
         public String environment = "desenv";
+        public boolean isWindows = System.getProperty("os.name").toLowerCase().indexOf("win") >= 0;
+        public boolean isLinux = System.getProperty("os.name").toLowerCase().indexOf("nux") >= 0;
+        public boolean isMac = System.getProperty("os.name").toLowerCase().indexOf("mac") >= 0;
         
         // smtp
         public int smtpPort;			  // Ex: 25
