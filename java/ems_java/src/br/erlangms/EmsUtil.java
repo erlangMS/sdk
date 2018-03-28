@@ -1658,7 +1658,8 @@ public final class EmsUtil {
         public String authorizationHeaderValue;
         public boolean debug;
         public int msg_timeout = 60000;
-		
+        public String environment = "desenv";
+        
         // smtp
         public int smtpPort;			  // Ex: 25
 		public String smtp;				  // Ex: smtp.unb.br
@@ -1738,6 +1739,13 @@ public final class EmsUtil {
 		   prop.nodeName = "node01";
 	   }
 	   
+	   String tmp_environment = System.getProperty("ems_environment");
+	   if (tmp_environment != null){
+		   prop.environment = tmp_environment;
+	   }else{
+		   prop.environment = "desenv";
+	   }
+
 	   String tmp_ESB_URL = System.getProperty("ems_bus_url");
 	   if (tmp_ESB_URL != null){
 		   if (tmp_ESB_URL.indexOf(":") == -1){

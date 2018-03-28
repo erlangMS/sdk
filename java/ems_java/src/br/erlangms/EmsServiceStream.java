@@ -39,13 +39,11 @@ public class EmsServiceStream {
 			try {
 				sc = SSLContext.getInstance("SSL");
 			} catch (NoSuchAlgorithmException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		    try {
 				sc.init(null, trustAllCerts, new java.security.SecureRandom());
 			} catch (KeyManagementException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
