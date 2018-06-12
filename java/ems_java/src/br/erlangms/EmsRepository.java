@@ -462,7 +462,7 @@ public abstract class EmsRepository<Model> {
 		if (field != null){
 			String fieldName = field.getName();
 			String sqlFindByField =  new StringBuilder("select this from ")
-												.append(classOfModel.getSimpleName())
+												.append(classOfModel.getSimpleName()).append(" this")
 												.append(" where this.")
 												.append(field.getName()).append("=:pField").toString();
 			return createNamedQuery(classOfModel.getSimpleName() + ".findBy" + fieldName, sqlFindByField)
@@ -501,7 +501,7 @@ public abstract class EmsRepository<Model> {
 		if (field != null){
 			String fieldName = field.getName();
 			String nameOfClass = classOfModel.getSimpleName();
-			String sqlFindByField =  new StringBuilder("select this from ").append(nameOfClass)
+			String sqlFindByField =  new StringBuilder("select this from ").append(nameOfClass).append(" this ")
 											  .append(" where this.")
 											  .append(fieldName).append("=:pField").toString();
 			try{
