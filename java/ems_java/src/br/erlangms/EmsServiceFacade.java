@@ -10,55 +10,72 @@ package br.erlangms;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.annotation.Resource;
+import javax.ejb.ScheduleExpression;
+import javax.ejb.Singleton;
+import javax.ejb.Timeout;
+import javax.ejb.Timer;
+import javax.ejb.TimerConfig;
+import javax.ejb.TimerService;
 
 
 /**
  * Classe de fachada para os serviços ErlangMS
  */
+@Singleton
 public abstract class EmsServiceFacade {
 	private EmsConnection connection = null;
-	private EmsConnection connection1 = null;
-	private EmsConnection connection2 = null;
-	private EmsConnection connection3 = null;
-	private EmsConnection connection4 = null;
-	private EmsConnection connection5 = null;
+	private EmsConnection connectionSlave = null;
+
+	@Resource
+    private TimerService timerService = null;
+	private TimerConfig destroyConnectionSlaveTimerConfig = null;
        	
     @PostConstruct
     public void initialize() {
         String className = getClass().getName();
-    	connection = new EmsConnection(this, className);
+    	connection = new EmsConnection(this, className, false);
         connection.start();
-        if (EmsUtil.properties.isLinux) {
-	        connection1 = new EmsConnection(this, className + "01");
-	        connection1.start();
-	        connection2 = new EmsConnection(this, className + "02");
-	        connection2.start();
-	        connection3 = new EmsConnection(this, className + "03");
-	        connection3.start();
-	        connection4 = new EmsConnection(this, className + "04");
-	        connection4.start();
-	        connection5 = new EmsConnection(this, className + "05");
-	        connection5.start();
-        }
+        try {
+	        destroyConnectionSlaveTimerConfig = new TimerConfig("destroyConnectionSlave", false);
+	        timerService.createCalendarTimer(new ScheduleExpression().minute("*").hour("*"), destroyConnectionSlaveTimerConfig);
+        }catch(Exception e) {
+        	System.out.println("Erro ao criar destroyConnectionSlaveTimerConfig para "+ getClass().getName());
+    	}
     }
     
 	@PreDestroy
     public void terminate() {
 		connection.close();
 		connection.interrupt();
-		if (EmsUtil.properties.isLinux) {
-			connection1.close();
-			connection1.interrupt();
-			connection2.close();
-			connection2.interrupt();
-			connection3.close();
-			connection3.interrupt();
-			connection4.close();
-			connection4.interrupt();
-			connection5.close();
-			connection5.interrupt();
-		}
+		destroyConnectionSlave();
 	}
 
+	public void createConnectionSlave() {
+        if (connectionSlave == null) {
+			String className = getClass().getName();
+			connectionSlave = new EmsConnection(this, className + "02", true);
+	        connectionSlave.start();
+	        System.out.println("Create slave connection to " + className);
+        }
+	}
+	
+	public void destroyConnectionSlave() {
+		if (EmsUtil.properties.isLinux && connectionSlave != null) {
+			connectionSlave.close();
+			connectionSlave.interrupt();
+			connectionSlave = null;
+			System.out.println("Destroy slave connection to " + getClass().getName());
+		}
+	}
    
+	@Timeout
+    public void timeout(Timer timer) {
+		// Somente libera o slave se não estiver fazendo nenhuma tarefa
+		if (EmsUtil.properties.isLinux && connectionSlave != null && connectionSlave.getTaskCount() == 0) {
+			destroyConnectionSlave();
+		}
+	}
+	
+	
 }
