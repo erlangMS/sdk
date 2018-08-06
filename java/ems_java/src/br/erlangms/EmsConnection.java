@@ -44,8 +44,8 @@ public class EmsConnection extends Thread{
 	private String method_names[];
 	private int method_count = 0;
 	private String otpNodeName;
-	private OtpNode myNode;
-	private OtpMbox myMbox;
+	private static OtpNode myNode = null;
+	private OtpMbox myMbox = null;
     boolean isLinux = true;
 
 	
@@ -53,7 +53,7 @@ public class EmsConnection extends Thread{
 		this.facade = facade;
 		this.classOfFacade = facade.getClass();
 		this.nameService = this.classOfFacade.getName();
-		this.otpNodeName = otpNodeName.replace(".",  "_") + "_" + properties.nodeName;
+		this.otpNodeName = properties.nodeName;
 		this.isLinux = EmsUtil.properties.isLinux;
 		getMethodNamesTable();
 	}
@@ -93,9 +93,38 @@ public class EmsConnection extends Thread{
 		}
 	}
 	
+	public synchronized OtpNode createNode() throws InterruptedException {
+		System.out.println("createNode...");
+		if (myNode == null) {
+			while (true){
+				Random r = new Random();
+	    		try{
+	    			myNode = new OtpNode(otpNodeName);
+	    	    	myNode.setCookie(properties.cookie);
+	    	    	return myNode;
+	    		}catch (IOException e){
+	    			// Verifica se a thread não foi interrompida
+	    			if (Thread.interrupted()) throw new InterruptedException();
+	    			if (!erro_connection_epmd){
+	    				erro_connection_epmd = true;
+	    				logger.warning(connectionErrorMessage);
+	    			}
+	    			try{
+	    				// Aguarda um tempo aleatório até 10 segundos para conectar 
+	    				Thread.sleep(3+r.nextInt(7));
+	    			}catch (InterruptedException e1){
+	    				// tenta novamente a comunicação se a thread não foi interrompida
+	    				if (Thread.interrupted()) throw e1;
+	    			}
+	    		}
+			}
+		}else {
+			return myNode;
+		}
+	}
+	
     @Override  
     public void run() {
-		Random r = new Random();
         OtpErlangObject myObject;
         OtpErlangTuple myMsg;
         OtpErlangTuple otp_request;
@@ -111,30 +140,8 @@ public class EmsConnection extends Thread{
         while (true){
     		try {
 	    		// Permanece neste loop até conseguir conexão com o barramento (EPMD deve estar ativo)
-	    		while (true){
-		    		try{
-		    			myNode = new OtpNode(otpNodeName);
-		    			break;
-		    		}catch (IOException e){
-		    			// Verifica se a thread não foi interrompida
-		    			if (Thread.interrupted()) throw new InterruptedException();
-		    			synchronized (e) {
-			    			if (!erro_connection_epmd){
-			    				erro_connection_epmd = true;
-			    				logger.warning(connectionErrorMessage);
-			    			}
-						}
-		    			try{
-		    				// Aguarda um tempo aleatório até 10 segundos para conectar 
-		    				Thread.sleep(3+r.nextInt(7));
-		    			}catch (InterruptedException e1){
-		    				// tenta novamente a comunicação se a thread não foi interrompida
-		    				if (Thread.interrupted()) throw e1;
-		    			}
-		    		}
-	    		}
-	    	   
-	    	   myNode.setCookie(properties.cookie);
+			   myNode = createNode();
+	   	   
 	           myMbox = myNode.createMbox(nameService);
 	           if (printInfo || debug){
 	        	   logger.info(nameService + " node -> " + myNode.node());
