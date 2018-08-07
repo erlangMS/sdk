@@ -16,6 +16,7 @@ import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.logging.Logger;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
@@ -52,6 +53,7 @@ public class EmsConnection extends Thread{
     private boolean isLinux = true;
     private int taskCount = 0;
     private boolean isSlave = false;
+    private static Semaphore sem = new Semaphore(1, true);   
     
 
 	
@@ -136,32 +138,41 @@ public class EmsConnection extends Thread{
 	    		}
 			}
 		}else { /* Windows */
-			if (myNodeWin != null) {
-				System.out.println("Reutiliza "+ otpNodeName);
-			}else {
-				while (true){
-					Random r = new Random();
-		    		try{
-		    			myNodeWin = new OtpNode(otpNodeName);
-		    	    	myNodeWin.setCookie(properties.cookie);
-		    	    	return;
-		    		}catch (IOException e){
-		    			// Verifica se a thread não foi interrompida
-		    			if (Thread.interrupted()) throw new InterruptedException();
-		    			if (!erro_connection_epmd){
-		    				erro_connection_epmd = true;
-		    				logger.warning(connectionErrorMessage);
-		    			}
-		    			try{
-		    				// Aguarda um tempo aleatório até 10 segundos para conectar 
-		    				Thread.sleep(3+r.nextInt(7));
-		    			}catch (InterruptedException e1){
-		    				// tenta novamente a comunicação se a thread não foi interrompida
-		    				if (Thread.interrupted()) throw e1;
-		    			}
-		    		}
-				}
-			}		
+			try  
+            {  
+                sem.acquire();  
+    			if (myNodeWin != null) {
+    				sem.release();  
+    				System.out.println("Reutiliza "+ otpNodeName);
+    			}else {
+    				while (true){
+    					Random r = new Random();
+    		    		try{
+    		    			myNodeWin = new OtpNode(otpNodeName);
+    		    	    	myNodeWin.setCookie(properties.cookie);
+    		    	        sem.release();  
+    		    	    	return;
+    		    		}catch (IOException e){
+    		    			// Verifica se a thread não foi interrompida
+    		    			if (Thread.interrupted()) throw new InterruptedException();
+    		    			if (!erro_connection_epmd){
+    		    				erro_connection_epmd = true;
+    		    				logger.warning(connectionErrorMessage);
+    		    			}
+    		    			try{
+    		    				// Aguarda um tempo aleatório até 10 segundos para conectar 
+    		    				Thread.sleep(3+r.nextInt(7));
+    		    			}catch (InterruptedException e1){
+    		    				// tenta novamente a comunicação se a thread não foi interrompida
+    		    				if (Thread.interrupted()) throw e1;
+    		    			}
+    		    		}
+    				}
+    			}		
+
+            } catch (InterruptedException e) {  
+               createNode();
+            }  
 		}
 	}
 	
