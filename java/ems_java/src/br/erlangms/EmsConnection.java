@@ -44,7 +44,10 @@ public class EmsConnection extends Thread{
 	private String method_names[];
 	private int method_count = 0;
 	private String otpNodeName;
-	private OtpNode myNode = null;
+	@SuppressWarnings("unused")
+	private static OtpNode myNodeWin = null;
+	@SuppressWarnings("unused")
+	private OtpNode myNodeLinux = null;
 	private OtpMbox myMbox = null;
     private boolean isLinux = true;
     private int taskCount = 0;
@@ -53,12 +56,16 @@ public class EmsConnection extends Thread{
 
 	
 	public EmsConnection(final EmsServiceFacade facade, final String otpNodeName, final boolean isSlave){
+		this.isLinux = EmsUtil.properties.isLinux;
+		this.isSlave = isSlave;
 		this.facade = facade;
 		this.classOfFacade = facade.getClass();
 		this.nameService = this.classOfFacade.getName();
-		this.otpNodeName = otpNodeName.replace(".",  "_") + "_" + properties.nodeName;
-		this.isLinux = EmsUtil.properties.isLinux;
-		this.isSlave = isSlave;
+		if (isLinux) {
+			this.otpNodeName = otpNodeName.replace(".",  "_") + "_" + properties.nodeName;
+		}else {
+			this.otpNodeName = properties.nodeName;
+		}
 		getMethodNamesTable();
 	}
 	
@@ -89,36 +96,72 @@ public class EmsConnection extends Thread{
 			if (myMbox != null){
 				myMbox.close();
 			}
-			if (myNode != null){
-				myNode.close();
+			if (isLinux) {
+				if (myNodeLinux != null){
+					myNodeLinux.close();
+				}
+			}else {
+				if (myNodeWin != null){
+					myNodeWin.close();
+				}		
 			}
+			
 		}catch (Exception e) {
 			// Neste local é segudo não propagar exceptions
 		}
 	}
 	
-	public synchronized OtpNode createNode() throws InterruptedException {
-		while (true){
-			Random r = new Random();
-    		try{
-    			myNode = new OtpNode(otpNodeName);
-    	    	myNode.setCookie(properties.cookie);
-    	    	return myNode;
-    		}catch (IOException e){
-    			// Verifica se a thread não foi interrompida
-    			if (Thread.interrupted()) throw new InterruptedException();
-    			if (!erro_connection_epmd){
-    				erro_connection_epmd = true;
-    				logger.warning(connectionErrorMessage);
-    			}
-    			try{
-    				// Aguarda um tempo aleatório até 10 segundos para conectar 
-    				Thread.sleep(3+r.nextInt(7));
-    			}catch (InterruptedException e1){
-    				// tenta novamente a comunicação se a thread não foi interrompida
-    				if (Thread.interrupted()) throw e1;
-    			}
-    		}
+	public synchronized void createNode() throws InterruptedException {
+		if (isLinux) {
+			while (true){
+				Random r = new Random();
+	    		try{
+	    			myNodeLinux = new OtpNode(otpNodeName);
+	    	    	myNodeLinux.setCookie(properties.cookie);
+	    	    	return;
+	    		}catch (IOException e){
+	    			// Verifica se a thread não foi interrompida
+	    			if (Thread.interrupted()) throw new InterruptedException();
+	    			if (!erro_connection_epmd){
+	    				erro_connection_epmd = true;
+	    				logger.warning(connectionErrorMessage);
+	    			}
+	    			try{
+	    				// Aguarda um tempo aleatório até 10 segundos para conectar 
+	    				Thread.sleep(3+r.nextInt(7));
+	    			}catch (InterruptedException e1){
+	    				// tenta novamente a comunicação se a thread não foi interrompida
+	    				if (Thread.interrupted()) throw e1;
+	    			}
+	    		}
+			}
+		}else { /* Windows */
+			if (myNodeWin != null) {
+				System.out.println("Reutiliza "+ otpNodeName);
+			}else {
+				while (true){
+					Random r = new Random();
+		    		try{
+		    			myNodeWin = new OtpNode(otpNodeName);
+		    	    	myNodeWin.setCookie(properties.cookie);
+		    	    	return;
+		    		}catch (IOException e){
+		    			// Verifica se a thread não foi interrompida
+		    			if (Thread.interrupted()) throw new InterruptedException();
+		    			if (!erro_connection_epmd){
+		    				erro_connection_epmd = true;
+		    				logger.warning(connectionErrorMessage);
+		    			}
+		    			try{
+		    				// Aguarda um tempo aleatório até 10 segundos para conectar 
+		    				Thread.sleep(3+r.nextInt(7));
+		    			}catch (InterruptedException e1){
+		    				// tenta novamente a comunicação se a thread não foi interrompida
+		    				if (Thread.interrupted()) throw e1;
+		    			}
+		    		}
+				}
+			}		
 		}
 	}
 	
@@ -146,9 +189,15 @@ public class EmsConnection extends Thread{
         while (true){
     		try {
 	    		// Permanece neste loop até conseguir conexão com o barramento (EPMD deve estar ativo)
-			   myNode = createNode();
-	           myMbox = myNode.createMbox(nameService);
-        	   logger.info(nameService + " node -> " + myNode.node());
+			   createNode();
+	           if (isLinux) {
+	        	   myMbox = myNodeLinux.createMbox(nameService);
+	        	   logger.info(nameService + " node -> " + myNodeLinux.node());
+	           }else {
+	        	   myMbox = myNodeWin.createMbox(nameService); 
+	        	   logger.info(nameService + " node -> " + myNodeWin.node());
+	           }
+	        	   
 	           
 	           // Permanece neste loop aguardando mensagens do barramento
 	           while(true){ 
@@ -170,7 +219,7 @@ public class EmsConnection extends Thread{
 	                   myMbox.send(dispatcherPid, ok_atom);
 	                   taskCount++;
                 	   pool.submit(new Task(dispatcherPid, request, myMbox, this));
-                	   if (!isSlave) {
+                	   if (!isSlave && isLinux) {
                 		   facade.createConnectionSlave();
                 	   }
 	                   msg_task.append(request.getMetodo()).append(" ")
