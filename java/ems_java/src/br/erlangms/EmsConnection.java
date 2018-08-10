@@ -45,21 +45,17 @@ public class EmsConnection extends Thread{
 	private String method_names[];
 	private int method_count = 0;
 	private String otpNodeName;
-	@SuppressWarnings("unused")
 	private static OtpNode myNodeWin = null;
-	@SuppressWarnings("unused")
 	private OtpNode myNodeLinux = null;
 	private OtpMbox myMbox = null;
     private boolean isLinux = true;
     private int taskCount = 0;
     private boolean isSlave = false;
     private static Semaphore sem = new Semaphore(1, true);   
-    
-
 	
 	public EmsConnection(final EmsServiceFacade facade, final String otpNodeName, final boolean isSlave){
 		this.isLinux = EmsUtil.properties.isLinux;
-		this.isSlave = isSlave;
+		this.setSlave(isSlave);
 		this.facade = facade;
 		this.classOfFacade = facade.getClass();
 		this.nameService = this.classOfFacade.getName();
@@ -229,9 +225,6 @@ public class EmsConnection extends Thread{
 	                   myMbox.send(dispatcherPid, ok_atom);
 	                   taskCount++;
                 	   pool.submit(new Task(dispatcherPid, request, this));
-                	   if (!isSlave && isLinux) {
-                		   facade.createConnectionSlave();
-                	   }
 	                   msg_task.append(request.getMetodo()).append(" ")
 	                   			.append(request.getFunction()).append(" RID: ")
 	    						.append(request.getRID()).append("  Url: ")
@@ -401,6 +394,14 @@ public class EmsConnection extends Thread{
 	    }
 	}  	
 	
+	public boolean isSlave() {
+		return isSlave;
+	}
+
+	public void setSlave(boolean isSlave) {
+		this.isSlave = isSlave;
+	}
+
 	/**
 	 * Classe interna para realizar o trabalho enquanto o loop principal do serviço  aguarda mensagens.
 	 * @author Everton de Vargas Agilar
