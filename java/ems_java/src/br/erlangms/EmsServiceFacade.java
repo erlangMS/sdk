@@ -38,7 +38,7 @@ public abstract class EmsServiceFacade {
         connection.start();
         try {
 	        destroyConnectionSlaveTimerConfig = new TimerConfig("destroyConnectionSlave", false);
-	        timerService.createCalendarTimer(new ScheduleExpression().minute("*").hour("*"), destroyConnectionSlaveTimerConfig);
+	        timerService.createCalendarTimer(new ScheduleExpression().minute("15").hour("*"), destroyConnectionSlaveTimerConfig);
         }catch(Exception e) {
         	System.out.println("Erro ao criar destroyConnectionSlaveTimerConfig para "+ getClass().getName());
     	}

@@ -143,7 +143,6 @@ public class EmsConnection extends Thread{
                 sem.acquire();  
     			if (myNodeWin != null) {
     				sem.release();  
-    				System.out.println("Reutiliza "+ otpNodeName);
     			}else {
     				while (true){
     					Random r = new Random();
@@ -229,7 +228,7 @@ public class EmsConnection extends Thread{
 	                   dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
 	                   myMbox.send(dispatcherPid, ok_atom);
 	                   taskCount++;
-                	   pool.submit(new Task(dispatcherPid, request, myMbox, this));
+                	   pool.submit(new Task(dispatcherPid, request, this));
                 	   if (!isSlave && isLinux) {
                 		   facade.createConnectionSlave();
                 	   }
@@ -409,14 +408,12 @@ public class EmsConnection extends Thread{
 	private final class Task implements Callable<Boolean>{
 		private OtpErlangPid from;
 		private IEmsRequest request;
-		//private OtpMbox myMbox;
 		private EmsConnection connection;
 		
-		public Task(final OtpErlangPid from, final IEmsRequest request, final OtpMbox myMbox, EmsConnection connection){
+		public Task(final OtpErlangPid from, final IEmsRequest request, EmsConnection connection){
 			super();
 			this.from = from;
 			this.request = request;
-			//this.myMbox = myMbox;
 			this.connection = connection;
 		}
 		
@@ -426,14 +423,12 @@ public class EmsConnection extends Thread{
             if (isLinux) {
 	            if (T3 < request.getTimeout()) {
 		        	OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
-		        	//myMbox.send(from, response);
 		        	connection.sendResult(from, response);
 	            }else{
 	            	logger.info("Serviço "+ nameService + "." + request.getMetodo() + " descartou envio do resultado após timeout.");
 	            }
             }else {
 	        	OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
-	        	//myMbox.send(from, response);
 	        	connection.sendResult(from, response); 
             }
 			return true;
