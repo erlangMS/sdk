@@ -8,10 +8,7 @@
  
 package br.erlangms;
 
-import br.erlangms.EmsServiceFacade;
-import br.erlangms.EmsServiceStream;
-
-public abstract class EmsServiceProxy extends EmsServiceFacade {
+public abstract class EmsServiceProxy {
 
 	public EmsServiceStream getStream(){
 		return new EmsServiceStream();

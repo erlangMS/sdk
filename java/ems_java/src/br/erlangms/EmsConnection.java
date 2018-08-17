@@ -16,6 +16,7 @@ import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.logging.Logger;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
@@ -36,7 +37,7 @@ public class EmsConnection extends Thread{
 	private static final Logger logger = EmsUtil.logger;
 	private static boolean erro_connection_epmd  = false;
 	private static final int THREAD_WAIT_TO_RESTART = 5000;
-	private static final String connectionErrorMessage = "Não foi possível realizar conexão ao barramento ERLANGMS. Verifique se o servidor de nome epmd foi iniciado.";
+	private static final String connectionErrorMessage = "Não foi possível conectar no barramento. Verifique se o servidor de nome epmd foi iniciado.";
 	private final String nameService;
 	private final EmsServiceFacade facade;
 	private Class<? extends EmsServiceFacade> classOfFacade;
@@ -44,17 +45,25 @@ public class EmsConnection extends Thread{
 	private String method_names[];
 	private int method_count = 0;
 	private String otpNodeName;
-	private OtpNode myNode;
-	private OtpMbox myMbox;
-    boolean isLinux = true;
-
+	private static OtpNode myNodeWin = null;
+	private OtpNode myNodeLinux = null;
+	private OtpMbox myMbox = null;
+    private boolean isLinux = true;
+    private int taskCount = 0;
+    private boolean isSlave = false;
+    private static Semaphore sem = new Semaphore(1, true);   
 	
-	public EmsConnection(final EmsServiceFacade facade, final String otpNodeName){
+	public EmsConnection(final EmsServiceFacade facade, final String otpNodeName, final boolean isSlave){
+		this.isLinux = EmsUtil.properties.isLinux;
+		this.setSlave(isSlave);
 		this.facade = facade;
 		this.classOfFacade = facade.getClass();
 		this.nameService = this.classOfFacade.getName();
-		this.otpNodeName = otpNodeName.replace(".",  "_") + "_" + properties.nodeName;
-		this.isLinux = EmsUtil.properties.isLinux;
+		if (isLinux) {
+			this.otpNodeName = otpNodeName.replace(".",  "_") + "_" + properties.nodeName;
+		}else {
+			this.otpNodeName = properties.nodeName;
+		}
 		getMethodNamesTable();
 	}
 	
@@ -85,17 +94,94 @@ public class EmsConnection extends Thread{
 			if (myMbox != null){
 				myMbox.close();
 			}
-			if (myNode != null){
-				myNode.close();
+			if (isLinux) {
+				if (myNodeLinux != null){
+					myNodeLinux.close();
+				}
+			}else {
+				if (myNodeWin != null){
+					myNodeWin.close();
+				}		
 			}
+			
 		}catch (Exception e) {
 			// Neste local é segudo não propagar exceptions
 		}
 	}
 	
+	public synchronized void createNode() throws InterruptedException {
+		if (isLinux) {
+			while (true){
+				Random r = new Random();
+	    		try{
+	    			myNodeLinux = new OtpNode(otpNodeName);
+	    	    	myNodeLinux.setCookie(properties.cookie);
+	    	    	return;
+	    		}catch (IOException e){
+	    			// Verifica se a thread não foi interrompida
+	    			if (Thread.interrupted()) throw new InterruptedException();
+	    			if (!erro_connection_epmd){
+	    				erro_connection_epmd = true;
+	    				logger.warning(connectionErrorMessage);
+	    			}
+	    			try{
+	    				// Aguarda um tempo aleatório até 10 segundos para conectar 
+	    				Thread.sleep(3+r.nextInt(7));
+	    			}catch (InterruptedException e1){
+	    				// tenta novamente a comunicação se a thread não foi interrompida
+	    				if (Thread.interrupted()) throw e1;
+	    			}
+	    		}
+			}
+		}else { /* Windows */
+			try  
+            {  
+                sem.acquire();  
+    			if (myNodeWin != null) {
+    				sem.release();  
+    			}else {
+    				while (true){
+    					Random r = new Random();
+    		    		try{
+    		    			myNodeWin = new OtpNode(otpNodeName);
+    		    	    	myNodeWin.setCookie(properties.cookie);
+    		    	        sem.release();  
+    		    	    	return;
+    		    		}catch (IOException e){
+    		    			// Verifica se a thread não foi interrompida
+    		    			if (Thread.interrupted()) throw new InterruptedException();
+    		    			if (!erro_connection_epmd){
+    		    				erro_connection_epmd = true;
+    		    				logger.warning(connectionErrorMessage);
+    		    			}
+    		    			try{
+    		    				// Aguarda um tempo aleatório até 10 segundos para conectar 
+    		    				Thread.sleep(3+r.nextInt(7));
+    		    			}catch (InterruptedException e1){
+    		    				// tenta novamente a comunicação se a thread não foi interrompida
+    		    				if (Thread.interrupted()) throw e1;
+    		    			}
+    		    		}
+    				}
+    			}		
+
+            } catch (InterruptedException e) {  
+               createNode();
+            }  
+		}
+	}
+	
+	public synchronized void sendResult(final OtpErlangPid from, final OtpErlangTuple response) {
+		myMbox.send(from, response);
+		taskCount--;
+	}
+	
+	public int getTaskCount() {
+		return taskCount;
+	}
+	
     @Override  
     public void run() {
-		Random r = new Random();
         OtpErlangObject myObject;
         OtpErlangTuple myMsg;
         OtpErlangTuple otp_request;
@@ -103,42 +189,21 @@ public class EmsConnection extends Thread{
         EmsRequest request;
         StringBuilder msg_task = new StringBuilder();
         ExecutorService pool = Executors.newCachedThreadPool();
-        boolean printInfo = true;
-        boolean debug = EmsUtil.properties.debug;
         final String msgFinalizadoSucesso = nameService + " finalizado com sucesso.";
-        final String msgReiniciarException = "Serviço "+ nameService + " será reiniado devido erro interno: ";
+        final String msgReiniciarException = "Serviço "+ nameService + " será reiniciado devido erro interno: ";
         int PostUpdateTimeout = EmsUtil.properties.postUpdateTimeout;
         while (true){
     		try {
 	    		// Permanece neste loop até conseguir conexão com o barramento (EPMD deve estar ativo)
-	    		while (true){
-		    		try{
-		    			myNode = new OtpNode(otpNodeName);
-		    			break;
-		    		}catch (IOException e){
-		    			// Verifica se a thread não foi interrompida
-		    			if (Thread.interrupted()) throw new InterruptedException();
-		    			synchronized (e) {
-			    			if (!erro_connection_epmd){
-			    				erro_connection_epmd = true;
-			    				logger.warning(connectionErrorMessage);
-			    			}
-						}
-		    			try{
-		    				// Aguarda um tempo aleatório até 10 segundos para conectar 
-		    				Thread.sleep(3+r.nextInt(7));
-		    			}catch (InterruptedException e1){
-		    				// tenta novamente a comunicação se a thread não foi interrompida
-		    				if (Thread.interrupted()) throw e1;
-		    			}
-		    		}
-	    		}
-	    	   
-	    	   myNode.setCookie(properties.cookie);
-	           myMbox = myNode.createMbox(nameService);
-	           if (printInfo || debug){
-	        	   logger.info(nameService + " node -> " + myNode.node());
+			   createNode();
+	           if (isLinux) {
+	        	   myMbox = myNodeLinux.createMbox(nameService);
+	        	   logger.info(nameService + " node -> " + myNodeLinux.node());
+	           }else {
+	        	   myMbox = myNodeWin.createMbox(nameService); 
+	        	   logger.info(nameService + " node -> " + myNodeWin.node());
 	           }
+	        	   
 	           
 	           // Permanece neste loop aguardando mensagens do barramento
 	           while(true){ 
@@ -153,12 +218,13 @@ public class EmsConnection extends Thread{
 	                   request.setOtpRequest(otp_request);
 	                   Long T2 = System.currentTimeMillis() - request.getT1();
 	                   if (isLinux && (T2 > request.getTimeout() || (T2 > PostUpdateTimeout && request.isPostOrUpdateRequest()))) {
-	                	   logger.info("Serviço "+ nameService + "." + request.getMetodo() + " descartou mensagem tardia.");
+	                	   logger.info("Serviço "+ nameService + "." + request.getMetodo() + " descartou mensagem devido timeout.");
 	                	   continue;
 	                   }
 	                   dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
 	                   myMbox.send(dispatcherPid, ok_atom);
-                	   pool.submit(new Task(dispatcherPid, request, myMbox));
+	                   taskCount++;
+                	   pool.submit(new Task(dispatcherPid, request, this));
 	                   msg_task.append(request.getMetodo()).append(" ")
 	                   			.append(request.getFunction()).append(" RID: ")
 	    						.append(request.getRID()).append("  Url: ")
@@ -188,7 +254,6 @@ public class EmsConnection extends Thread{
 	    		// Qualquer outra exception não esperada o serviço será reiniciado
 	    		logger.warning(msgReiniciarException + e.getMessage());
 	    		e.printStackTrace();
-	    		printInfo = true;
 	    		close();
 	    		try {
 					Thread.sleep(THREAD_WAIT_TO_RESTART);
@@ -329,6 +394,14 @@ public class EmsConnection extends Thread{
 	    }
 	}  	
 	
+	public boolean isSlave() {
+		return isSlave;
+	}
+
+	public void setSlave(boolean isSlave) {
+		this.isSlave = isSlave;
+	}
+
 	/**
 	 * Classe interna para realizar o trabalho enquanto o loop principal do serviço  aguarda mensagens.
 	 * @author Everton de Vargas Agilar
@@ -336,13 +409,13 @@ public class EmsConnection extends Thread{
 	private final class Task implements Callable<Boolean>{
 		private OtpErlangPid from;
 		private IEmsRequest request;
-		private OtpMbox myMbox;
+		private EmsConnection connection;
 		
-		public Task(final OtpErlangPid from, final IEmsRequest request, final OtpMbox myMbox){
+		public Task(final OtpErlangPid from, final IEmsRequest request, EmsConnection connection){
 			super();
 			this.from = from;
 			this.request = request;
-			this.myMbox = myMbox;
+			this.connection = connection;
 		}
 		
         public Boolean call() {  
@@ -351,13 +424,13 @@ public class EmsConnection extends Thread{
             if (isLinux) {
 	            if (T3 < request.getTimeout()) {
 		        	OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
-		        	myMbox.send(from, response);
+		        	connection.sendResult(from, response);
 	            }else{
 	            	logger.info("Serviço "+ nameService + "." + request.getMetodo() + " descartou envio do resultado após timeout.");
 	            }
             }else {
 	        	OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
-	        	myMbox.send(from, response);
+	        	connection.sendResult(from, response); 
             }
 			return true;
         }  

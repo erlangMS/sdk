@@ -309,7 +309,114 @@ public abstract class EmsRepository<Model> {
 		List<Map<String,Object>> result = q.list();
 		return result;
 	}
+
+	/**
+	 * Retorna uma lista de objetos a partir de um sql nativo.
+	 * Obs.: Somente sql nativo é suportado.
+	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
+	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
+	 * @param sort trazer ordenado por quais campos o conjunto de dados
+	 * @return list of maps 
+	 * @author Everton de Vargas Agilar
+	 */
+	@SuppressWarnings("unchecked")
+	public List<Map<String, Object>> findAsMap(final String sql, String filter, String fields, String sort) {
+		Query query = null;
+		StringBuilder field_smnt = null;
+		EmsFilterStatement where = null;
+		StringBuilder sort_smnt = null;
+		if (filter == null)	filter = "";
+		if (fields == null)	fields = "";
+		if (sort == null)	sort = "";
+		String namedQuery = prefixFindNamedQuery + EmsUtil.toBase64(EmsUtil.toSHA1(sql + filter + fields + sort));
+		if (!cachedNativeNamedQuery.contains(namedQuery)){
+			where = EmsUtil.parseSqlNativeFilter(filter);
 	
+			// Inclui a lista de campos no sql 
+			if (fields != null && !fields.isEmpty()){
+				try{
+					field_smnt = new StringBuilder();
+					String[] field_list = fields.split(",");
+					boolean useVirgula = false;
+					for (String field_name : field_list){
+						if (useVirgula){
+							field_smnt.append(",");
+						}
+						if (field_name.equals("pk")){
+							field_smnt.append("this.").append(idField.getName()); 
+						}else{
+							field_smnt.append("this.").append(field_name);
+						}
+						useVirgula = true;
+					}
+				}catch (Exception e){
+					throw new EmsValidationException("Lista de campos da pesquisa inválido. Erro interno: "+ e.getMessage());
+				}
+			}
+		
+			// Define o sort se foi informado
+			if (sort != null && !sort.isEmpty()){
+				try{
+					boolean useVirgula = false;
+					sort_smnt = new StringBuilder(" order by");
+					String[] sort_list = sort.split(",");
+					String sort_field = null;
+					for (String s : sort_list){
+						if (useVirgula){
+							sort_smnt.append(",");
+						}
+						if (s.startsWith("-")){
+							sort_field = s.substring(1);
+							if (sort_field.equals("pk")){
+								sort_field =  idField.getName();
+							}
+							sort_smnt.append(" this.").append(sort_field).append(" desc");
+						}else{
+							sort_field = s;	
+							if (sort_field.equals("pk")){
+								sort_field =  idField.getName();
+							}
+							sort_smnt.append(" this.").append(sort_field);
+						}
+						useVirgula = true;
+					}
+				}catch (Exception e){
+					throw new EmsValidationException("Sort da pesquisa inválido. Erro interno: "+ e.getMessage());
+				}
+			}
+		
+			try{
+				// formata o sql
+				StringBuilder sqlBuilder;
+			    sqlBuilder = new StringBuilder("select ")
+			    		.append(field_smnt == null ? "*" : field_smnt)
+			    		.append(" from (").append(sql).append(") this ");
+				if (where != null){
+					sqlBuilder.append(where.where.toString());
+				}	
+				if (sort_smnt != null){
+					sqlBuilder.append(sort_smnt.toString());
+				}	
+				String sqlCommand = sqlBuilder.toString();
+				query = createNativeNamedQuery(namedQuery, sqlCommand, null);
+			}catch (Exception e){
+				throw new EmsValidationException("Não foi possível criar a query da pesquisa. Erro interno: "+ e.getMessage());
+			}
+		}else{
+			query = getNamedQuery(namedQuery);
+			where = EmsUtil.parseSqlNativeFilter(filter);
+		}
+		
+		// Seta os parâmetros da query para cada campo do filtro
+		if (where != null){
+			EmsUtil.setQueryParameterFromMap(query, where.filtro_obj);
+		}
+		org.hibernate.Query q = (org.hibernate.Query) query.unwrap(org.hibernate.Query.class);
+		q.setResultTransformer(EmsAliasToEntityMapResultTransformer.INSTANCE);
+		List<Map<String,Object>> result = q.list();
+		return result;
+	}
+
 	
 	/**
 	 * Retorna uma lista de objetos a partir de um filtro no formato json
