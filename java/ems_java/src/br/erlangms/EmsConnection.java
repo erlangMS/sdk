@@ -37,7 +37,7 @@ public class EmsConnection extends Thread{
 	private static final Logger logger = EmsUtil.logger;
 	private static boolean erro_connection_epmd  = false;
 	private static final int THREAD_WAIT_TO_RESTART = 5000;
-	private static final String connectionErrorMessage = "Não foi possível realizar conexão ao barramento ERLANGMS. Verifique se o servidor de nome epmd foi iniciado.";
+	private static final String connectionErrorMessage = "Não foi possível conectar no barramento. Verifique se o servidor de nome epmd foi iniciado.";
 	private final String nameService;
 	private final EmsServiceFacade facade;
 	private Class<? extends EmsServiceFacade> classOfFacade;
@@ -190,7 +190,7 @@ public class EmsConnection extends Thread{
         StringBuilder msg_task = new StringBuilder();
         ExecutorService pool = Executors.newCachedThreadPool();
         final String msgFinalizadoSucesso = nameService + " finalizado com sucesso.";
-        final String msgReiniciarException = "Serviço "+ nameService + " será reiniado devido erro interno: ";
+        final String msgReiniciarException = "Serviço "+ nameService + " será reiniciado devido erro interno: ";
         int PostUpdateTimeout = EmsUtil.properties.postUpdateTimeout;
         while (true){
     		try {
@@ -218,7 +218,7 @@ public class EmsConnection extends Thread{
 	                   request.setOtpRequest(otp_request);
 	                   Long T2 = System.currentTimeMillis() - request.getT1();
 	                   if (isLinux && (T2 > request.getTimeout() || (T2 > PostUpdateTimeout && request.isPostOrUpdateRequest()))) {
-	                	   logger.info("Serviço "+ nameService + "." + request.getMetodo() + " descartou mensagem tardia.");
+	                	   logger.info("Serviço "+ nameService + "." + request.getMetodo() + " descartou mensagem devido timeout.");
 	                	   continue;
 	                   }
 	                   dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);

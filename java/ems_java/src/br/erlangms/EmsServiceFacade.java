@@ -26,8 +26,10 @@ public abstract class EmsServiceFacade {
         String className = getClass().getName();
     	connection = new EmsConnection(this, className, false);
         connection.start();
-		connectionSlave = new EmsConnection(this, className + "02", true);
-        connectionSlave.start();
+		if (EmsUtil.properties.isLinux) {
+			connectionSlave = new EmsConnection(this, className + "02", true);
+			connectionSlave.start();
+		}
     }
     
 	@PreDestroy
