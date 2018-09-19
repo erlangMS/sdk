@@ -1,86 +1,93 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>br.erlangms</groupId>
-  <artifactId>ems_java</artifactId>
-  <version>1.0.7.3</version>
-  <name>ems_java</name>
-  <description>SDK ErlangMS by Everton de Vargas Agilar</description>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>br.erlangms</groupId>
+	<artifactId>ems_java</artifactId>
+	<version>1.0.8.3</version>
+	<name>ems_java</name>
+	<description>SDK ErlangMS by Everton de Vargas Agilar</description>
 
-<properties>
-	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	<project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
-	<maven.build.timestamp.format>yyyy-MM-dd-HHmm</maven.build.timestamp.format>
-	<project.buildNumber>${maven.build.timestamp}</project.buildNumber>
-</properties>
-	
-<dependencies>
-	<dependency>
-	    <groupId>org.erlang.otp</groupId>
-	    <artifactId>jinterface</artifactId>
-	    <version>1.6.1</version>
-	</dependency>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
+		<maven.build.timestamp.format>yyyy-MM-dd-HHmm</maven.build.timestamp.format>
+		<project.buildNumber>${maven.build.timestamp}</project.buildNumber>
+	</properties>
 
-	<dependency>
-	    <groupId>com.google.code.gson</groupId>
-	    <artifactId>gson</artifactId>
-	    <version>2.8.1</version>
-	</dependency>
+	<dependencies>
+		<dependency>
+			<groupId>org.erlang.otp</groupId>
+			<artifactId>jinterface</artifactId>
+			<version>1.6.1</version>
+		</dependency>
 
-	<dependency>
-		<groupId>javax</groupId>
-		<artifactId>javaee-api</artifactId>
-		<version>7.0</version>
-		<scope>provided</scope>
-	</dependency>
-    
-	<dependency>
-		<groupId>org.hibernate</groupId>
-		<artifactId>hibernate-entitymanager</artifactId>
-		<version>4.3.11.Final</version>
-		<scope>provided</scope>
-	</dependency>
-	
-    <dependency>
-	    <groupId>org.jinq</groupId>
-	    <artifactId>jinq-jpa</artifactId>
-	    <version>1.8.17</version>
-	</dependency>	
-	<dependency>
-	    <groupId>net.sf.jasperreports</groupId>
-	    <artifactId>jasperreports</artifactId>
-	    <version>6.4.1</version>
-	</dependency>
-	<dependency>
-	    <groupId>com.google.zxing</groupId>
-	    <artifactId>javase</artifactId>
-	    <version>2.0</version>
-	</dependency>
-	
-	<!-- https://mvnrepository.com/artifact/com.sun.jersey/jersey-client -->
-<dependency>
-    <groupId>com.sun.jersey</groupId>
-    <artifactId>jersey-client</artifactId>
-    <version>1.19.4</version>
-</dependency>
-	
-</dependencies>
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.8.1</version>
+		</dependency>
 
-  <build>
-    <sourceDirectory>src</sourceDirectory>
-    <plugins>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.1</version>
-        <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-  <url>https://github.com/erlangms/sdk</url>
-  <organization>
-  	<name>ErlangMS</name>
-  	<url>https://github.com/erlangMS</url>
-  </organization>
+		<dependency>
+			<groupId>javax</groupId>
+			<artifactId>javaee-api</artifactId>
+			<version>7.0</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-entitymanager</artifactId>
+			<version>4.3.11.Final</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.jinq</groupId>
+			<artifactId>jinq-jpa</artifactId>
+			<version>1.8.17</version>
+		</dependency>
+		<dependency>
+			<groupId>net.sf.jasperreports</groupId>
+			<artifactId>jasperreports</artifactId>
+			<version>6.4.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>javase</artifactId>
+			<version>2.0</version>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/com.sun.jersey/jersey-client -->
+		<dependency>
+			<groupId>com.sun.jersey</groupId>
+			<artifactId>jersey-client</artifactId>
+			<version>1.19.4</version>
+		</dependency>
+
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.17</version>
+		</dependency>
+
+	</dependencies>
+
+	<build>
+		<sourceDirectory>src</sourceDirectory>
+		<plugins>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.1</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+	<url>https://github.com/erlangms/sdk</url>
+	<organization>
+		<name>ErlangMS</name>
+		<url>https://github.com/erlangMS</url>
+	</organization>
 </project>

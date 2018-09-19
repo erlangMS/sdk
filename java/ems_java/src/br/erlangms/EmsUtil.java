@@ -8,9 +8,15 @@
  
 package br.erlangms;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -18,6 +24,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -28,8 +36,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -63,12 +73,14 @@ import javax.naming.directory.SearchResult;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
 import javax.persistence.Column;
+import javax.persistence.EntityManager;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
+import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
@@ -138,6 +150,7 @@ public final class EmsUtil {
 	private static java.util.Base64.Encoder base64Encoder = null;
 	private final static String HEX = "0123456789ABCDEF";
 	private final static String seed = "LDAPCorp_pwdupdate";
+    private static int WORKER_BUSY = 120000;
 
 	static{
 		doubleFormatter = NumberFormat.getInstance(Locale.US);
@@ -2427,5 +2440,526 @@ public final class EmsUtil {
     public static String readFullyAsString(InputStream inputStream, String encoding) throws IOException {
         return readFully(inputStream).toString(encoding);
     }
+    
+    
+    //
+    // Executa um comando e imprime sua saída no terminal se imprimeSaida for true (apenas Linux).
+    //
+    //
+    public static void executeCommand(String command, boolean imprimeSaida) throws IOException {
+        boolean isLinuxOS = EmsUtil.isLinuxOS(); 
+        final ArrayList<String> commands = new ArrayList<String>();
+        if (isLinuxOS){
+        	commands.add("/bin/bash");
+            commands.add("-c");
+        }else{
+        	commands.add("cmd.exe /c ");
+        	command = command.replace("java", "java.exe");
+        }
+        commands.add(command);
+        
+        BufferedReader br = null;        
+
+        try {           
+        	if (isLinuxOS){
+	        	final ProcessBuilder p = new ProcessBuilder(commands);
+	            final Process process = p.start();
+	            if (imprimeSaida){
+		            final InputStream is = process.getInputStream();
+		            final InputStreamReader isr = new InputStreamReader(is);
+		            br = new BufferedReader(isr);
+		            String line;            
+		            while((line = br.readLine()) != null) {
+		                System.out.println(line);
+		            }
+	            }
+        	}else{
+            	String cmd = EmsUtil.join(commands, " ");
+            	Runtime.getRuntime().exec(cmd);
+        	}
+            
+        } catch (IOException ioe) {
+            logger.info(ioe.getMessage());
+            throw ioe;
+        } finally {
+            try {
+                if (br != null) {
+                    br.close();
+                }
+            } catch (IOException ex) {
+                logger.info(ex.getMessage());
+            }
+        }
+    }
+    
+    
+    //
+    // Formata o nome do arquivo de pid para um processo
+    //
+    public static String formatPidFileName(final String pid, final String nomeProcesso){
+    	String currentDir = System.getProperty("user.dir");
+    	String fileNamePid = String.format("%s%s%s.pid", currentDir, File.separator, nomeProcesso);
+    	return fileNamePid;
+    }
+    
+    //
+    // Retorna true/false se o pid existe
+    //
+    public static boolean existePidFile(final String pid, final String nomeProcesso){
+    	String fileNamePid = formatPidFileName(pid, nomeProcesso);
+    	File arquivo = new File(fileNamePid);
+    	return arquivo.exists();    	
+    }
+    
+
+    //
+    // Cria o arquivo pid para controle de execução do processo. Não será permitido 
+    // criar um processo se o pid ja existir.
+    //
+    public static String createPidFile(final String pid, final String nomeProcesso, boolean deleteIfExists) throws Exception {
+    	String fileNamePid = formatPidFileName(pid, nomeProcesso);
+    	File arquivo = new File(fileNamePid);
+    	if (deleteIfExists){
+    		arquivo.delete();
+    	}else{
+	    	if (arquivo.exists()){
+		    	throw new Exception(String.format("O processo %s já está sendo executado (%s)", nomeProcesso, arquivo.getAbsolutePath()));
+		    }
+    	}
+	    try{
+	    	arquivo.createNewFile();
+	    	FileWriter fw = null;
+	        try {
+	        	fw = new FileWriter(arquivo);
+	        	fw.write(pid);
+	        	fw.flush();
+	        }finally{
+	        	if (fw != null){
+	        		fw.close();
+	        	}
+	        }
+	        return fileNamePid;
+	    }catch(IOException ex){
+	    	throw new Exception(String.format("Não foi possível criar o arquivo de pid do processo %s.\n Arquivo pid: %s", nomeProcesso, arquivo.getAbsolutePath()));
+	    }
+    }
+    
+    //
+    // Remove o pid de um processo pelo seu nome de processo.
+    //
+    //
+    public static void removePidFile(final String fileNamePid){
+    	try{
+	    	File arquivo = new File(fileNamePid);
+		    if (arquivo.exists()){
+		    	arquivo.delete();
+		    }
+    	}catch (Exception e){
+    		// não retorna erro ao processo chamador em caso de falha aqui
+    	}
+    }
+
+    //
+    // Retorna um iterator de File para a lista de pids.
+    // Uso: Se não informado codigoRefeitorio retorna todos senão somente do refeitório específico.
+    //
+    private static Integer filter_codigoRefeitorio = null;
+    private static Iterator<File> getListWorkerPids(Integer codigoRefeitorio) throws RuntimeException{
+    	try{
+	    	String currentDir = System.getProperty("user.dir");
+
+    		// filtro para obter os pid
+	    	filter_codigoRefeitorio = codigoRefeitorio;
+			FilenameFilter filter = new FilenameFilter() {  
+                public boolean accept(File dir, String name) {  
+                    boolean result = name.endsWith(".pid") && name.contains("_worker_");
+                    if (result && filter_codigoRefeitorio != null){
+                    	try{
+	                    	int p = name.indexOf("worker_id_")+10;
+	                    	String cod_name = name.substring(p, p+3);
+	                    	if (filter_codigoRefeitorio == Integer.parseInt(cod_name)){
+	                    		return true;
+	                    	}
+                    	}catch (Exception e){
+                    		// ignora
+                    	}
+                    	return false;
+                    }
+                    return result;
+                }  
+			};  
+			
+			File[] files = new File(currentDir).listFiles(filter);
+			List<File> retorno = new ArrayList<File>();
+			for (File file : files) {
+				retorno.add(file);
+			}
+			return retorno.iterator();
+    	}catch (Exception e){
+    		String erro = String.format("Não consegui obter a lista de PIDs. Erro interno: %s.", e.getMessage()); 
+    		logger.info(erro);
+    		throw new RuntimeException(erro);
+    	}
+    }
+    
+
+    //
+    // Fecha todos os processos workers que estão executando.
+    //
+	public static void fechaTodosWorkers() {
+		int count = 0;
+		Iterator<File> listPids = getListWorkerPids(null);
+		List<String> fileNamePids = new ArrayList<String>();
+		while (listPids.hasNext()){
+			File file = listPids.next();
+			try {
+	        	Integer pid = lePid(file.getAbsolutePath());
+	        	EmsUtil.kill(pid, false);
+				fileNamePids.add(file.getAbsolutePath());
+            	count++;
+            } catch (Exception e) {
+				logger.info(String.format("Falha ao finalizar processo %s. Motivo: ", file.getName(), e.getMessage()));
+			}
+		}
+		
+		// Timeout por segurança
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			// aguarda 1 seg antes de continuar
+		}
+		
+		// Remove os arquivos de pids 
+    	for (String fileName : fileNamePids){
+    		EmsUtil.removePidFile(fileName);
+    	}
+
+		
+		if (count > 1){
+			logger.info(String.format("%d workers finalizados.", count));
+		} else if (count > 0){
+			logger.info("1 worker finalizado.");
+		}else{
+			logger.info("Nenhum worker ativo.");
+		}
+	}
+
+    //
+    // Fecha um processo worker espcífico pelo código do refeitório
+    //
+	public static void fechaWorker(final Integer codigoRefeitorio) {
+		Iterator<File> listPids = getListWorkerPids(codigoRefeitorio);
+		int count = 0;
+		while (listPids.hasNext()){
+			File file = listPids.next();
+			try {
+            	Integer pid = lePid(file.getAbsolutePath());
+            	EmsUtil.kill(pid, false);
+            	EmsUtil.removePidFile(file.getAbsolutePath());
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					// aguarda 1 seg antes de continuar
+				}
+				count++;
+				break;
+			} catch (Exception e) {
+				logger.info(String.format("Falha ao finalizar processo %s. Motivo: ", file.getName(), e.getMessage()));
+			}
+		}
+		
+		if (count == 1){
+			logger.info("1 worker finalizado.");
+		} else if (count == 0){
+			logger.info("Nenhum worker ativo.");
+		}
+		
+	}
+
+	
+	//
+	// Obtém o pid do processo atual 
+	//
+	public static String getMeuPid() {
+		return java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0];
+	}
+
+
+	//
+	// Inicia um processo dedicado (worker process) para atender um refeitório.
+	//
+	public static void startWorkerParaRefeitorio(final Integer codigo, final String args_str) throws IOException {
+    	String currentDir = System.getProperty("user.dir");
+    	String currentJVM = System.getProperty("java.home");
+    	String cmd = String.format("%s%sbin%sjava -jar %s%ssisruCatraca.jar %s --refeitorio=%d", currentJVM, 
+    																							File.separator,
+    																							File.separator,
+    																							currentDir, 
+    																							File.separator, 
+    																							args_str, 
+    																							codigo);
+    	EmsUtil.executeCommand(cmd, false);
+	}
+
+	//
+	// Inicia um processo dedicado (worker process) para atender um refeitório.
+	//
+	public static void restartWorkerParaRefeitorio(final Integer codigo, final String configFileName) throws IOException {
+    	String currentDir = System.getProperty("user.dir");
+    	String currentJVM = System.getProperty("java.home");
+    	String cmd = String.format("%s%sbin%sjava -jar %s%ssisruCatraca.jar --config=%s --refeitorio=%d restart", currentJVM,
+    																										 	  File.separator,
+    																										 	  File.separator,
+    																										 	  currentDir, 
+    																										 	  File.separator, 
+    																										 	  configFileName, 
+    																										 	  codigo);
+    	EmsUtil.executeCommand(cmd, false);
+	}
+
+	//
+	// Captura o sinal enviado por kill para finalizar o processo e faça o encerramento corretamente.
+	// Agilar: Para ctrl + c ou kill [processo]. O poderoso kill -9 não é capturado, portanto seja legal e não use o parâmetro -9.
+	//
+	public static void addShutdownHook(String fileNamePid) {
+        Runtime.getRuntime().addShutdownHook(new Thread(fileNamePid) {
+            @Override
+            public void run() {
+            	EmsUtil.removePidFile(this.getName());
+            	logger.info(String.format("%s finalizado.", this.getName()));
+            }
+        });		
+	}
+	
+	
+	//
+	// Lê o pid de um processo armazenado em um arquivo pid.
+	//
+	public static Integer lePid(final String fileNamePidProcesso) throws NumberFormatException, IOException{
+		BufferedReader reader = null;
+		try {
+        	reader = new BufferedReader(new FileReader(fileNamePidProcesso));        
+            Integer pid = Integer.parseInt(reader.readLine());    
+            return pid;        
+        }finally{
+        	if (reader != null){
+        		reader.close();
+        	}
+        }
+	}
+
+
+	// 
+	// Gera um nome único para o processo worker
+	// 
+	public static String criaNomeProcessoWorker(Integer codigoRefeitorio, final String ipCatraca) {
+		return  String.format("sisruCatraca_worker_id_%s_ip_%s", String.format("%03d", codigoRefeitorio), ipCatraca);
+	}
+
+
+	//
+	// Monitora o arquivo de pid e o mantem atualizado enquanto o processo estiver rodando
+	//
+	public static void addUpdatePidFileHook(final String pid, String fileNamePid) {
+		class UpdatePidFileThead extends Thread {
+			private String fileNamePid = null;
+			private String pid = null;
+			private final Integer TIMEOUT_UPDATE_PID = 30000;
+			
+			@PersistenceContext(unitName = "service_context")
+			private EntityManager entityManager;
+
+			public UpdatePidFileThead(final String pid, String fileNamePid){
+				this.fileNamePid = fileNamePid;
+				this.pid = pid;
+				setPriority(MIN_PRIORITY);
+			}
+
+			@Override
+			public void run() {
+		        while (isAlive()){
+					try {
+						Thread.sleep(TIMEOUT_UPDATE_PID);
+					} catch (InterruptedException e2) {
+						// A cada timeout segundos atualiza o arquivo de pid
+					}
+					if (isAlive()){
+						try{
+							FileWriter fw = null;
+							entityManager.createQuery("SELECT 1").getSingleResult();
+					    	try {
+					    		fw = new FileWriter(this.fileNamePid);
+						        fw.write(this.pid);
+						        fw.flush();
+					        }finally{
+					        	if (fw != null){
+					        		fw.close();
+					        	}
+					        }
+					    }catch(Exception e){
+					    	
+					    }
+					}
+		        }
+			}
+		}
+		new UpdatePidFileThead(pid, fileNamePid).start();
+	}
+
+	
+	//
+	// Verifica se tem algum worker travado
+	//
+	public static void checkWorkersRodando() {
+		Iterator<File> listaPids = getListWorkerPids(null);
+		boolean tudoCerto = true;
+		boolean temWorkerRodando = false;
+		while (listaPids.hasNext()){
+			temWorkerRodando = true;
+			File arq = listaPids.next();
+			if (System.currentTimeMillis() - arq.lastModified() > WORKER_BUSY){
+				tudoCerto = false;
+				String fileNamePid = arq.getName();
+				Integer pid = null;
+				Integer codigoRefeitorio = null;
+				try{
+					int p = fileNamePid.indexOf("_worker_id_");
+					codigoRefeitorio = Integer.parseInt(fileNamePid.substring(p+11, p+14));
+				} catch (Exception e){
+					System.out.println(String.format("Não consegui obter status para o worker %s.", fileNamePid));
+					continue;
+				}
+				
+				try{
+					pid = lePid(fileNamePid);
+				} catch (Exception e1) {
+					try { 
+						Thread.sleep(1000); 
+					} 
+					catch (Exception e2){
+						
+					};
+					try {
+						pid = lePid(fileNamePid);
+					} catch (Exception e3) {
+						System.out.println(String.format("Não consegui obter status para o worker %s.", fileNamePid));
+						continue;
+					}
+				}
+				System.out.println(String.format("Worker do refeitorio %s (pid=%d) parece estar morto.", codigoRefeitorio, pid));
+			}
+		}
+		if (tudoCerto){
+			if (temWorkerRodando){
+				System.out.println("Tudo certo com os workers.");
+			}else{
+				System.out.println("Nenhum worker rodando.");
+			}
+		}
+	}
+
+
+	//
+	// Retorna true/false se um worker está morto
+	//
+	public static boolean isWorkerBusy(Integer codigoRefeitorio) {
+		File file = getListWorkerPids(codigoRefeitorio).next();
+		return (System.currentTimeMillis() - file.lastModified() > WORKER_BUSY);
+	}
+	
+	public static String getMeuIp(){
+		Enumeration<NetworkInterface> nis = null;  
+        try {  
+            nis = NetworkInterface.getNetworkInterfaces();  
+        } catch (SocketException e) {  
+            logger.info(String.format("Erro ao obter IP. Motivo: %s", e.getMessage()));  
+        }  
+        if (nis  != null){
+	        while (nis.hasMoreElements()) {  
+	            NetworkInterface ni = (NetworkInterface) nis.nextElement();  
+	            Enumeration<InetAddress> ias = ni.getInetAddresses();  
+	            while (ias.hasMoreElements()) {  
+	                InetAddress ia = (InetAddress) ias.nextElement();  
+	                if (ia.getHostAddress().contains("164.41")) {   
+	                	return ia.getHostAddress();      
+	                }  
+	            }  
+	        }
+        }
+        return "";
+	}
+
+	//
+	// Mata um processo pelo seu pid
+	//
+	public static void kill(Integer pid, boolean force) {  
+        try {  
+            if (EmsUtil.isLinuxOS()){
+            	String cmd;
+            	if (force){
+            		cmd = String.format("kill -9 %d", pid);
+            	}else{
+            		cmd = String.format("kill %d", pid);
+            	}
+            	EmsUtil.executeCommand(cmd, false);
+            }else{
+	        	String line;  
+	            String pid_str = pid.toString();
+	            Process p = Runtime.getRuntime().exec("tasklist.exe /fo csv /nh");  
+	            BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));  
+	            while ((line = input.readLine()) != null) {  
+	            	if (!line.trim().equals("")) {  
+	                	String[] args = line.split("\",\"");
+	            		if (args[1].equals(pid_str)) {  
+	            			Runtime.getRuntime().exec(String.format("taskkill /PID %d", pid));  
+	                        return;  
+	                    }  
+	                }  
+	            }  
+	            input.close();  
+            }      
+        } catch (Exception err) {  
+            logger.info(String.format("Erro ao matar processo %d", pid));  
+        }  
+    }  	
+
+	// 
+	// Retorna true/false se está rodando no Linux
+	//
+	public static boolean isLinuxOS(){
+        boolean isLinuxOS = System.getProperty("os.name").toLowerCase().contains("linux"); 
+		return isLinuxOS;
+	}
+	
+	
+	public static String join(String[] list, String conjunction){
+		   StringBuilder sb = new StringBuilder();
+		   boolean first = true;
+		   for (String item : list)
+		   {
+		      if (first)
+		         first = false;
+		      else
+		         sb.append(conjunction);
+		      sb.append(item);
+		   }
+		   return sb.toString();
+		}
+
+	 public  static String join(ArrayList<String> list, String conjunction){
+			   StringBuilder sb = new StringBuilder();
+			   boolean first = true;
+			   for (String item : list)
+			   {
+			      if (first)
+			         first = false;
+			      else
+			         sb.append(conjunction);
+			      sb.append(item);
+			   }
+			   return sb.toString();
+			}
+
+
     
 }
