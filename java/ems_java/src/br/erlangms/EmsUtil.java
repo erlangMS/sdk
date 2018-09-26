@@ -13,7 +13,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -39,7 +38,6 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -80,7 +78,6 @@ import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
-import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
@@ -151,6 +148,7 @@ public final class EmsUtil {
 	private final static String HEX = "0123456789ABCDEF";
 	private final static String seed = "LDAPCorp_pwdupdate";
     private static int WORKER_BUSY = 120000;
+    private static String[] args = null;
 
 	static{
 		doubleFormatter = NumberFormat.getInstance(Locale.US);
@@ -2493,59 +2491,9 @@ public final class EmsUtil {
     }
     
     
-    //
-    // Formata o nome do arquivo de pid para um processo
-    //
-    public static String formatPidFileName(final String pid, final String nomeProcesso){
-    	String currentDir = System.getProperty("user.dir");
-    	String fileNamePid = String.format("%s%s%s.pid", currentDir, File.separator, nomeProcesso);
-    	return fileNamePid;
-    }
-    
-    //
-    // Retorna true/false se o pid existe
-    //
-    public static boolean existePidFile(final String pid, final String nomeProcesso){
-    	String fileNamePid = formatPidFileName(pid, nomeProcesso);
-    	File arquivo = new File(fileNamePid);
-    	return arquivo.exists();    	
-    }
-    
 
     //
-    // Cria o arquivo pid para controle de execução do processo. Não será permitido 
-    // criar um processo se o pid ja existir.
-    //
-    public static String createPidFile(final String pid, final String nomeProcesso, boolean deleteIfExists) throws Exception {
-    	String fileNamePid = formatPidFileName(pid, nomeProcesso);
-    	File arquivo = new File(fileNamePid);
-    	if (deleteIfExists){
-    		arquivo.delete();
-    	}else{
-	    	if (arquivo.exists()){
-		    	throw new Exception(String.format("O processo %s já está sendo executado (%s)", nomeProcesso, arquivo.getAbsolutePath()));
-		    }
-    	}
-	    try{
-	    	arquivo.createNewFile();
-	    	FileWriter fw = null;
-	        try {
-	        	fw = new FileWriter(arquivo);
-	        	fw.write(pid);
-	        	fw.flush();
-	        }finally{
-	        	if (fw != null){
-	        		fw.close();
-	        	}
-	        }
-	        return fileNamePid;
-	    }catch(IOException ex){
-	    	throw new Exception(String.format("Não foi possível criar o arquivo de pid do processo %s.\n Arquivo pid: %s", nomeProcesso, arquivo.getAbsolutePath()));
-	    }
-    }
-    
-    //
-    // Remove o pid de um processo pelo seu nome de processo.
+    // Remove o pid de um processo de forma segura
     //
     //
     public static void removePidFile(final String fileNamePid){
@@ -2558,125 +2506,8 @@ public final class EmsUtil {
     		// não retorna erro ao processo chamador em caso de falha aqui
     	}
     }
-
-    //
-    // Retorna um iterator de File para a lista de pids.
-    // Uso: Se não informado codigoRefeitorio retorna todos senão somente do refeitório específico.
-    //
-    private static Integer filter_codigoRefeitorio = null;
-    private static Iterator<File> getListWorkerPids(Integer codigoRefeitorio) throws RuntimeException{
-    	try{
-	    	String currentDir = System.getProperty("user.dir");
-
-    		// filtro para obter os pid
-	    	filter_codigoRefeitorio = codigoRefeitorio;
-			FilenameFilter filter = new FilenameFilter() {  
-                public boolean accept(File dir, String name) {  
-                    boolean result = name.endsWith(".pid") && name.contains("_worker_");
-                    if (result && filter_codigoRefeitorio != null){
-                    	try{
-	                    	int p = name.indexOf("worker_id_")+10;
-	                    	String cod_name = name.substring(p, p+3);
-	                    	if (filter_codigoRefeitorio == Integer.parseInt(cod_name)){
-	                    		return true;
-	                    	}
-                    	}catch (Exception e){
-                    		// ignora
-                    	}
-                    	return false;
-                    }
-                    return result;
-                }  
-			};  
-			
-			File[] files = new File(currentDir).listFiles(filter);
-			List<File> retorno = new ArrayList<File>();
-			for (File file : files) {
-				retorno.add(file);
-			}
-			return retorno.iterator();
-    	}catch (Exception e){
-    		String erro = String.format("Não consegui obter a lista de PIDs. Erro interno: %s.", e.getMessage()); 
-    		logger.info(erro);
-    		throw new RuntimeException(erro);
-    	}
-    }
     
 
-    //
-    // Fecha todos os processos workers que estão executando.
-    //
-	public static void fechaTodosWorkers() {
-		int count = 0;
-		Iterator<File> listPids = getListWorkerPids(null);
-		List<String> fileNamePids = new ArrayList<String>();
-		while (listPids.hasNext()){
-			File file = listPids.next();
-			try {
-	        	Integer pid = lePid(file.getAbsolutePath());
-	        	EmsUtil.kill(pid, false);
-				fileNamePids.add(file.getAbsolutePath());
-            	count++;
-            } catch (Exception e) {
-				logger.info(String.format("Falha ao finalizar processo %s. Motivo: ", file.getName(), e.getMessage()));
-			}
-		}
-		
-		// Timeout por segurança
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			// aguarda 1 seg antes de continuar
-		}
-		
-		// Remove os arquivos de pids 
-    	for (String fileName : fileNamePids){
-    		EmsUtil.removePidFile(fileName);
-    	}
-
-		
-		if (count > 1){
-			logger.info(String.format("%d workers finalizados.", count));
-		} else if (count > 0){
-			logger.info("1 worker finalizado.");
-		}else{
-			logger.info("Nenhum worker ativo.");
-		}
-	}
-
-    //
-    // Fecha um processo worker espcífico pelo código do refeitório
-    //
-	public static void fechaWorker(final Integer codigoRefeitorio) {
-		Iterator<File> listPids = getListWorkerPids(codigoRefeitorio);
-		int count = 0;
-		while (listPids.hasNext()){
-			File file = listPids.next();
-			try {
-            	Integer pid = lePid(file.getAbsolutePath());
-            	EmsUtil.kill(pid, false);
-            	EmsUtil.removePidFile(file.getAbsolutePath());
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					// aguarda 1 seg antes de continuar
-				}
-				count++;
-				break;
-			} catch (Exception e) {
-				logger.info(String.format("Falha ao finalizar processo %s. Motivo: ", file.getName(), e.getMessage()));
-			}
-		}
-		
-		if (count == 1){
-			logger.info("1 worker finalizado.");
-		} else if (count == 0){
-			logger.info("Nenhum worker ativo.");
-		}
-		
-	}
-
-	
 	//
 	// Obtém o pid do processo atual 
 	//
@@ -2685,37 +2516,6 @@ public final class EmsUtil {
 	}
 
 
-	//
-	// Inicia um processo dedicado (worker process) para atender um refeitório.
-	//
-	public static void startWorkerParaRefeitorio(final Integer codigo, final String args_str) throws IOException {
-    	String currentDir = System.getProperty("user.dir");
-    	String currentJVM = System.getProperty("java.home");
-    	String cmd = String.format("%s%sbin%sjava -jar %s%ssisruCatraca.jar %s --refeitorio=%d", currentJVM, 
-    																							File.separator,
-    																							File.separator,
-    																							currentDir, 
-    																							File.separator, 
-    																							args_str, 
-    																							codigo);
-    	EmsUtil.executeCommand(cmd, false);
-	}
-
-	//
-	// Inicia um processo dedicado (worker process) para atender um refeitório.
-	//
-	public static void restartWorkerParaRefeitorio(final Integer codigo, final String configFileName) throws IOException {
-    	String currentDir = System.getProperty("user.dir");
-    	String currentJVM = System.getProperty("java.home");
-    	String cmd = String.format("%s%sbin%sjava -jar %s%ssisruCatraca.jar --config=%s --refeitorio=%d restart", currentJVM,
-    																										 	  File.separator,
-    																										 	  File.separator,
-    																										 	  currentDir, 
-    																										 	  File.separator, 
-    																										 	  configFileName, 
-    																										 	  codigo);
-    	EmsUtil.executeCommand(cmd, false);
-	}
 
 	//
 	// Captura o sinal enviado por kill para finalizar o processo e faça o encerramento corretamente.
@@ -2749,124 +2549,6 @@ public final class EmsUtil {
 	}
 
 
-	// 
-	// Gera um nome único para o processo worker
-	// 
-	public static String criaNomeProcessoWorker(Integer codigoRefeitorio, final String ipCatraca) {
-		return  String.format("sisruCatraca_worker_id_%s_ip_%s", String.format("%03d", codigoRefeitorio), ipCatraca);
-	}
-
-
-	//
-	// Monitora o arquivo de pid e o mantem atualizado enquanto o processo estiver rodando
-	//
-	public static void addUpdatePidFileHook(final String pid, String fileNamePid) {
-		class UpdatePidFileThead extends Thread {
-			private String fileNamePid = null;
-			private String pid = null;
-			private final Integer TIMEOUT_UPDATE_PID = 30000;
-			
-			@PersistenceContext(unitName = "service_context")
-			private EntityManager entityManager;
-
-			public UpdatePidFileThead(final String pid, String fileNamePid){
-				this.fileNamePid = fileNamePid;
-				this.pid = pid;
-				setPriority(MIN_PRIORITY);
-			}
-
-			@Override
-			public void run() {
-		        while (isAlive()){
-					try {
-						Thread.sleep(TIMEOUT_UPDATE_PID);
-					} catch (InterruptedException e2) {
-						// A cada timeout segundos atualiza o arquivo de pid
-					}
-					if (isAlive()){
-						try{
-							FileWriter fw = null;
-							entityManager.createQuery("SELECT 1").getSingleResult();
-					    	try {
-					    		fw = new FileWriter(this.fileNamePid);
-						        fw.write(this.pid);
-						        fw.flush();
-					        }finally{
-					        	if (fw != null){
-					        		fw.close();
-					        	}
-					        }
-					    }catch(Exception e){
-					    	
-					    }
-					}
-		        }
-			}
-		}
-		new UpdatePidFileThead(pid, fileNamePid).start();
-	}
-
-	
-	//
-	// Verifica se tem algum worker travado
-	//
-	public static void checkWorkersRodando() {
-		Iterator<File> listaPids = getListWorkerPids(null);
-		boolean tudoCerto = true;
-		boolean temWorkerRodando = false;
-		while (listaPids.hasNext()){
-			temWorkerRodando = true;
-			File arq = listaPids.next();
-			if (System.currentTimeMillis() - arq.lastModified() > WORKER_BUSY){
-				tudoCerto = false;
-				String fileNamePid = arq.getName();
-				Integer pid = null;
-				Integer codigoRefeitorio = null;
-				try{
-					int p = fileNamePid.indexOf("_worker_id_");
-					codigoRefeitorio = Integer.parseInt(fileNamePid.substring(p+11, p+14));
-				} catch (Exception e){
-					System.out.println(String.format("Não consegui obter status para o worker %s.", fileNamePid));
-					continue;
-				}
-				
-				try{
-					pid = lePid(fileNamePid);
-				} catch (Exception e1) {
-					try { 
-						Thread.sleep(1000); 
-					} 
-					catch (Exception e2){
-						
-					};
-					try {
-						pid = lePid(fileNamePid);
-					} catch (Exception e3) {
-						System.out.println(String.format("Não consegui obter status para o worker %s.", fileNamePid));
-						continue;
-					}
-				}
-				System.out.println(String.format("Worker do refeitorio %s (pid=%d) parece estar morto.", codigoRefeitorio, pid));
-			}
-		}
-		if (tudoCerto){
-			if (temWorkerRodando){
-				System.out.println("Tudo certo com os workers.");
-			}else{
-				System.out.println("Nenhum worker rodando.");
-			}
-		}
-	}
-
-
-	//
-	// Retorna true/false se um worker está morto
-	//
-	public static boolean isWorkerBusy(Integer codigoRefeitorio) {
-		File file = getListWorkerPids(codigoRefeitorio).next();
-		return (System.currentTimeMillis() - file.lastModified() > WORKER_BUSY);
-	}
-	
 	public static String getMeuIp(){
 		Enumeration<NetworkInterface> nis = null;  
         try {  
@@ -2932,7 +2614,7 @@ public final class EmsUtil {
 	}
 	
 	
-	public static String join(String[] list, String conjunction){
+	public static String join(final String[] list, final String conjunction){
 		   StringBuilder sb = new StringBuilder();
 		   boolean first = true;
 		   for (String item : list)
@@ -2944,22 +2626,244 @@ public final class EmsUtil {
 		      sb.append(item);
 		   }
 		   return sb.toString();
-		}
+	}
 
-	 public  static String join(ArrayList<String> list, String conjunction){
-			   StringBuilder sb = new StringBuilder();
-			   boolean first = true;
-			   for (String item : list)
-			   {
-			      if (first)
-			         first = false;
-			      else
-			         sb.append(conjunction);
-			      sb.append(item);
-			   }
-			   return sb.toString();
+	 public  static String join(final ArrayList<String> list, final String conjunction){
+		   StringBuilder sb = new StringBuilder();
+		   boolean first = true;
+		   for (String item : list)
+		   {
+		      if (first)
+		         first = false;
+		      else
+		         sb.append(conjunction);
+		      sb.append(item);
+		   }
+		   return sb.toString();
+	}
+
+
+	/**
+	 * Cria um arquivo de pid para o processo.
+	 * @return nome do arquivo criado ou exception
+	 * @author Everton de Vargas Agilar
+	 */
+	 public static String createPidFile(final String fileNamePid, boolean deleteIfExists) throws Exception {
+		 if (fileNamePid != null && !fileNamePid.isEmpty()) {
+			 File arq = new File(fileNamePid);
+			 if (arq.exists()){
+				 System.out.println(String.format("O arquivo de pid %s já existe.", fileNamePid));
+				 if (deleteIfExists) {
+					 arq.delete();
+				 }
+			 }
+			 
+			 try(FileWriter fw = new FileWriter(arq)) {
+				 fw.write(getMeuPid());
+	        	 fw.flush();
+	        	 return fileNamePid;
+			 }catch(IOException ex){
+				 throw new Exception("Não foi possível criar o arquivo de pid "+ fileNamePid + ".");
+			 }
+		 }else {
+			 throw new Exception("Parâmetro fileNamePid é inválido para EmsUtil.createPidFile.");
+		 }
+	 }
+	 
+	/**
+	 * Obtém um parâmetro de configuração. Se ocorrer erro retorna null
+	 * @return valor do parâmetro
+	 * @author Everton de Vargas Agilar, Renato Carauta
+	 */
+	public static String getProperty(final String property) {
+		if (property != null && !property.isEmpty()) {
+			if (args != null) {
+				try {
+					for (String prop : args) {
+						int posEq = prop.indexOf("=");
+						if (posEq != -1) {
+							String key = prop.substring(1, posEq);
+							if (key.startsWith("-D")) key = key.substring(2); // -D
+							if (key.startsWith("-")) key = key.substring(1);  // - 
+							if (key.startsWith("-")) key = key.substring(1);  // --
+							if(key.equalsIgnoreCase(property) || key.equalsIgnoreCase("D" + property)) {
+								return prop.substring(posEq+1).trim();
+							}
+						}else {
+							if (prop.equalsIgnoreCase(property)) {
+								return prop.trim();
+							}
+						}
+					}
+				}catch (Exception e) {
+					return null;
+				}
+			}
+			return System.getProperty(property);
+		}else {
+			return null;
+		}
+	}
+
+	/**
+	 * Obtém um parâmetro de configuração ou defaultValue se não encontrar
+	 * @return valor do parâmetro ou defaultValue se não encontrar
+	 * @author Everton de Vargas Agilar
+	 */
+	public static String getProperty(final String property, final String defaultValue) {
+		String result = getProperty(property);
+		return (result == null || result.isEmpty()) ? defaultValue : result;
+	}
+	
+	
+	/**
+	 * Obtém um parâmetro de configuração como inteiro. Se não encontrar retorna null
+	 * @return valor do parâmetro ou null
+	 * @author Everton de Vargas Agilar
+	 */
+	public static Integer getPropertyAsInt(final String property) {
+		try {
+			return Integer.parseInt(getProperty(property));
+		} catch (Exception e) {  
+            return null;  
+        }  			
+	}
+	
+	/**
+	 * Obtém um parâmetro de configuração como inteiro ou defaultValue se não encontrar.
+	 * @return valor do parâmetro ou defaultValue
+	 * @author Everton de Vargas Agilar
+	 */
+	public static Integer getPropertyAsInt(final String property, Integer defaultValue) {
+		try {
+			return Integer.parseInt(getProperty(property));
+		} catch (Exception e) {  
+            return defaultValue;  
+        }  			
+	}
+	
+	
+	/**
+	 * Permite passar args que recebido em main para o SDK
+	 * É utilizado para buscar parâmetros com getProperty
+	 * @author Everton de Vargas Agilar
+	 */
+	public static void setArgs(final String[] args) {
+		EmsUtil.args = args;
+	}
+	 
+	/**
+	 * Adiciona um hook na JVM para monitorar e manter o arquivo de pid do processo
+	 * baseado no algorítmo criado para o SisRuCatracas
+	 * @author Everton de Vargas Agilar, Renato Carauta
+	 */
+	public static void addUpdatePidFileHook(final String fileNamePid, final EntityManager serviceContext, final Integer watchdogTimer) {
+		class UpdatePidFileThead extends Thread {
+			private String fileNamePid = null;
+			private String pid = null;
+			private Integer watchdogTimer = null;
+			private Query query = null;
+						
+			public UpdatePidFileThead(final String fileNamePid, EntityManager serviceContext, Integer watchdogTimer){
+				this.fileNamePid = fileNamePid;
+				this.pid = getMeuIp();
+				this.watchdogTimer = watchdogTimer;
+				this.query = serviceContext.createNativeQuery("SELECT 1");  
+				setPriority(MIN_PRIORITY);
 			}
 
+			@Override
+			public void run() {
+		        while (isAlive()){
+					try {
+						Thread.sleep(watchdogTimer);
+					} catch (InterruptedException e2) {
+						// acordou
+					}
+					if (isAlive()){
+						try{
+							query.getSingleResult();  // sem conexão ao banco pode travar o processo
+					    	try (FileWriter arq = new FileWriter(this.fileNamePid)){
+						        arq.write(this.pid + " timestamp=" + System.currentTimeMillis());
+						        arq.flush();
+					        }
+					    }catch(Exception e){
+					    	System.out.println("Atenção: Falha de conexão ao banco de dados verificada.");
+					    }
+					}
+		        }
+			}
+		}
+		new UpdatePidFileThead(fileNamePid, serviceContext, watchdogTimer).start();
+	}
+	
+	
+	/**
+	 * Adiciona um hook na JVM para verificar o arquivo de pid do processo
+	 * Se ficar desatualizado por muito tempo, o processo será encerrado normalmente 
+	 * baseado no algorítmo criado para o SisRuCatracas
+	 * @author Everton de Vargas Agilar, Renato Carauta
+	 */
+	public static void addVerifyPidFileHook(final String fileNamePid, Integer watchdogTimer) {
+		class UpdatePidFileThead extends Thread {
+			private String fileNamePid = null;
+			private Integer watchdogTimer = 60000;
+			private Integer numeroTentativas = 0;
 
-    
+			public UpdatePidFileThead(final String fileNamePid, Integer watchdogTimer){
+				this.fileNamePid = fileNamePid;
+				this.watchdogTimer = watchdogTimer;
+				setPriority(MIN_PRIORITY);
+			}
+
+			@Override
+			public void run() {
+		        while (isAlive()){
+					try {
+						Thread.sleep(watchdogTimer);
+					} catch (InterruptedException e2) {
+						// acordou
+					}
+					if (isAlive()){
+						try{
+					    		String line = "";
+					    		String timestamp = "";
+					    		long tempoDecorrido = 0;
+
+					    		// lê o tempoDecorrido de dentro do arquivo pid
+					    		try (BufferedReader arq = new BufferedReader(new FileReader(this.fileNamePid))){
+					    			line = arq.readLine();
+						    		if(line.contains("timestamp")) {
+						    			timestamp = line.split("timestamp=")[1];
+						    			tempoDecorrido = System.currentTimeMillis() - Long.parseLong(timestamp);
+						    		}
+					    		}catch(Exception e) {
+					    			throw new Exception("O arquivo de pid "+ fileNamePid + " não foi encontrado.");
+					    		};
+					    		
+					    		if(tempoDecorrido > 110000) {
+					    			throw new Exception("O arquivo de pid "+ fileNamePid + " está desatualizado há mais de "+ String.valueOf(tempoDecorrido) + "ms.");
+					    		}
+					    		
+					    }catch(Exception e){
+					    	// O processo será encerrado somente na terceira tentativa
+					    	// antes disso, somente um alerta no log será feito
+					    	if (numeroTentativas >= 3 ) {
+					    		System.out.println("Fatal: O processo será encerrado pois parece que está travado. Erro interno: " + e);
+					    		removePidFile(fileNamePid); 
+					    		System.exit(1);
+					    	}else {
+					    		System.out.println("Atenção: O processo parece que está travado travado. Erro interno: " + e);
+					    	}
+					    	numeroTentativas++;
+					    }
+					}
+		        }
+			}
+		}
+		new UpdatePidFileThead(fileNamePid, watchdogTimer).start();
+	}
+	
 }
+	 
+	 

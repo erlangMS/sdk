@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>br.erlangms</groupId>
 	<artifactId>ems_java</artifactId>
-	<version>1.0.8.3</version>
+	<version>1.0.8.0</version>
 	<name>ems_java</name>
 	<description>SDK ErlangMS by Everton de Vargas Agilar</description>
 
