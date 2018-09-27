@@ -1705,14 +1705,16 @@ public final class EmsUtil {
     	public String nodePasswd;
         public String authorizationHeaderName;
         public String authorizationHeaderValue;
-        public Map<String, String> config_cmd;
+        public Map<String, String> daemon_params;
         public boolean debug;
         public int msg_timeout = 60000;
         public String environment = "desenv";
         public boolean isWindows = System.getProperty("os.name").toLowerCase().indexOf("win") >= 0;
         public boolean isLinux = System.getProperty("os.name").toLowerCase().indexOf("nux") >= 0;
         public boolean isMac = System.getProperty("os.name").toLowerCase().indexOf("mac") >= 0;
-        
+        public int pidfileWatchdogTimer = 30000;
+		public String pidfile;
+
         // smtp
         public int smtpPort;			  // Ex: 25
 		public String smtp;				  // Ex: smtp.unb.br
@@ -1750,18 +1752,18 @@ public final class EmsUtil {
 	private static EmsProperties getProperties() {
 		EmsProperties prop = new EmsProperties();
 		
-		// Atenção: ems_config_cmd deve ser o primeiro parâmetro lido das propriedades
-		// pois os próximos parâmetros podem ser armazenados em ems_config_cmd 
-		String tmp_config_cmd = getProperty("ems_config_cmd");
-		if (tmp_config_cmd != null) {
+		// Atenção: ems_daemon_params deve ser o primeiro parâmetro lido das propriedades
+		// pois os próximos parâmetros podem ser armazenados em ems_daemon_params ou obtidos das properties da JVM
+		String tmp_daemon_params = getProperty("ems_daemon_params");
+		if (tmp_daemon_params != null) {
 			try{
-				prop.config_cmd = EmsUtil.fromJson(tmp_config_cmd, HashMap.class);
+				prop.daemon_params = EmsUtil.fromJson(tmp_daemon_params, HashMap.class);
 			}catch (Exception e) {
-				System.out.println("Não foi possível fazer o parse do parâmetro ems_config_cmd. Erro interno: "+ e.getMessage());
-				prop.config_cmd = new HashMap<String, String>();
+				System.out.println("Não foi possível fazer o parse do parâmetro ems_daemon_params. Erro interno: "+ e.getMessage());
+				prop.daemon_params = new HashMap<String, String>();
 			}
 		}else {
-			prop.config_cmd = new HashMap<String, String>(); 
+			prop.daemon_params = new HashMap<String, String>(); 
 		}
 			
 		String tmp_thread_pool = getProperty("ems_thread_pool");
@@ -1931,7 +1933,20 @@ public final class EmsUtil {
 			prop.postUpdateTimeout = 30000;
 		}
 		
-	   return prop;
+		prop.pidfile = getProperty("ems_pidfile");
+
+		String tmp_pidfile_watchdog_timer = getProperty("ems_pidfile_watchdog_timer");
+		if (tmp_pidfile_watchdog_timer != null){
+			try{
+				prop.pidfileWatchdogTimer = Integer.parseInt(tmp_pidfile_watchdog_timer);
+			}catch (NumberFormatException e){
+				prop.pidfileWatchdogTimer = 30000;
+			}
+		}else{
+			prop.pidfileWatchdogTimer = 30000;
+		}
+
+		return prop;
 	}
 
     private static class MyAuthenticator  extends Authenticator{
@@ -2660,7 +2675,7 @@ public final class EmsUtil {
 			
 			// Obs.: na inicialização do sdk, properties pode não estar disponível ainda
 			if (properties != null) {
-				Map<String, String> c = properties.config_cmd;
+				Map<String, String> c = properties.daemon_params;
 	
 				// Parâmetro erlangms.thread_pool
 				if ((p.equals("erlangms.thread_pool") || p.equals("ems_thread_pool")) && c.containsKey("erlangms.thread_pool")){
@@ -2756,6 +2771,13 @@ public final class EmsUtil {
 				if ((p.equals("erlangms.post_update_timeout") || p.equals("ems_post_update_timeout")) && c.containsKey("erlangms.post_update_timeout")){
 					return (String) c.get("erlangms.post_update_timeout").toString();
 				}
+	
+				// Parâmetro erlangms.pidfile_watchdog_timer
+				if ((p.equals("erlangms.pidfile_watchdog_timer") || p.equals("ems_pidfile_watchdog_timer")) && c.containsKey("erlangms.pidfile_watchdog_timer")){
+					return (String) c.get("erlangms.pidfile_watchdog_timer").toString();
+				}
+			
+				
 			}
 
 			// Os parâmetros podem vir de args do método main também
