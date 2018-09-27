@@ -147,7 +147,6 @@ public final class EmsUtil {
 	private static java.util.Base64.Encoder base64Encoder = null;
 	private final static String HEX = "0123456789ABCDEF";
 	private final static String seed = "LDAPCorp_pwdupdate";
-    private static int WORKER_BUSY = 120000;
     private static String[] args = null;
 
 	static{
@@ -2642,33 +2641,6 @@ public final class EmsUtil {
 		   return sb.toString();
 	}
 
-
-	/**
-	 * Cria um arquivo de pid para o processo.
-	 * @return nome do arquivo criado ou exception
-	 * @author Everton de Vargas Agilar
-	 */
-	 public static String createPidFile(final String fileNamePid, boolean deleteIfExists) throws Exception {
-		 if (fileNamePid != null && !fileNamePid.isEmpty()) {
-			 File arq = new File(fileNamePid);
-			 if (arq.exists()){
-				 System.out.println(String.format("O arquivo de pid %s já existe.", fileNamePid));
-				 if (deleteIfExists) {
-					 arq.delete();
-				 }
-			 }
-			 
-			 try(FileWriter fw = new FileWriter(arq)) {
-				 fw.write(getMeuPid());
-	        	 fw.flush();
-	        	 return fileNamePid;
-			 }catch(IOException ex){
-				 throw new Exception("Não foi possível criar o arquivo de pid "+ fileNamePid + ".");
-			 }
-		 }else {
-			 throw new Exception("Parâmetro fileNamePid é inválido para EmsUtil.createPidFile.");
-		 }
-	 }
 	 
 	/**
 	 * Obtém um parâmetro de configuração. Se ocorrer erro retorna null
@@ -2752,6 +2724,35 @@ public final class EmsUtil {
 		EmsUtil.args = args;
 	}
 	 
+
+	/**
+	 * Cria um arquivo de pid para o processo.
+	 * @return nome do arquivo criado ou exception
+	 * @author Everton de Vargas Agilar
+	 */
+	 public static String createPidFile(final String fileNamePid, boolean deleteIfExists) throws Exception {
+		 if (fileNamePid != null && !fileNamePid.isEmpty()) {
+			 File arq = new File(fileNamePid);
+			 if (arq.exists()){
+				 System.out.println(String.format("Atenção: O arquivo de pid %s já existia.", fileNamePid));
+				 if (deleteIfExists) {
+					 arq.delete();
+				 }
+			 }
+			 
+			 try(FileWriter fw = new FileWriter(arq)) {
+				 fw.write(getMeuPid());
+	        	 fw.flush();
+	        	 return fileNamePid;
+			 }catch(IOException ex){
+				 throw new Exception("Não foi possível criar o arquivo de pid "+ fileNamePid + ". Verifique permissões de arquivo.");
+			 }
+		 }else {
+			 throw new Exception("Parâmetro fileNamePid é inválido para EmsUtil.createPidFile.");
+		 }
+	 }
+
+	 
 	/**
 	 * Adiciona um hook na JVM para monitorar e manter o arquivo de pid do processo
 	 * baseado no algorítmo criado para o SisRuCatracas
@@ -2760,21 +2761,19 @@ public final class EmsUtil {
 	public static void addUpdatePidFileHook(final String fileNamePid, final EntityManager serviceContext, final Integer watchdogTimer) {
 		class UpdatePidFileThead extends Thread {
 			private String fileNamePid = null;
-			private String pid = null;
 			private Integer watchdogTimer = null;
-			private Query query = null;
 						
 			public UpdatePidFileThead(final String fileNamePid, EntityManager serviceContext, Integer watchdogTimer){
 				this.fileNamePid = fileNamePid;
-				this.pid = getMeuIp();
-				this.watchdogTimer = watchdogTimer;
-				this.query = serviceContext.createNativeQuery("SELECT 1");  
-				setPriority(MIN_PRIORITY);
+				this.watchdogTimer = watchdogTimer;  
+				setPriority(NORM_PRIORITY);
 			}
 
 			@Override
 			public void run() {
-		        while (isAlive()){
+				String pidStr = getMeuPid();
+				//Query query = serviceContext.createNativeQuery("SELECT 1"); 
+				while (isAlive()){
 					try {
 						Thread.sleep(watchdogTimer);
 					} catch (InterruptedException e2) {
@@ -2782,18 +2781,27 @@ public final class EmsUtil {
 					}
 					if (isAlive()){
 						try{
-							query.getSingleResult();  // sem conexão ao banco pode travar o processo
-					    	try (FileWriter arq = new FileWriter(this.fileNamePid)){
-						        arq.write(this.pid + " timestamp=" + System.currentTimeMillis());
+							try { 
+								// Pode travar e não voltar -^-
+								// Se ficar muito tempo travado o barramento vai matar o processo e subir uma nova instãncia
+								//query.getSingleResult(); 
+							} catch (Exception e) {
+								throw new Exception("Falha de conexão ao banco de dados identificada.");
+							};  
+							try (FileWriter arq = new FileWriter(this.fileNamePid)){
+						        arq.write(pidStr);
 						        arq.flush();
+					        } catch (Exception e) {
+					        	throw new Exception("Erro na gravação do arquivo de pid.");
 					        }
 					    }catch(Exception e){
-					    	System.out.println("Atenção: Falha de conexão ao banco de dados verificada.");
+					    	logger.info("Atenção: Não foi possível atualizar o arquivo de pid "+ fileNamePid + ". Motivo: "+ e.getMessage());
 					    }
 					}
 		        }
 			}
 		}
+		logger.info("Adicionando um hook para atualizar o arquivo de pid "+ fileNamePid + " a cada " + String.valueOf(watchdogTimer) + "ms."); 
 		new UpdatePidFileThead(fileNamePid, serviceContext, watchdogTimer).start();
 	}
 	
@@ -2808,7 +2816,6 @@ public final class EmsUtil {
 		class UpdatePidFileThead extends Thread {
 			private String fileNamePid = null;
 			private Integer watchdogTimer = 60000;
-			private Integer numeroTentativas = 0;
 
 			public UpdatePidFileThead(final String fileNamePid, Integer watchdogTimer){
 				this.fileNamePid = fileNamePid;
@@ -2818,7 +2825,8 @@ public final class EmsUtil {
 
 			@Override
 			public void run() {
-		        while (isAlive()){
+				int numeroTentativas = 1;
+				while (isAlive()){
 					try {
 						Thread.sleep(watchdogTimer);
 					} catch (InterruptedException e2) {
@@ -2826,34 +2834,25 @@ public final class EmsUtil {
 					}
 					if (isAlive()){
 						try{
-					    		String line = "";
-					    		String timestamp = "";
-					    		long tempoDecorrido = 0;
-
-					    		// lê o tempoDecorrido de dentro do arquivo pid
-					    		try (BufferedReader arq = new BufferedReader(new FileReader(this.fileNamePid))){
-					    			line = arq.readLine();
-						    		if(line.contains("timestamp")) {
-						    			timestamp = line.split("timestamp=")[1];
-						    			tempoDecorrido = System.currentTimeMillis() - Long.parseLong(timestamp);
-						    		}
-					    		}catch(Exception e) {
+					    		File arq = new File(fileNamePid);
+					    		if (!arq.exists()) {
 					    			throw new Exception("O arquivo de pid "+ fileNamePid + " não foi encontrado.");
-					    		};
-					    		
-					    		if(tempoDecorrido > 110000) {
-					    			throw new Exception("O arquivo de pid "+ fileNamePid + " está desatualizado há mais de "+ String.valueOf(tempoDecorrido) + "ms.");
 					    		}
-					    		
+					    		long tempoDecorrido = System.currentTimeMillis() - arq.lastModified();
+					    		long diffTempo = tempoDecorrido - watchdogTimer;
+					    		if(diffTempo > watchdogTimer) {
+					    			throw new Exception("O arquivo de pid "+ fileNamePid + " está desatualizado há mais de "+ String.valueOf(diffTempo) + "ms.");
+					    		}
+					    		numeroTentativas = 1; // O contador é zerado quando o arquivo é verificado com sucesso
 					    }catch(Exception e){
 					    	// O processo será encerrado somente na terceira tentativa
 					    	// antes disso, somente um alerta no log será feito
-					    	if (numeroTentativas >= 3 ) {
-					    		System.out.println("Fatal: O processo será encerrado pois parece que está travado. Erro interno: " + e);
+					    	if (numeroTentativas > 3 ) {
+					    		logger.info("Fatal: O processo será encerrado pois está travado. Erro interno: " + e.getMessage());
 					    		removePidFile(fileNamePid); 
 					    		System.exit(1);
 					    	}else {
-					    		System.out.println("Atenção: O processo parece que está travado travado. Erro interno: " + e);
+					    		logger.info("Atenção: O processo parece estar travado (Tentativa: "+ String.valueOf(numeroTentativas) + "). Erro interno: " + e.getMessage());
 					    	}
 					    	numeroTentativas++;
 					    }
@@ -2861,6 +2860,7 @@ public final class EmsUtil {
 		        }
 			}
 		}
+		logger.info("Adicionando um hook para verificar o arquivo de pid "+ fileNamePid + " a cada " + String.valueOf(watchdogTimer) + "ms.");
 		new UpdatePidFileThead(fileNamePid, watchdogTimer).start();
 	}
 	
