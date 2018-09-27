@@ -1705,7 +1705,7 @@ public final class EmsUtil {
     	public String nodePasswd;
         public String authorizationHeaderName;
         public String authorizationHeaderValue;
-        public Map<String, Object> config_cmd;
+        public Map<String, String> config_cmd;
         public boolean debug;
         public int msg_timeout = 60000;
         public String environment = "desenv";
@@ -1730,7 +1730,6 @@ public final class EmsUtil {
 	 * Retorna as propriedades para o SDK do barramento de serviços ERLANGMS.
 	 * 
 	 * Exemplo: 
-	 *    -Dcookie=erlangms
 	 *    -Dems_node=node01
 	 *    -Dems_emsbus_url=http://localhost:2301
 	 *    -Dems_emsbus=ems_bus
@@ -1752,21 +1751,20 @@ public final class EmsUtil {
 		EmsProperties prop = new EmsProperties();
 		
 		// Atenção: ems_config_cmd deve ser o primeiro parâmetro lido das propriedades
-		// pois os próximos parâmetros podem ser armazenados em ems_config_cmd
+		// pois os próximos parâmetros podem ser armazenados em ems_config_cmd 
 		String tmp_config_cmd = getProperty("ems_config_cmd");
 		if (tmp_config_cmd != null) {
 			try{
 				prop.config_cmd = EmsUtil.fromJson(tmp_config_cmd, HashMap.class);
 			}catch (Exception e) {
 				System.out.println("Não foi possível fazer o parse do parâmetro ems_config_cmd. Erro interno: "+ e.getMessage());
-				prop.config_cmd = new HashMap<String, Object>();
+				prop.config_cmd = new HashMap<String, String>();
 			}
 		}else {
-			prop.config_cmd = new HashMap<String, Object>(); 
+			prop.config_cmd = new HashMap<String, String>(); 
 		}
 			
-		
-		String tmp_thread_pool = System.getProperty("ems_thread_pool");
+		String tmp_thread_pool = getProperty("ems_thread_pool");
 		if (tmp_thread_pool != null){
 			try{
 				prop.maxThreadPool = Integer.parseInt(tmp_thread_pool);
@@ -1777,14 +1775,14 @@ public final class EmsUtil {
 			prop.maxThreadPool = 12;
 		}
 		
-		String tmp_cookie = System.getProperty("ems_cookie");
+		String tmp_cookie = getProperty("ems_cookie");
 		if (tmp_cookie != null){
 		   prop.cookie = tmp_cookie;
 	   }else{
 		   prop.cookie = "erlangms";
 	   }
 
-	   String tmp_host = System.getProperty("ems_host");
+	   String tmp_host = getProperty("ems_host");
 	   if (tmp_host != null){
 		   prop.hostName = tmp_host;
 	   }else{
@@ -1796,27 +1794,27 @@ public final class EmsUtil {
 			}
 	   }
 
-	   if (System.getProperty("ems_debug", "false").equalsIgnoreCase("true")){
+	   if (getProperty("ems_debug", "false").equalsIgnoreCase("true")){
 		   prop.debug = true;
 	   }else{
 		   prop.debug = false;
 	   }
 
-	   String tmp_nodeName = System.getProperty("ems_node");
+	   String tmp_nodeName = getProperty("ems_node");
 	   if (tmp_nodeName != null){
 		   prop.nodeName = tmp_nodeName;
 	   }else{
 		   prop.nodeName = "node01";
 	   }
 	   
-	   String tmp_environment = System.getProperty("ems_environment");
+	   String tmp_environment = getProperty("ems_environment");
 	   if (tmp_environment != null){
 		   prop.environment = tmp_environment;
 	   }else{
 		   prop.environment = "desenv";
 	   }
 
-	   String tmp_ESB_URL = System.getProperty("ems_bus_url");
+	   String tmp_ESB_URL = getProperty("ems_bus_url");
 	   if (tmp_ESB_URL != null){
 		   if (tmp_ESB_URL.indexOf(":") == -1){
 			   tmp_ESB_URL = tmp_ESB_URL + ":2301";
@@ -1826,22 +1824,15 @@ public final class EmsUtil {
 		   prop.ESB_URL = "http://localhost:2301";
 	   }
 	   
-	   String tmp_ems_bus_node1 = System.getProperty("ems_bus_node1");
-	   if (tmp_ems_bus_node1 != null){
-		   prop.ems_bus_node1 = tmp_ems_bus_node1;
-	   }else{
-		   prop.ems_bus_node1 = "ems_bus";
-	   }
-
-	   
-	   String tmp_user = System.getProperty("ems_user");
+   
+	   String tmp_user = getProperty("ems_user");
 	   if (tmp_user != null){
 		   prop.nodeUser = tmp_user;
 	   }else{
 		   prop.nodeUser = "geral";
 	   }
 	   
-	   String tmp_password = System.getProperty("ems_password");
+	   String tmp_password = getProperty("ems_password");
 	   if (tmp_password != null){
 		   prop.nodePasswd = tmp_password;
 	   }else{
@@ -1854,14 +1845,14 @@ public final class EmsUtil {
 
        // SMTP properties
        
-	   String tmp_smtp = System.getProperty("ems_smtp");
+	   String tmp_smtp = getProperty("ems_smtp");
 	   if (tmp_smtp != null){
 		   prop.smtp = tmp_smtp;
 	   }else{
 		   prop.smtp = "smtp.unb.br";
 	   }
 
-	   String tmp_smtp_port = System.getProperty("ems_smtp_port");
+	   String tmp_smtp_port = getProperty("ems_smtp_port");
 	   if (tmp_smtp_port != null){
 		   try{
 			   prop.smtpPort = Integer.parseInt(tmp_smtp_port);
@@ -1872,14 +1863,14 @@ public final class EmsUtil {
 		   prop.smtpPort = 25;
 	   }
        
-	   String tmp_smtp_from = System.getProperty("ems_smtp_from");
+	   String tmp_smtp_from = getProperty("ems_smtp_from");
 	   if (tmp_smtp_from != null){
 		   prop.smtpFrom = tmp_smtp_from;
 	   }else{
 		   prop.smtpFrom = "erlangms@unb.br";
 	   }
 
-	   String tmp_smtp_passwd = System.getProperty("ems_smtp_passwd");
+	   String tmp_smtp_passwd = getProperty("ems_smtp_passwd");
 	   if (tmp_smtp_passwd != null){
 		   prop.smtpPasswd = tmp_smtp_passwd;
 	   }else{
@@ -1888,7 +1879,7 @@ public final class EmsUtil {
 
 	   // LDAP properties
 	   
-	   String tmp_ldap_url = System.getProperty("ems_ldap_url");
+	   String tmp_ldap_url = getProperty("ems_ldap_url");
 	   if (tmp_ldap_url != null){
 		   if (tmp_ldap_url.indexOf(":") == -1){
 			   tmp_ldap_url = tmp_ldap_url + ":2389";
@@ -1901,21 +1892,21 @@ public final class EmsUtil {
 		   prop.ldapUrl = "ldap://localhost:2389";
 	   }
 
-	   String tmp_ldap_admin = System.getProperty("ems_ldap_admin");
+	   String tmp_ldap_admin = getProperty("ems_ldap_admin");
 	   if (tmp_ldap_admin != null){
 		   prop.ldapAdmin = tmp_ldap_admin;
 	   }else{
 		   prop.ldapAdmin = "cn=admin,dc=unb,dc=br";
 	   }
 
-	   String tmp_ldap_admin_passwd = System.getProperty("ems_ldap_admin_passwd");
+	   String tmp_ldap_admin_passwd = getProperty("ems_ldap_admin_passwd");
 	   if (tmp_ldap_admin_passwd != null){
 		   prop.ldapAdminPasswd = tmp_ldap_admin_passwd;
 	   }else{
 		   prop.ldapAdminPasswd = "123456";
 	   }
 
-		String tmp_msg_timeout = System.getProperty("ems_msg_timeout");
+		String tmp_msg_timeout = getProperty("ems_msg_timeout");
 		if (tmp_msg_timeout != null){
 			try{
 				prop.msg_timeout = Integer.parseInt(tmp_msg_timeout);
@@ -1926,7 +1917,7 @@ public final class EmsUtil {
 			prop.msg_timeout = 60000;
 		}
 
-		String tmp_postUpdateTimeout = System.getProperty("ems_post_update_timeout");
+		String tmp_postUpdateTimeout = getProperty("ems_post_update_timeout");
 		if (tmp_postUpdateTimeout != null){
 			try{
 				prop.postUpdateTimeout = Integer.parseInt(tmp_postUpdateTimeout);
@@ -2661,11 +2652,114 @@ public final class EmsUtil {
 	 
 	/**
 	 * Obtém um parâmetro de configuração. Se ocorrer erro retorna null
-	 * @return valor do parâmetro
+	 * @return valor do parâmetro ou null
 	 * @author Everton de Vargas Agilar, Renato Carauta
 	 */
-	public static String getProperty(final String property) {
-		if (property != null && !property.isEmpty()) {
+	public static String getProperty(final String p) {
+		if (p != null && !p.isEmpty()) {
+			
+			// Obs.: na inicialização do sdk, properties pode não estar disponível ainda
+			if (properties != null) {
+				Map<String, String> c = properties.config_cmd;
+	
+				// Parâmetro erlangms.thread_pool
+				if ((p.equals("erlangms.thread_pool") || p.equals("ems_thread_pool")) && c.containsKey("erlangms.thread_pool")){
+					return c.get("erlangms.thread_pool").toString();
+				}
+	
+				// Parâmetro erlangms.host
+				if ((p.equals("erlangms.host") || p.equals("ems_host")) && c.containsKey("erlangms.host")){
+					return (String) c.get("erlangms.host");
+				}
+	
+				// Parâmetro erlangms.url
+				if ((p.equals("erlangms.url") || p.equals("ems_bus_url")) && c.containsKey("erlangms.url")){
+					return (String) c.get("erlangms.url");
+				}
+	
+				// Parâmetro erlangms.user
+				if ((p.equals("erlangms.user") || p.equals("ems_user")) && c.containsKey("erlangms.user")){
+					return (String) c.get("erlangms.user");
+				}
+	
+				// Parâmetro erlangms.password
+				if ((p.equals("erlangms.password") || p.equals("ems_password")) && c.containsKey("erlangms.password")){
+					return (String) c.get("erlangms.password");
+				}
+	
+				// Parâmetro erlangms.smtp.password
+				if ((p.equals("erlangms.smtp.password") || p.equals("ems_smtp_passwd")) && c.containsKey("erlangms.smtp.password")){
+					return (String) c.get("erlangms.smtp.password");
+				}
+	
+				// Parâmetro erlangms.smtp.from
+				if ((p.equals("erlangms.smtp.from") || p.equals("ems_smtp_from")) && c.containsKey("erlangms.smtp.from")){
+					return (String) c.get("erlangms.smtp.from");
+				}
+	
+				// Parâmetro erlangms.smtp.port
+				if ((p.equals("erlangms.smtp.port") || p.equals("ems_smtp_from")) && c.containsKey("erlangms.smtp.port")){
+					return (String) c.get("erlangms.smtp.port").toString();
+				}
+	
+				// Parâmetro erlangms.smtp.port
+				if ((p.equals("erlangms.smtp.mail") || p.equals("ems_smtp")) && c.containsKey("erlangms.smtp.mail")){
+					return (String) c.get("erlangms.smtp.mail");
+				}
+	
+				// Parâmetro erlangms.environment
+				if ((p.equals("erlangms.environment") || p.equals("ems_environment")) && c.containsKey("erlangms.environment")){
+					return (String) c.get("erlangms.environment");
+				}
+	
+				// Parâmetro erlangms.node
+				if ((p.equals("erlangms.node") || p.equals("ems_node")) && c.containsKey("erlangms.node")){
+					return (String) c.get("erlangms.node");
+				}
+	
+				// Parâmetro erlangms.cookie
+				if ((p.equals("erlangms.cookie") || p.equals("ems_cookie")) && c.containsKey("erlangms.cookie")){
+					return (String) c.get("erlangms.cookie");
+				}
+				
+				// Parâmetro erlangms.max_thread_pool_by_agent
+				if ((p.equals("erlangms.max_thread_pool_by_agent") || p.equals("ems_max_thread_pool_by_agent")) && c.containsKey("erlangms.max_thread_pool_by_agent")){
+					return (String) c.get("erlangms.max_thread_pool_by_agent");
+				}
+	
+				// Parâmetro erlangms.debug
+				if ((p.equals("erlangms.debug") || p.equals("ems_debug")) && c.containsKey("erlangms.debug")){
+					return (String) c.get("erlangms.debug").toString();
+				}
+	
+				// Parâmetro erlangms.ldap.passwd
+				if ((p.equals("erlangms.ldap.passwd") || p.equals("ems_ldap_admin_passwd")) && c.containsKey("erlangms.ldap.passwd")){
+					return (String) c.get("erlangms.ldap.passwd");
+				}
+	
+				// Parâmetro erlangms.ldap.admin
+				if ((p.equals("erlangms.ldap.admin") || p.equals("ems_ldap_admin")) && c.containsKey("erlangms.ldap.admin")){
+					return (String) c.get("erlangms.ldap.admin");
+				}
+				
+				// Parâmetro erlangms.ldap.url
+				if ((p.equals("erlangms.ldap.url") || p.equals("ems_ldap_url")) && c.containsKey("erlangms.ldap.url")){
+					return (String) c.get("erlangms.ldap.url");
+				}
+				
+				// Parâmetro erlangms.msg_timeout
+				if ((p.equals("erlangms.msg_timeout") || p.equals("ems_msg_timeout")) && c.containsKey("erlangms.msg_timeout")){
+					return (String) c.get("erlangms.msg_timeout").toString();
+				}
+	
+				// Parâmetro erlangms.post_update_timeout
+				if ((p.equals("erlangms.post_update_timeout") || p.equals("ems_post_update_timeout")) && c.containsKey("erlangms.post_update_timeout")){
+					return (String) c.get("erlangms.post_update_timeout").toString();
+				}
+			}
+
+			// Os parâmetros podem vir de args do método main também
+			// para isso, a aplicação precisa invocar EmsUtil.setArgs()
 			if (args != null) {
 				try {
 					for (String prop : args) {
@@ -2675,11 +2769,11 @@ public final class EmsUtil {
 							if (key.startsWith("-D")) key = key.substring(2); // -D
 							if (key.startsWith("-")) key = key.substring(1);  // - 
 							if (key.startsWith("-")) key = key.substring(1);  // --
-							if(key.equalsIgnoreCase(property) || key.equalsIgnoreCase("D" + property)) {
+							if(key.equalsIgnoreCase(p) || key.equalsIgnoreCase("D" + p)) {
 								return prop.substring(posEq+1).trim();
 							}
 						}else {
-							if (prop.equalsIgnoreCase(property)) {
+							if (prop.equalsIgnoreCase(p)) {
 								return prop.trim();
 							}
 						}
@@ -2688,7 +2782,17 @@ public final class EmsUtil {
 					return null;
 				}
 			}
-			return System.getProperty(property);
+			String result = System.getProperty(p);
+			// String vazia também é null
+			if (result != null) {
+				if (result.trim().isEmpty()) {
+					return null;
+				}else {
+					return result;
+				}
+			}else {
+				return null;
+			}
 		}else {
 			return null;
 		}
