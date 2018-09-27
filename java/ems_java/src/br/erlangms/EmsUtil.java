@@ -159,7 +159,6 @@ public final class EmsUtil {
 			e1.printStackTrace();
 		}
 		base64Encoder = java.util.Base64.getEncoder(); 
-		properties = getProperties();
 		gson = new GsonBuilder()
 	    	.setExclusionStrategies(new SerializeStrategy())
 	    	.setDateFormat("dd/MM/yyyy")
@@ -410,7 +409,7 @@ public final class EmsUtil {
                }
             })    
         .create();		
-	
+		properties = getProperties();
 	}
 	
 	public static boolean isAnyParameterAnnotated(Method method, Class<?> annotationType) {
@@ -1701,11 +1700,12 @@ public final class EmsUtil {
 		public String cookie;	 		   // Ex: erlangms
     	public String ESB_URL;			   // Ex: http://localhost:2301
     	public String hostName;	
-    	public  String nodeName;
+    	public String nodeName;
     	public String nodeUser;
     	public String nodePasswd;
         public String authorizationHeaderName;
         public String authorizationHeaderValue;
+        public Map<String, Object> config_cmd;
         public boolean debug;
         public int msg_timeout = 60000;
         public String environment = "desenv";
@@ -1747,8 +1747,25 @@ public final class EmsUtil {
 	 *    -Dems_smtp="mail.unb.br"
 	 * @author Everton de Vargas Agilar
 	 */
+	@SuppressWarnings("unchecked")
 	private static EmsProperties getProperties() {
 		EmsProperties prop = new EmsProperties();
+		
+		// Atenção: ems_config_cmd deve ser o primeiro parâmetro lido das propriedades
+		// pois os próximos parâmetros podem ser armazenados em ems_config_cmd
+		String tmp_config_cmd = getProperty("ems_config_cmd");
+		if (tmp_config_cmd != null) {
+			try{
+				prop.config_cmd = EmsUtil.fromJson(tmp_config_cmd, HashMap.class);
+			}catch (Exception e) {
+				System.out.println("Não foi possível fazer o parse do parâmetro ems_config_cmd. Erro interno: "+ e.getMessage());
+				prop.config_cmd = new HashMap<String, Object>();
+			}
+		}else {
+			prop.config_cmd = new HashMap<String, Object>(); 
+		}
+			
+		
 		String tmp_thread_pool = System.getProperty("ems_thread_pool");
 		if (tmp_thread_pool != null){
 			try{
