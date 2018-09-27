@@ -1705,7 +1705,8 @@ public final class EmsUtil {
     	public String nodePasswd;
         public String authorizationHeaderName;
         public String authorizationHeaderValue;
-        public Map<String, String> daemon_params;
+        public Map<String, Object> daemon_params;
+        public String daemon_params_encode;
         public boolean debug;
         public int msg_timeout = 60000;
         public String environment = "desenv";
@@ -1714,6 +1715,9 @@ public final class EmsUtil {
         public boolean isMac = System.getProperty("os.name").toLowerCase().indexOf("mac") >= 0;
         public int pidfileWatchdogTimer = 30000;
 		public String pidfile;
+		public String logfile;
+		public String daemon_service;
+		public String daemon_id;
 
         // smtp
         public int smtpPort;			  // Ex: 25
@@ -1757,13 +1761,24 @@ public final class EmsUtil {
 		String tmp_daemon_params = getProperty("ems_daemon_params");
 		if (tmp_daemon_params != null) {
 			try{
+				// O barramento vai passar sempre como base64
+				// mas na IDE o desenvolvedor pode passar texto puro
+				if (tmp_daemon_params.startsWith("base64:")){
+					prop.daemon_params_encode = "base64";
+					tmp_daemon_params = tmp_daemon_params.substring(7);
+					System.out.println("antes: "+ tmp_daemon_params);
+					tmp_daemon_params = decode64(tmp_daemon_params);
+					System.out.println("depois: "+ tmp_daemon_params);
+				}else {
+					prop.daemon_params_encode = "";
+				}
 				prop.daemon_params = EmsUtil.fromJson(tmp_daemon_params, HashMap.class);
 			}catch (Exception e) {
 				System.out.println("Não foi possível fazer o parse do parâmetro ems_daemon_params. Erro interno: "+ e.getMessage());
-				prop.daemon_params = new HashMap<String, String>();
+				prop.daemon_params = new HashMap<String, Object>();
 			}
 		}else {
-			prop.daemon_params = new HashMap<String, String>(); 
+			prop.daemon_params = new HashMap<String, Object>(); 
 		}
 			
 		String tmp_thread_pool = getProperty("ems_thread_pool");
@@ -1934,17 +1949,10 @@ public final class EmsUtil {
 		}
 		
 		prop.pidfile = getProperty("ems_pidfile");
-
-		String tmp_pidfile_watchdog_timer = getProperty("ems_pidfile_watchdog_timer");
-		if (tmp_pidfile_watchdog_timer != null){
-			try{
-				prop.pidfileWatchdogTimer = Integer.parseInt(tmp_pidfile_watchdog_timer);
-			}catch (NumberFormatException e){
-				prop.pidfileWatchdogTimer = 30000;
-			}
-		}else{
-			prop.pidfileWatchdogTimer = 30000;
-		}
+		prop.pidfileWatchdogTimer = getPropertyAsInt("ems_pidfile_watchdog_timer", 30000);
+		prop.logfile = getProperty("ems_logfile");
+		prop.daemon_service = getProperty("ems_daemon_service");
+		prop.daemon_id = getProperty("ems_daemon_id");
 
 		return prop;
 	}
@@ -2675,7 +2683,7 @@ public final class EmsUtil {
 			
 			// Obs.: na inicialização do sdk, properties pode não estar disponível ainda
 			if (properties != null) {
-				Map<String, String> c = properties.daemon_params;
+				Map<String, Object> c = properties.daemon_params;
 	
 				// Parâmetro erlangms.thread_pool
 				if ((p.equals("erlangms.thread_pool") || p.equals("ems_thread_pool")) && c.containsKey("erlangms.thread_pool")){
@@ -2713,7 +2721,7 @@ public final class EmsUtil {
 				}
 	
 				// Parâmetro erlangms.smtp.port
-				if ((p.equals("erlangms.smtp.port") || p.equals("ems_smtp_from")) && c.containsKey("erlangms.smtp.port")){
+				if ((p.equals("erlangms.smtp.port") || p.equals("ems_smtp_port")) && c.containsKey("erlangms.smtp.port")){
 					return (String) c.get("erlangms.smtp.port").toString();
 				}
 	
@@ -2772,6 +2780,26 @@ public final class EmsUtil {
 					return (String) c.get("erlangms.post_update_timeout").toString();
 				}
 	
+				// Parâmetro erlangms.daemon_id
+				if ((p.equals("erlangms.daemon_id") || p.equals("ems_daemon_id")) && c.containsKey("erlangms.daemon_id")){
+					return (String) c.get("erlangms.daemon_id");
+				}
+
+				// Parâmetro erlangms.daemon_service
+				if ((p.equals("erlangms.daemon_service") || p.equals("ems_daemon_service")) && c.containsKey("erlangms.daemon_service")){
+					return (String) c.get("erlangms.daemon_service");
+				}
+
+				// Parâmetro erlangms.logfile
+				if ((p.equals("erlangms.logfile") || p.equals("ems_logfile")) && c.containsKey("erlangms.logfile")){
+					return (String) c.get("erlangms.logfile");
+				}
+
+				// Parâmetro erlangms.pidfile
+				if ((p.equals("erlangms.pidfile") || p.equals("ems_pidfile")) && c.containsKey("erlangms.pidfile")){
+					return (String) c.get("erlangms.pidfile");
+				}
+
 				// Parâmetro erlangms.pidfile_watchdog_timer
 				if ((p.equals("erlangms.pidfile_watchdog_timer") || p.equals("ems_pidfile_watchdog_timer")) && c.containsKey("erlangms.pidfile_watchdog_timer")){
 					return (String) c.get("erlangms.pidfile_watchdog_timer").toString();
