@@ -2684,9 +2684,11 @@ public final class EmsUtil {
 			// Obs.: na inicialização do sdk, properties pode não estar disponível ainda
 			if (properties != null) {
 				Map<String, Object> c = properties.daemon_params;
+				
+				System.out.println("daemon_params is "+ properties.daemon_params.toString() + "\n\n");
 	
 				// Parâmetro erlangms.thread_pool
-				if ((p.equals("erlangms.thread_pool") || p.equals("ems_thread_pool")) && c.containsKey("erlangms.thread_pool")){
+				if ((p.equals("erlangms.thread_pool") || p.equals("ems_thread_pool")) && c.containsKey("erlangms.java_thread_pool")){
 					return c.get("erlangms.thread_pool").toString();
 				}
 	
@@ -2805,6 +2807,11 @@ public final class EmsUtil {
 					return (String) c.get("erlangms.pidfile_watchdog_timer").toString();
 				}
 			
+				// Parâmetro pode ter sido enviado em daemon_params 
+				if (c.containsKey(p)){
+					String result = c.get(p).toString();
+					return (result == null || result.isEmpty()) ? "" : result.trim();
+				}
 				
 			}
 
@@ -2893,6 +2900,7 @@ public final class EmsUtil {
 	 */
 	public static void setArgs(final String[] args) {
 		EmsUtil.args = args;
+		properties = getProperties(); 
 	}
 	 
 
@@ -2915,8 +2923,8 @@ public final class EmsUtil {
 				 fw.write(getMeuPid());
 	        	 fw.flush();
 	        	 return fileNamePid;
-			 }catch(IOException ex){
-				 throw new Exception("Não foi possível criar o arquivo de pid "+ fileNamePid + ". Verifique permissões de arquivo.");
+			 }catch(IOException e){
+				 throw new Exception("Não foi possível criar o arquivo de pid "+ fileNamePid + ". Motivo: "+ e.getMessage());
 			 }
 		 }else {
 			 throw new Exception("Parâmetro fileNamePid é inválido para EmsUtil.createPidFile.");
