@@ -1766,9 +1766,7 @@ public final class EmsUtil {
 				if (tmp_daemon_params.startsWith("base64:")){
 					prop.daemon_params_encode = "base64";
 					tmp_daemon_params = tmp_daemon_params.substring(7);
-					System.out.println("antes: "+ tmp_daemon_params);
 					tmp_daemon_params = decode64(tmp_daemon_params);
-					System.out.println("depois: "+ tmp_daemon_params);
 				}else {
 					prop.daemon_params_encode = "";
 				}
@@ -2688,8 +2686,8 @@ public final class EmsUtil {
 				System.out.println("daemon_params is "+ properties.daemon_params.toString() + "\n\n");
 	
 				// Parâmetro erlangms.thread_pool
-				if ((p.equals("erlangms.thread_pool") || p.equals("ems_thread_pool")) && c.containsKey("erlangms.java_thread_pool")){
-					return c.get("erlangms.thread_pool").toString();
+				if ((p.equals("erlangms.java_thread_pool") || p.equals("ems_thread_pool")) && c.containsKey("erlangms.java_thread_pool")){
+					return c.get("erlangms.java_thread_pool").toString();
 				}
 	
 				// Parâmetro erlangms.host
@@ -2986,12 +2984,12 @@ public final class EmsUtil {
 	
 	
 	/**
-	 * Adiciona um hook na JVM para verificar o arquivo de pid do processo
+	 * Adiciona um hook na JVM para monitorar o arquivo de pid do processo
 	 * Se ficar desatualizado por muito tempo, o processo será encerrado normalmente 
 	 * baseado no algorítmo criado para o SisRuCatracas
 	 * @author Everton de Vargas Agilar, Renato Carauta
 	 */
-	public static void addVerifyPidFileHook(final String fileNamePid, Integer watchdogTimer) {
+	public static void addMonitorPidFileHook(final String fileNamePid, Integer watchdogTimer) {
 		class UpdatePidFileThead extends Thread {
 			private String fileNamePid = null;
 			private Integer watchdogTimer = 60000;
@@ -3039,7 +3037,7 @@ public final class EmsUtil {
 		        }
 			}
 		}
-		logger.info("Adicionando um hook para verificar o arquivo de pid "+ fileNamePid + " a cada " + String.valueOf(watchdogTimer) + "ms.");
+		logger.info("Adicionando um hook para monitorar o arquivo de pid "+ fileNamePid + " a cada " + String.valueOf(watchdogTimer) + "ms.");
 		new UpdatePidFileThead(fileNamePid, watchdogTimer).start();
 	}
 	
