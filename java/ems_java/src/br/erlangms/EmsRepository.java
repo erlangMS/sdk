@@ -8,6 +8,7 @@
 
 package br.erlangms;
 
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,7 +34,9 @@ import org.jinq.jpa.JinqJPAStreamProvider;
 
 import br.erlangms.EmsUtil.EmsFilterStatement;
 
-public abstract class EmsRepository<Model> {
+public abstract class EmsRepository<Model> implements Serializable {
+	private static final long serialVersionUID = 4246028326643284073L;
+
 	public abstract Class<Model> getClassOfModel();
 	public abstract EntityManager getEntityManager();
 	private static final Logger logger = EmsUtil.logger;
@@ -114,7 +117,8 @@ public abstract class EmsRepository<Model> {
 	/**
 	 * Retorna um stream para realizar pesquisas com lambda.
 	 * @param classOfModel classe do modelo 
-	 * @return  stream para pesquisa
+	 * @param <T> classe do modelo
+	 * @return stream para pesquisa
 	 * @author Everton de Vargas Agilar
 	 */
 	public <T> JPAJinqStream<T> getStreams(final Class<T> classOfModel){
@@ -130,12 +134,8 @@ public abstract class EmsRepository<Model> {
 	/**
 	 * Retorna uma lista de objetos a partir de um objeto request.
 	 * O objeto request deve possuir os seguintes atributos padrão:
-	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
-	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
-	 * @param limit Quantidade objetos trazer na pesquisa
-	 * @param offset A partir de que posição. Iniciando em 1
-	 * @param sort trazer ordenado por quais campos o conjunto de dados
-	 * @return list of maps 
+	 * @param request IEmsRequest - objeto da requisição
+	 * @return List 
 	 * @author Everton de Vargas Agilar
 	 */
 	public List<Map<String, Object>> findAsMap(final IEmsRequest request){
@@ -175,6 +175,7 @@ public abstract class EmsRepository<Model> {
 	/**
 	 * Retorna uma lista de objetos a partir de um sql nativo.
 	 * Obs.: Somente sql nativo é suportado.
+	 * @param sql - texto sql
 	 * @return list of maps 
 	 * @author Everton de Vargas Agilar
 	 */
@@ -196,6 +197,7 @@ public abstract class EmsRepository<Model> {
 	/**
 	 * Retorna uma lista de objetos a partir de um sql nativo.
 	 * Obs.: Somente sql nativo é suportado.
+	 * @param sql texto sql
 	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
 	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param limit Quantidade objetos trazer na pesquisa
@@ -313,6 +315,7 @@ public abstract class EmsRepository<Model> {
 	/**
 	 * Retorna uma lista de objetos a partir de um sql nativo.
 	 * Obs.: Somente sql nativo é suportado.
+	 * @param sql texto sql
 	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
 	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param sort trazer ordenado por quais campos o conjunto de dados
@@ -441,11 +444,7 @@ public abstract class EmsRepository<Model> {
 	/**
 	 * Retorna uma lista de objetos a partir de um objeto request.
 	 * O objeto request deve possuir os seguintes atributos padrão:
-	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
-	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
-	 * @param limit Quantidade objetos trazer na pesquisa
-	 * @param offset A partir de que posição. Iniciando em 1
-	 * @param sort trazer ordenado por quais campos o conjunto de dados
+	 * @param request requisição
 	 * @return lista dos objetos
 	 * @author Everton de Vargas Agilar
 	 */
@@ -517,7 +516,7 @@ public abstract class EmsRepository<Model> {
 	
 	/**
 	 * Retorna um objeto pelo seu id. O id é obtido direto do request.
-	 * @param id identificador do objeto
+	 * @param request requisição
 	 * @return objeto ou EmsNotFoundException se não existe um objeto com o id
 	 * @author Everton de Vargas Agilar
 	 */
@@ -703,6 +702,7 @@ public abstract class EmsRepository<Model> {
 	/**
 	 * Retorna um objeto pelo seu id a partir de um classOfModel específico.
 	 * @param classOfModel classe do objeto
+	 * @param <T> classe do modelo
 	 * @param id identificador do objeto
 	 * @return objeto ou EmsNotFoundException se não existe o objeto com o id
 	 * @author Everton de Vargas Agilar
@@ -884,10 +884,10 @@ public abstract class EmsRepository<Model> {
 	/**
 	 * Exclui um objeto a partir de um model específico.
 	 * @param classOfModel classe do objeto
+	 * @param <T> classe do modelo
 	 * @param id identificador do objeto
 	 * @return true se o objeto foi excluído
 	 * @author Everton de Vargas Agilar
-	 * @param <T>
 	 */
 	public <T> boolean delete(final Class<T> classOfModel, final Integer id) {
 		if (classOfModel != null && id != null && id >= 0){
@@ -1113,7 +1113,7 @@ public abstract class EmsRepository<Model> {
 	 * Se a namedQuery já existe, apenas é retornado sua referência. 
 	 * @param namedQuery nome da query.
 	 * @param sql sql JPA da query
-	 * @return query 
+	 * @return query ou exception 
 	 * @author Everton de Vargas Agilar
 	 */
 	protected Query createNamedQuery(final String namedQuery, final String sql) {
@@ -1122,7 +1122,11 @@ public abstract class EmsRepository<Model> {
 			query = entityManager.createNamedQuery(namedQuery);	
 		}else{
 			cachedNamedQuery.add(namedQuery);
-			query = entityManager.createQuery(sql); 
+			try {
+				query = entityManager.createQuery(sql);
+			}catch (Exception e) {
+				throw new EmsValidationException("Não foi possível criar namedQuery " + namedQuery + " para o sql \"" + sql + "\" no método EmsRepository.createNamedQuery. Erro interno: "+ e.getMessage());
+			}
 			entityManagerFactory.addNamedQuery(namedQuery, query);
 			logger.info("Build named query: "+ namedQuery);
 			logger.info("\tSQL: "+ sql);
@@ -1136,6 +1140,7 @@ public abstract class EmsRepository<Model> {
 	 * @param namedQuery nome da query.
 	 * @param sql sql nativo da query
 	 * @param resultClass informe a classe do objeto se a query tem que mapear senão null.
+	 * @param <T> objeto do modelo
 	 * @return query 
 	 * @author Everton de Vargas Agilar
 	 */
@@ -1323,7 +1328,7 @@ public abstract class EmsRepository<Model> {
 
 	
 	/**
-	 * Classe utilizada pelo método find(String sql) para mapear os dados em List<Map<String, Object>> 
+	 * Classe utilizada pelo método find(String sql) para mapear os dados  
 	 * @author Everton de Vargas Agilar
 	 */
 	public static class EmsAliasToEntityMapResultTransformer extends org.hibernate.transform.AliasedTupleSubsetResultTransformer {

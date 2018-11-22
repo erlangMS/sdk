@@ -541,7 +541,9 @@ public final class EmsUtil {
 	/**
 	 * Serializa um objeto a partir de uma string json
 	 * @param jsonString String json
+	 * @param <T> String json
 	 * @param classOfObj	Classe do objeto que será serializado
+	 * @return objeto
 	 * @author Everton de Vargas Agilar
 	 */
 	public static <T> T fromJson(final String jsonString, final Class<T> classOfObj) {
@@ -552,8 +554,10 @@ public final class EmsUtil {
 	 * Serializa um objeto a partir de uma string json.
 	 * Quando a string json é vazio, apenas instância um objeto da classe.
 	 * @param jsonString String json
+	 * @param <T>  String json
 	 * @param classOfObj	Classe do objeto que será serializado
-	 * @param jsonModelAdapter adaptador para permitir obter atributos de modelo 
+	 * @param jsonModelAdapter adaptador para permitir obter atributos de modelo
+	 * @return objeto  
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
@@ -596,7 +600,9 @@ public final class EmsUtil {
 	/**
 	 * Obtém uma lista a partir de um json
 	 * @param jsonString String json
+	 * @param <T> String json
 	 * @param classOfObj	Classe do objeto que será serializado
+	 * @return list
 	 * @author Everton de Vargas Agilar
 	 */
 	public static <T> List<T> fromListJson(final String jsonString, final Class<T> classOfObj) {
@@ -607,7 +613,9 @@ public final class EmsUtil {
 	 * Obtém uma lista a partir de um json. Se o json estiver vazio, retorna apenas uma lista vazia.
 	 * @param jsonString String json
 	 * @param classOfObj	Classe do objeto que será serializado
- 	 * @param jsonModelAdapter adaptador para permitir obter atributos de modelo 
+	 * @param <T>	Classe do objeto que será serializado
+ 	 * @param jsonModelAdapter adaptador para permitir obter atributos de modelo
+ 	 * @return list 
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
@@ -783,10 +791,9 @@ public final class EmsUtil {
 	
 	
 	/**
-	 * Passando um objeto, retorna um Map<String, Object> com os campos do objeto.
-	 * Se o obj já é um map não faz nada e apenas o retorna.
+	 * Passando um objeto e retorna um map. Se o obj já é um map não faz nada e apenas o retorna.
 	 * @param obj Instância de um objeto
-	 * @param values	Map com chave/valor dos campos do objeto
+	 * @return map de objetos
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
@@ -832,6 +839,8 @@ public final class EmsUtil {
 	 * Seta os valores no objeto a partir de um map.
 	 * @param obj Instância de um objeto
 	 * @param values	Map com chave/valor dos dados que serão aplicados no objeto
+	 * @param jsonModelAdapter jsonModelAdapter
+	 * @return Object objeto
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -1126,8 +1135,7 @@ public final class EmsUtil {
 	
 	/**
 	 * Retorna o id de um objeto. O id é um campo que tenha a anotação @Id
-	 * @param clazz Classe pojo. Ex.: OrgaoInterno.class
-	 * @param ann	anotação que será pesquisada. Ex.: Id.class
+	 * @param obj	objeto
 	 * @return Id ou null se não encontrado
 	 * @author Everton de Vargas Agilar
 	 */
@@ -1198,9 +1206,7 @@ public final class EmsUtil {
 
 	/**
 	 * Converte um inteiro para a enumeração de acordo com clazz
-	 * @param code código da enumeração
-	 * @param clazz	classe da enumeração
-	 * @return enumeração
+	 * @return Rest client
 	 * @author Everton de Vargas Agilar
 	 */
 	public static javax.ws.rs.client.Client getRestStream(){
@@ -1212,7 +1218,7 @@ public final class EmsUtil {
 	 * Converte um objeto Java para um oobjeto de response.
 	 * Isso é utilizado para enviar a resposta para o barramento no formato nativo Erlang.
 	 * @param ret objeto
-	 * @param rid Request Id da requisição
+	 * @param request requisição
 	 * @return OtpErlangTuple
 	 * @author Everton de Vargas Agilar
 	 */
@@ -1468,7 +1474,7 @@ public final class EmsUtil {
 	/**
 	 * Gera um relatório no formato pdf a partir de um template jasper. 
 	 * É importante o contrato do serviço declarar "content_type" : "application/pdf" para que o browser exiba o pdf corretamente.
-	 * @param params parâmetros do relatório. Pode ser um model ou Map<String, Object> ou null. 
+	 * @param params parâmetros do relatório.  
 	 * @param datasource é o objeto ou lista de objetos do relatório. Pode ser null.
 	 * @param templateJasper arquivo .jasper do template criado no Ireport. É obrigatório. Ex.: "/relatorios/DeclaracaoAlunoRegular.jasper"
 	 * @param owner referência para objeto quem invoca esse metodo. Utilizado para owner.getClass().getResourceAsStream() 	
@@ -1527,7 +1533,8 @@ public final class EmsUtil {
 
 	/**
 	 * Obter o array de unique constraints de um model  
-	 * @return array of UniqueConstraint[]
+	 * @param classOfModel classe do modelo
+	 * @return array of UniqueConstraint
 	 * @author Everton de Vargas Agilar
 	 */
 	public static UniqueConstraint[] getTableUniqueConstraints(final Class<?> classOfModel){
@@ -1541,8 +1548,9 @@ public final class EmsUtil {
 
 	/**
 	 * Obter a lista de fields com unique constraint de um model.
-	 * Obs.: Id não é retornado embora tenha a constraint unique.  
-	 * @return List<Field> 
+	 * Obs.: Id não é retornado embora tenha a constraint unique.
+	 * @param classOfModel classe do modelo  
+	 * @return lista de campos 
 	 * @author Everton de Vargas Agilar
 	 */
 	public static List<Field> getFieldsWithUniqueConstraint(final Class<?> classOfModel){
@@ -1565,7 +1573,8 @@ public final class EmsUtil {
 	/**
 	 * Obter a lista de fields de um model.
 	 * Obs.: somente fields com a anotação Column são retornados.  
-	 * @return List<Field> 
+	 * @param classOfModel classe do modelo
+	 * @return lista de campos 
 	 * @author Everton de Vargas Agilar
 	 */
 	public static List<Field> getFieldsFromModel(final Class<?> classOfModel){
@@ -1630,12 +1639,13 @@ public final class EmsUtil {
 
 	
 	/**
-	 * Realiza a conversão de um List<Object> para um List<Map<String, Object>>.
+	 * Realiza a conversão de um lista para map
 	 * 
 	 * Para que seja posśivel a conversão é necessário passar a lista dos campos (fields).
 	 * 
 	 * @param fields lista de campos. Pode ser passado como um array de campos, string de campos separado por vírgula ou lista de campos.
-	 * @return List<Map<String, Object>> ou exception EmsValidationException
+	 * @param listObj lista de objetos
+	 * @return list ou exception EmsValidationException
 	 * @author Everton de Vargas Agilar, 
 	 * @author Rogério Guimarães Sampaio
 	 */
@@ -2235,6 +2245,8 @@ public final class EmsUtil {
 
 	/**
 	 * Algoritmo SHA-1
+	 * @param value valor
+	 * @return valor em SHA1
 	 * @author Everton de Vargas Agilar
 	 */
     public static String toSHA1(final String value) {
@@ -2247,6 +2259,8 @@ public final class EmsUtil {
     
 	/**
 	 * Algoritmo base64
+	 * @param value valor
+	 * @return valor em base 64
 	 * @author Everton de Vargas Agilar
 	 */
     public static String toBase64(final String value){
@@ -2673,6 +2687,7 @@ public final class EmsUtil {
 	 
 	/**
 	 * Obtém um parâmetro de configuração. Se ocorrer erro retorna null
+	 * @param p propriedade
 	 * @return valor do parâmetro ou null
 	 * @author Everton de Vargas Agilar, Renato Carauta
 	 */
@@ -2855,6 +2870,8 @@ public final class EmsUtil {
 
 	/**
 	 * Obtém um parâmetro de configuração ou defaultValue se não encontrar
+	 * @param property propriedade
+	 * @param defaultValue valor default
 	 * @return valor do parâmetro ou defaultValue se não encontrar
 	 * @author Everton de Vargas Agilar
 	 */
@@ -2866,6 +2883,7 @@ public final class EmsUtil {
 	
 	/**
 	 * Obtém um parâmetro de configuração como inteiro. Se não encontrar retorna null
+	 * @param property propriedade
 	 * @return valor do parâmetro ou null
 	 * @author Everton de Vargas Agilar
 	 */
@@ -2879,6 +2897,8 @@ public final class EmsUtil {
 	
 	/**
 	 * Obtém um parâmetro de configuração como inteiro ou defaultValue se não encontrar.
+	 * @param property propriedade
+	 * @param defaultValue valor default
 	 * @return valor do parâmetro ou defaultValue
 	 * @author Everton de Vargas Agilar
 	 */
@@ -2894,6 +2914,7 @@ public final class EmsUtil {
 	/**
 	 * Permite passar args que recebido em main para o SDK
 	 * É utilizado para buscar parâmetros com getProperty
+	 * @param args argumentos
 	 * @author Everton de Vargas Agilar
 	 */
 	public static void setArgs(final String[] args) {
@@ -2904,6 +2925,9 @@ public final class EmsUtil {
 
 	/**
 	 * Cria um arquivo de pid para o processo.
+	 * @param fileNamePid nome do arquivo de pid
+	 * @param deleteIfExists apaga o arquivo se existe
+	 * @throws Exception retorna erro se não consegue criar o pid  
 	 * @return nome do arquivo criado ou exception
 	 * @author Everton de Vargas Agilar
 	 */
@@ -2933,6 +2957,9 @@ public final class EmsUtil {
 	/**
 	 * Adiciona um hook na JVM para monitorar e manter o arquivo de pid do processo
 	 * baseado no algorítmo criado para o SisRuCatracas
+	 * @param fileNamePid nome do arquivo de pid
+	 * @param serviceContext contexto JPA
+	 * @param watchdogTimer tempo em milisegundos
 	 * @author Everton de Vargas Agilar, Renato Carauta
 	 */
 	public static void addUpdatePidFileHook(final String fileNamePid, final EntityManager serviceContext, final Integer watchdogTimer) {
@@ -2985,8 +3012,9 @@ public final class EmsUtil {
 	
 	/**
 	 * Adiciona um hook na JVM para monitorar o arquivo de pid do processo
-	 * Se ficar desatualizado por muito tempo, o processo será encerrado normalmente 
-	 * baseado no algorítmo criado para o SisRuCatracas
+	 * Se ficar desatualizado por muito tempo, o processo será encerrado normalmente
+	 * @param fileNamePid nome do arquivo do pid
+	 * @param watchdogTimer tempo em milisegundos
 	 * @author Everton de Vargas Agilar, Renato Carauta
 	 */
 	public static void addMonitorPidFileHook(final String fileNamePid, Integer watchdogTimer) {

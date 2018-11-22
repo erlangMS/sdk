@@ -356,6 +356,7 @@ public class EmsRequest implements IEmsRequest {
 	 * Retorna o payload do request serializado como objeto. Um erro será gerado se não for possível ler o objeto JSON.
 	 * Útil para converter o objeto JSON do request no objeto que será trabalhado na camada de negócio
 	 * @param classOfObj classe do objeto que será serializado. Exemplo: Municipio.class
+	 * @param <T> classe do objeto que será serializado. Exemplo: Municipio.class
 	 * @return Object
 	 * @author Everton de Vargas Agilar
 	 */
@@ -401,6 +402,7 @@ public class EmsRequest implements IEmsRequest {
 	/**
 	 * Permite obter uma propriedade incluída pelo desenvolvedor. Se não existe a proprieadade, retorna o defaultValue.
 	 * @param nome nome da propriedade
+	 * @param defaultValue valor default
 	 * @return Object 
 	 * @author Everton de Vargas Agilar
 	 */
@@ -418,7 +420,7 @@ public class EmsRequest implements IEmsRequest {
 	/**
 	 * Permite ao desenvolvedor definir uma propriedade e armazenar na requisição.
 	 * @param nome nome da propriedade
-	 * @return Object 
+	 * @param value valor do objeto
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
@@ -434,7 +436,7 @@ public class EmsRequest implements IEmsRequest {
 	
 	/**
 	 * Retorna o payload do request como map. Um erro será gerado se não for possível ler o objeto JSON.
-	 * @return Map<String, Object>
+	 * @return map
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
@@ -579,7 +581,19 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public String getScope() {
-		return new String(((OtpErlangBinary)otp_request.elementAt(12)).binaryValue());
+		OtpErlangTuple OAuth2Field = (OtpErlangTuple) otp_request.elementAt(12);
+		return new String(((OtpErlangBinary)OAuth2Field.elementAt(0)).binaryValue());
+	}
+
+	/**
+	 * Obter access_token do request.
+	 * @return string 
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
+	public String getAccessToken() {
+		OtpErlangTuple OAuth2Field = (OtpErlangTuple) otp_request.elementAt(12);
+		return new String(((OtpErlangBinary)OAuth2Field.elementAt(1)).binaryValue());
 	}
 
 	/**
