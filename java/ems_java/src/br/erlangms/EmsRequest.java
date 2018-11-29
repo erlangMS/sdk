@@ -12,6 +12,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
@@ -41,6 +42,8 @@ public class EmsRequest implements IEmsRequest {
 	private String function = null;
 	private String payload = null;
 	private int paramCount = 0;
+	private String access_token;
+	private String scope;
 
 	public EmsRequest(final OtpErlangTuple otp_request){
 		setOtpRequest(otp_request);
@@ -66,6 +69,17 @@ public class EmsRequest implements IEmsRequest {
 		this.paramCount = ((OtpErlangMap)otp_request.elementAt(3)).arity();
 		this.userJson = null;
 		this.clientJson = null;
+		OtpErlangObject OAuth2FieldObj = otp_request.elementAt(12);
+		if (OAuth2FieldObj != null && OAuth2FieldObj instanceof OtpErlangTuple) {
+			OtpErlangTuple OAuth2Field = (OtpErlangTuple) OAuth2FieldObj;
+			if (OAuth2Field != null) {
+				this.scope = new String(((OtpErlangBinary)OAuth2Field.elementAt(1)).binaryValue());
+				this.access_token = new String(((OtpErlangBinary)OAuth2Field.elementAt(1)).binaryValue());
+			}
+		}else {
+			this.scope = "";
+			this.access_token = "";
+		}
 	}
 	
 	/**
@@ -448,6 +462,15 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
+	public List<Map<String, Object>> getPayloadAsList(){
+		try{
+			return (List<Map<String, Object>>) EmsUtil.fromJson(getPayload(), List.class);
+		}catch (Exception e){
+			throw new EmsValidationException("Não foi possível converter o payload do request em um objeto da interface java.util.List. Erro interno: "+ e.getMessage());
+		}
+	}
+	
 	/**
 	 * Retorna o ContentType do request.
 	 * @return ContentType do request
@@ -576,24 +599,22 @@ public class EmsRequest implements IEmsRequest {
 
 	/**
 	 * Obter o scopo oauth2 do request.
-	 * @return string 
+	 * @return oauth2 scope 
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
 	public String getScope() {
-		OtpErlangTuple OAuth2Field = (OtpErlangTuple) otp_request.elementAt(12);
-		return new String(((OtpErlangBinary)OAuth2Field.elementAt(0)).binaryValue());
+		return scope;
 	}
 
 	/**
 	 * Obter access_token do request.
-	 * @return string 
+	 * @return oauth2 access token 
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
 	public String getAccessToken() {
-		OtpErlangTuple OAuth2Field = (OtpErlangTuple) otp_request.elementAt(12);
-		return new String(((OtpErlangBinary)OAuth2Field.elementAt(1)).binaryValue());
+		return access_token;
 	}
 
 	/**

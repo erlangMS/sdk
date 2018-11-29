@@ -1730,16 +1730,17 @@ public final class EmsUtil {
 		public String daemon_id;
 
         // smtp
-        public int smtpPort;			  // Ex: 25
-		public String smtp;				  // Ex: smtp.unb.br
-		public String smtpFrom;			  // Ex: evertonagilar@unb.br
+        public int smtpPort;			  		// Ex: 25
+		public String smtp;				  		// Ex: smtp.unb.br
+		public String smtpFrom;			  		// Ex: evertonagilar@unb.br
 		public String smtpPasswd;		  
 
 		// ldap
-    	public String ldapUrl;				// Ex: ldap://localhost:2389
-		public String ldapAdmin;			// Ex: cn=admin,dc=unb,dc=br
-		public String ldapAdminPasswd;		// Ex: 123456
-		public int postUpdateTimeout;		// Ex: 30000
+    	public String ldapUrl;					// Ex: ldap://localhost:2389
+		public String ldapAdmin;				// Ex: cn=admin,dc=unb,dc=br
+		public String ldapAdminPasswd;			// Ex: 123456
+		public int postUpdateTimeout;			// Ex: 30000
+		public String service_scan = "br.unb";
     }
     
 	/**
@@ -1824,6 +1825,8 @@ public final class EmsUtil {
 	   }else{
 		   prop.debug = false;
 	   }
+
+	   prop.service_scan  = getProperty("ems_service_scan", "br.unb");
 
 	   String tmp_nodeName = getProperty("ems_node");
 	   if (tmp_nodeName != null){
@@ -2826,6 +2829,11 @@ public final class EmsUtil {
 					return (result == null || result.isEmpty()) ? "" : result.trim();
 				}
 				
+				// Parâmetro erlangms.service_scan
+				if ((p.equals("erlangms.service_scan") || p.equals("ems_service_scan")) && c.containsKey("erlangms.service_scan")){
+					return (String) c.get("erlangms.service_scan");
+				}
+
 			}
 
 			// Os parâmetros podem vir de args do método main também
