@@ -473,7 +473,7 @@ public class EmsRequest implements IEmsRequest {
 	
 	/**
 	 * Retorna o payload do request como uma lista de objetos
-	 * @param classz classe do objeto da lista
+	 * @param classOfObj classe do objeto da lista
 	 * @return list
 	 * @author Everton de Vargas Agilar
 	 */
