@@ -13,7 +13,7 @@ import javax.ejb.Startup;
 
 @Startup
 @Singleton
-public class EmsServiceContextProvider{
+public class EmsServiceScan{
 	
 	private static List<EmsConnection> listServices = new ArrayList<EmsConnection>();
 	private static final Logger logger = EmsUtil.logger;

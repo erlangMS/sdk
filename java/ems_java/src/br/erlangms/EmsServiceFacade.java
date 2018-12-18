@@ -21,7 +21,7 @@ public abstract class EmsServiceFacade {
 
 	@PostConstruct
     public void initialize() {
-        EmsServiceContextProvider.startService(this);
+        EmsServiceScan.startService(this);
     }
     
 }
