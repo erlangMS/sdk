@@ -134,7 +134,7 @@ public final class EmsUtil {
 	public static final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
 	public static final Logger logger = Logger.getLogger("erlangms");
 	private static NumberFormat doubleFormatter = null;
-	private static Gson gson = null;
+	public static Gson gson = null;
 	private static Gson gson2 = null;
 	public static EmsProperties properties = null;
 	private static final SimpleDateFormat dateFormatDDMMYYYY = new SimpleDateFormat("dd/MM/yyyy");

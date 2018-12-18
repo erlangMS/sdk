@@ -8,8 +8,10 @@
 
 package br.erlangms;
 
+import java.lang.reflect.Type;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +25,7 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangRangeException;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
+import com.google.gson.reflect.TypeToken;
 
 public class EmsRequest implements IEmsRequest {
 	private OtpErlangTuple otp_request = null;
@@ -476,12 +479,17 @@ public class EmsRequest implements IEmsRequest {
 	 * @param classz classe do objeto da lista
 	 * @return list
 	 * @author Everton de Vargas Agilar
+	 * @param <classOfObj>
+	 * @param <classOfObj>
 	 */
 	@Override
-	public <T> List<T> getPayloadAsList(Class<T> classOfObj) {
+	public <T> List<T> getPayloadAsList(Type<T> classOfObj) {
 		try{
 			String payload = getPayload();
-			return (List<T>) EmsUtil.fromJson(payload, classOfObj);
+			//List<Map<String, Object>> userList = request.getPayloadAsList();
+			Type typeList = new TypeToken<ArrayList<T>>(){}.getType();
+			return EmsUtil.gson.fromJson(payload, typeList);
+					
 		}catch (Exception e){
 			throw new EmsValidationException("Não foi possível converter o payload do request em uma lista de objetos. Erro interno: "+ e.getMessage());
 		}
