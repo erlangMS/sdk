@@ -457,7 +457,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 			String sort = request.getQuery("sort");
 			return find(filter, fields, limit, offset, sort);
 		}else{
-			throw new EmsValidationException("Parâmetro request não pode ser null para EsRepository.find.");
+			throw new EmsValidationException("Parâmetro request não pode ser null para EmsRepository.find.");
 		}
 	}
 

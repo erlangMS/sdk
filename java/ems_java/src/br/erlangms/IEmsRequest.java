@@ -45,6 +45,7 @@ public interface IEmsRequest {
 	public Object mergeObjectFromPayload(Object obj, EmsJsonModelAdapter jsonModelAdapter);
 	public Map<String, Object> getPayloadAsMap();
 	public List<Map<String, Object>> getPayloadAsList();
+	public <T> List<T> getPayloadAsList(Class<T> classOfObj);
 	public Map<String, Object> getClient();
 	public Map<String, Object> getUser();
 	public Map<String, Object> getCatalog();

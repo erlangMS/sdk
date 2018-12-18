@@ -472,6 +472,23 @@ public class EmsRequest implements IEmsRequest {
 	}
 	
 	/**
+	 * Retorna o payload do request como uma lista de objetos
+	 * @param classz classe do objeto da lista
+	 * @return list
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
+	public <T> List<T> getPayloadAsList(Class<T> classOfObj) {
+		try{
+			String payload = getPayload();
+			return (List<T>) EmsUtil.fromJson(payload, classOfObj);
+		}catch (Exception e){
+			throw new EmsValidationException("Não foi possível converter o payload do request em uma lista de objetos. Erro interno: "+ e.getMessage());
+		}
+	}
+	
+	
+	/**
 	 * Retorna o ContentType do request.
 	 * @return ContentType do request
 	 * @author Everton de Vargas Agilar
@@ -646,5 +663,5 @@ public class EmsRequest implements IEmsRequest {
 	public boolean isPostOrUpdateRequest() {
 		return isPostOrUpdateRequestFlag;
 	}
-	
+
 }
