@@ -21,7 +21,7 @@ public abstract class EmsServiceFacade {
 
 	@PostConstruct
     public void initialize() {
-        EmsServiceScan.startService(this);
+        ErlangMSApplication.startService(this);
     }
     
 }

@@ -473,12 +473,10 @@ public class EmsRequest implements IEmsRequest {
 	}
 	
 	/**
-	 * Retorna o payload do request como um array lista de objetos
-	 * @param classOfObj classe do objeto da lista
+	 * Retorna o payload do request como um array de objetos
+	 * @param classOfArray classe do array para serializar. Ex. Usuario[].class
 	 * @return list
 	 * @author Everton de Vargas Agilar
-	 * @param <classOfObj>
-	 * @param <classOfObj>
 	 */
 	@Override
 	public <T> T getPayloadAsArray(Class<T> classOfArray) {
@@ -490,6 +488,12 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 	
+	/**
+	 * Retorna o payload do request como uma lista de objetos
+	 * @param classOfArray classe do array para serializar. Ex. Usuario[].class
+	 * @return list
+	 * @author Everton de Vargas Agilar
+	 */
 	@Override
 	public <T> List<T> getPayloadAsList(Class<T[]> classOfArray) {
 		T[] result = getPayloadAsArray(classOfArray);
