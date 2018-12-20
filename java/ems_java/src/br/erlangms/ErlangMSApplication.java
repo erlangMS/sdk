@@ -9,12 +9,18 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 import java.util.logging.Logger;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.ejb.Singleton;
+import javax.ejb.Startup;
 
+@Singleton
+@Startup
 public class ErlangMSApplication{
 	
 	private static List<EmsConnection> listServices = new ArrayList<EmsConnection>();
 	private static final Logger logger = EmsUtil.logger;
+	private static volatile boolean running = false; 
 	
 	
 	public static void scanServiceInJar(String jarName, String packageName){
@@ -48,8 +54,11 @@ public class ErlangMSApplication{
 		  }
 	}
 	
+	@PostConstruct
 	public static void run(){
-		logger.info("Start services ErlangMS from "+EmsUtil.properties.service_scan);
+		if (running) return;
+		running = true;
+		logger.info("Start services ErlangMS from "+ EmsUtil.properties.service_scan);
     	scanServices(EmsUtil.properties.service_scan);
 	}
 	

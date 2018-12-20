@@ -2701,8 +2701,6 @@ public final class EmsUtil {
 			if (properties != null) {
 				Map<String, Object> c = properties.daemon_params;
 				
-				System.out.println("daemon_params is "+ properties.daemon_params.toString() + "\n\n");
-	
 				// Parâmetro erlangms.thread_pool
 				if ((p.equals("erlangms.java_thread_pool") || p.equals("ems_thread_pool")) && c.containsKey("erlangms.java_thread_pool")){
 					return c.get("erlangms.java_thread_pool").toString();
