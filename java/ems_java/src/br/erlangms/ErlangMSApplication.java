@@ -1,3 +1,11 @@
+/*********************************************************************
+ * @title ErlangMSApplication
+ * @version 1.0.0
+ * @doc Classe principal do SDK ErlangMS
+ * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @copyright ErlangMS Team
+ *********************************************************************/ 
+
 package br.erlangms;
 
 import java.io.File;
@@ -5,25 +13,23 @@ import java.io.FileInputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 import java.util.logging.Logger;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.ejb.Singleton;
-import javax.ejb.Startup;
+import javax.servlet.ServletContainerInitializer;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
 
-@Singleton
-@Startup
-public class ErlangMSApplication{
+public class ErlangMSApplication implements ServletContainerInitializer{
 	
 	private static List<EmsConnection> listServices = new ArrayList<EmsConnection>();
 	private static final Logger logger = EmsUtil.logger;
 	private static volatile boolean running = false; 
 	
 	
-	public static void scanServiceInJar(String jarName, String packageName){
+	public static void scanServicesSpringboot(String jarName, String packageName){
 		  packageName = "BOOT-INF/classes/" + packageName.replaceAll("\\." , "/");
 		  try{
 			    try ( JarInputStream jarFile = new JarInputStream(new FileInputStream(jarName))){
@@ -52,14 +58,6 @@ public class ErlangMSApplication{
 		  } catch( Exception e){
 			  e.printStackTrace ();
 		  }
-	}
-	
-	@PostConstruct
-	public static void run(){
-		if (running) return;
-		running = true;
-		logger.info("Start services ErlangMS from "+ EmsUtil.properties.service_scan);
-    	scanServices(EmsUtil.properties.service_scan);
 	}
 	
 	private static void scanServices(final String packageName){
@@ -94,7 +92,7 @@ public class ErlangMSApplication{
 				String urlJar = url.toString()
 									.replaceAll("^jar:file:", "")
 									.replaceAll("!.*$", "");
-				scanServiceInJar(urlJar, packagePath);
+				scanServicesSpringboot(urlJar, packagePath);
 		    }
 	    } catch (Exception e) {
 	        e.printStackTrace();
@@ -125,10 +123,17 @@ public class ErlangMSApplication{
 		}
 	}
 	
-	@PreDestroy
-    public void terminate() {
+	public void destroy() {
 		logger.info("Stopping services ErlangMS...");
 		stopServices();
+	}
+
+	@Override
+	public void onStartup(Set<Class<?>> c, ServletContext ctx) throws ServletException {
+		if (running) return;
+		running = true;
+		logger.info("Start services ErlangMS from "+ EmsUtil.properties.service_scan);
+    	scanServices(EmsUtil.properties.service_scan);
 	}
 
 	
