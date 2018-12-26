@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
@@ -555,6 +556,26 @@ public abstract class EmsRepository<Model> implements Serializable {
 		}
 	}
 
+
+	/**
+	 * Retorna um objeto pelo seu id.
+	 * @param id identificador do objeto
+	 * @return Optional<Model>
+	 * @author Everton de Vargas Agilar
+	 */
+	public Optional<Model> findByIdOptional(final Integer id){
+		if (id != null && id >= 0){
+			Model obj = entityManager.find(classOfModel, id);
+			if (obj == null){
+				return Optional.ofNullable(obj);
+			}else {
+				return Optional.of(obj);
+			}
+		}else{
+			throw new EmsValidationException("Parâmetro id não pode ser null para EmsRepository.findById.");
+		}
+	}
+	
 	/**
 	 * Retorna uma lista de objetos pesquisando por determinado campo.
 	 * Obs.: O campo deve existir no model.
@@ -571,7 +592,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 												.append(classOfModel.getSimpleName()).append(" this")
 												.append(" where this.")
 												.append(field.getName()).append("=:pField").toString();
-			return createNamedQuery(classOfModel.getSimpleName() + ".findBy" + fieldName, sqlFindByField)
+			return createNamedQuery(classOfModel.getSimpleName() + ".findByField" + fieldName, sqlFindByField)
 				.setParameter("pField", value)
 				.getResultList();
 		}else{
@@ -611,7 +632,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 											  .append(" where this.")
 											  .append(fieldName).append("=:pField").toString();
 			try{
-				return (Model) createNamedQuery(nameOfClass + ".findBy" + fieldName, sqlFindByField)
+				return (Model) createNamedQuery(nameOfClass + ".findFirstByField" + fieldName, sqlFindByField)
 					.setParameter("pField", value)
 					.setMaxResults(1)
 					.getSingleResult();
@@ -636,7 +657,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 			field = getField(fieldName);
 			return findFirstByField(field, value);
 		}else{
-			throw new EmsValidationException("Parâmetro fieldName não pode ser null para EmsRepository.findByField.");
+			throw new EmsValidationException("Parâmetro fieldName não pode ser null para EmsRepository.findFirstByField.");
 		}
 	}
 
@@ -663,7 +684,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 				filter = EmsUtil.toJson(filter_map);
 				query = parseQuery(filter, null, 1, 0, null, listFunction);
 			} else{
-				throw new EmsValidationException("É necessário informar filter_map para EmsRepository.exists.");
+				throw new EmsValidationException("Parâmetro filter_map não pode ser vazio para EmsRepository.exists.");
 			}
 			long result = (long) query.getSingleResult();
 			if (result >= 1){
@@ -671,7 +692,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 			}			
 			return anyMatch;
 		}else {
-			throw new EmsValidationException("filer_map não pode ser null para EmsRepository.exists.");
+			throw new EmsValidationException("Parâmetro filter_map não pode ser null para EmsRepository.exists.");
 		}
 	}
 	

@@ -29,7 +29,7 @@ public class ErlangMSApplication implements ServletContainerInitializer{
 	private static volatile boolean running = false; 
 	
 	
-	public static void scanServicesSpringboot(String jarName, String packageName){
+	public static void scanServicesSpringboot(final String jarName, String packageName){
 		  packageName = "BOOT-INF/classes/" + packageName.replaceAll("\\." , "/");
 		  try{
 			    try ( JarInputStream jarFile = new JarInputStream(new FileInputStream(jarName))){
@@ -130,11 +130,13 @@ public class ErlangMSApplication implements ServletContainerInitializer{
 
 	@Override
 	public void onStartup(Set<Class<?>> c, ServletContext ctx) throws ServletException {
+		run();
+	}
+
+	public static void run() {
 		if (running) return;
 		running = true;
 		logger.info("Start services ErlangMS from "+ EmsUtil.properties.service_scan);
     	scanServices(EmsUtil.properties.service_scan);
 	}
-
-	
 }  
