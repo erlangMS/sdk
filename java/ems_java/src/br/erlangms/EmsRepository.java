@@ -560,7 +560,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 	/**
 	 * Retorna um objeto pelo seu id.
 	 * @param id identificador do objeto
-	 * @return Optional<Model>
+	 * @return Model
 	 * @author Everton de Vargas Agilar
 	 */
 	public Optional<Model> findByIdOptional(final Integer id){
