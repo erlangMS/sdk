@@ -49,7 +49,6 @@ public class EmsConnection extends Thread{
 	private OtpNode myNodeLinux = null;
 	private OtpMbox myMbox = null;
     private boolean isLinux = true;
-    private int taskCount = 0;
     private boolean isSlave = false;
     private static Semaphore sem = new Semaphore(1, true);   
 	
@@ -174,11 +173,6 @@ public class EmsConnection extends Thread{
 	
 	public synchronized void sendResult(final OtpErlangPid from, final OtpErlangTuple response) {
 		myMbox.send(from, response);
-		taskCount--;
-	}
-	
-	public int getTaskCount() {
-		return taskCount;
 	}
 	
     @Override  
@@ -218,13 +212,14 @@ public class EmsConnection extends Thread{
 	                   otp_request = (OtpErlangTuple) myMsg.elementAt(0);
 	                   request.setOtpRequest(otp_request);
 	                   Long T2 = System.currentTimeMillis() - request.getT1();
-	                   if (request.getTimeout() > 0 && isLinux && (T2 > request.getTimeout() || (T2 > PostUpdateTimeout && request.isPostOrUpdateRequest()))) {
+	                   if (isLinux && request.getTimeout() > 0 && (T2 > request.getTimeout() || (T2 > PostUpdateTimeout && request.isPostOrUpdateRequest()))) {
 	                	   logger.info("Serviço "+ nameService + "." + request.getMetodo() + " descartou mensagem devido timeout.");
 	                	   continue;
 	                   }
 	                   dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
-	                   myMbox.send(dispatcherPid, ok_atom);
-	                   taskCount++;
+	                   if (request.getTimeout() > 0) {
+	                	   myMbox.send(dispatcherPid, ok_atom);
+	                   }
                 	   pool.submit(new Task(dispatcherPid, request, this));
 	                   msg_task.append(request.getMetodo()).append(" ")
 	                   			.append(request.getFunction()).append(" RID: ")
