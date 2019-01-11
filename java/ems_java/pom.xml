@@ -51,6 +51,17 @@
 				<role>Developer</role>
 			</roles>
 		</developer>
+		<developer>
+			<id>rcarauta</id>
+			<name>Renato Carauta Ribeiro</name>
+			<email>rcarauta6@gmail.com</email>
+			<organization>ErlangMS</organization>
+			<organizationUrl>https://github.com/erlangms</organizationUrl>
+			<roles>
+				<role>Project-Administrator</role>
+				<role>Developer</role>
+			</roles>
+		</developer>
 	</developers>
 
 	<distributionManagement>
