@@ -39,8 +39,8 @@ public class EmsConnection extends Thread{
 	private static final int THREAD_WAIT_TO_RESTART = 5000;
 	private static final String connectionErrorMessage = "Não foi possível conectar no barramento. Verifique se o servidor de nome epmd foi iniciado.";
 	private final String nameService;
-	private final EmsServiceFacade facade;
-	private Class<? extends EmsServiceFacade> classOfFacade;
+	private final Object service;
+	private Class<? extends Object> classOfservice;
 	private Method methods[];
 	private String method_names[];
 	private int method_count = 0;
@@ -49,16 +49,15 @@ public class EmsConnection extends Thread{
 	private OtpNode myNodeLinux = null;
 	private OtpMbox myMbox = null;
     private boolean isLinux = true;
-    private int taskCount = 0;
     private boolean isSlave = false;
     private static Semaphore sem = new Semaphore(1, true);   
 	
-	public EmsConnection(final EmsServiceFacade facade, final String otpNodeName, final boolean isSlave){
+	public EmsConnection(final Object service, final String otpNodeName, final boolean isSlave){
 		this.isLinux = EmsUtil.properties.isLinux;
 		this.setSlave(isSlave);
-		this.facade = facade;
-		this.classOfFacade = facade.getClass();
-		this.nameService = this.classOfFacade.getName();
+		this.service = service;
+		this.classOfservice = service.getClass();
+		this.nameService = this.classOfservice.getName();
 		if (isLinux) {
 			this.otpNodeName = otpNodeName.replace(".",  "_") + "_" + properties.nodeName;
 		}else {
@@ -67,13 +66,14 @@ public class EmsConnection extends Thread{
 		getMethodNamesTable();
 	}
 	
+
 	/**
-	 * Preenche uma tabela com os métodos do facade para acesso rápido pelo método chamaMetodo.
+	 * Preenche uma tabela com os métodos do service para acesso rápido pelo método chamaMetodo.
 	 * Somente métodos com o parâmetro IEmsRequest.class. 
 	 * @author Everton de Vargas Agilar
 	 */
 	private void getMethodNamesTable() {
-		Method[] allMethods = classOfFacade.getMethods(); 
+		Method[] allMethods = classOfservice.getMethods(); 
 		methods = new Method[allMethods.length];
 		method_names = new String[allMethods.length];
 		for (Method m : allMethods){
@@ -173,11 +173,6 @@ public class EmsConnection extends Thread{
 	
 	public synchronized void sendResult(final OtpErlangPid from, final OtpErlangTuple response) {
 		myMbox.send(from, response);
-		taskCount--;
-	}
-	
-	public int getTaskCount() {
-		return taskCount;
 	}
 	
     @Override  
@@ -217,13 +212,14 @@ public class EmsConnection extends Thread{
 	                   otp_request = (OtpErlangTuple) myMsg.elementAt(0);
 	                   request.setOtpRequest(otp_request);
 	                   Long T2 = System.currentTimeMillis() - request.getT1();
-	                   if (isLinux && (T2 > request.getTimeout() || (T2 > PostUpdateTimeout && request.isPostOrUpdateRequest()))) {
+	                   if (isLinux && request.getTimeout() > 0 && (T2 > request.getTimeout() || (T2 > PostUpdateTimeout && request.isPostOrUpdateRequest()))) {
 	                	   logger.info("Serviço "+ nameService + "." + request.getMetodo() + " descartou mensagem devido timeout.");
 	                	   continue;
 	                   }
 	                   dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
-	                   myMbox.send(dispatcherPid, ok_atom);
-	                   taskCount++;
+	                   if (request.getTimeout() > 0) {
+	                	   myMbox.send(dispatcherPid, ok_atom);
+	                   }
                 	   pool.submit(new Task(dispatcherPid, request, this));
 	                   msg_task.append(request.getMetodo()).append(" ")
 	                   			.append(request.getFunction()).append(" RID: ")
@@ -284,16 +280,16 @@ public class EmsConnection extends Thread{
     		
     		// se não encontrou o método tenta invocar sem parâmetros (não otimizado)
     		if (m == null){
-	    		m = classOfFacade.getMethod(metodo);
+	    		m = classOfservice.getMethod(metodo);
 		    	m.setAccessible(true);  
     		}
 
     		// invoca o método
     		if (m.getReturnType().getName().equals("void")){
-		    	m.invoke(facade, request);
+		    	m.invoke(service, request);
 		    	return result_ok;
 		    }else{
-		    	result = m.invoke(facade, request);
+		    	result = m.invoke(service, request);
 		    }
 
     		return result;
@@ -420,17 +416,19 @@ public class EmsConnection extends Thread{
 		
         public Boolean call() {  
         	Object ret = chamaMetodo(request.getModulo(), request.getFunction(), request);
-            Long T3 = System.currentTimeMillis() - request.getT1();
-            if (isLinux) {
-	            if (T3 < request.getTimeout()) {
+            if (request.getRID() > 0) {
+	        	Long T3 = System.currentTimeMillis() - request.getT1();
+	            if (isLinux && request.getTimeout() > 0) {
+		            if (T3 < request.getTimeout()) {
+			        	OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
+			        	connection.sendResult(from, response);
+		            }else{
+		            	logger.info("Serviço "+ nameService + "." + request.getMetodo() + " descartou envio do resultado após timeout.");
+		            }
+	            }else {
 		        	OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
-		        	connection.sendResult(from, response);
-	            }else{
-	            	logger.info("Serviço "+ nameService + "." + request.getMetodo() + " descartou envio do resultado após timeout.");
+		        	connection.sendResult(from, response); 
 	            }
-            }else {
-	        	OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
-	        	connection.sendResult(from, response); 
             }
 			return true;
         }  

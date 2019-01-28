@@ -10,6 +10,7 @@ package br.erlangms;
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -43,11 +44,15 @@ public interface IEmsRequest {
 	public Object mergeObjectFromPayload(Object obj);
 	public Object mergeObjectFromPayload(Object obj, EmsJsonModelAdapter jsonModelAdapter);
 	public Map<String, Object> getPayloadAsMap();
+	public List<Map<String, Object>> getPayloadAsList();
+	public <T> T getPayloadAsArray(Class<T> classOfArray);
+	public <T> List<T> getPayloadAsList(Class<T[]> classOfArray);
 	public Map<String, Object> getClient();
 	public Map<String, Object> getUser();
 	public Map<String, Object> getCatalog();
 	public String getContentType();
 	public String getScope();
+	public String getAccessToken();
 	public long getT1();
 	public long getTimeout();
 	public boolean isPostOrUpdateRequest();

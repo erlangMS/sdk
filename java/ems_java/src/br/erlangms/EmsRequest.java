@@ -10,8 +10,10 @@ package br.erlangms;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
@@ -41,6 +43,8 @@ public class EmsRequest implements IEmsRequest {
 	private String function = null;
 	private String payload = null;
 	private int paramCount = 0;
+	private String access_token;
+	private String scope;
 
 	public EmsRequest(final OtpErlangTuple otp_request){
 		setOtpRequest(otp_request);
@@ -66,6 +70,17 @@ public class EmsRequest implements IEmsRequest {
 		this.paramCount = ((OtpErlangMap)otp_request.elementAt(3)).arity();
 		this.userJson = null;
 		this.clientJson = null;
+		OtpErlangObject OAuth2FieldObj = otp_request.elementAt(12);
+		if (OAuth2FieldObj != null && OAuth2FieldObj instanceof OtpErlangTuple) {
+			OtpErlangTuple OAuth2Field = (OtpErlangTuple) OAuth2FieldObj;
+			if (OAuth2Field != null) {
+				this.scope = new String(((OtpErlangBinary)OAuth2Field.elementAt(1)).binaryValue());
+				this.access_token = new String(((OtpErlangBinary)OAuth2Field.elementAt(1)).binaryValue());
+			}
+		}else {
+			this.scope = "";
+			this.access_token = "";
+		}
 	}
 	
 	/**
@@ -356,6 +371,7 @@ public class EmsRequest implements IEmsRequest {
 	 * Retorna o payload do request serializado como objeto. Um erro será gerado se não for possível ler o objeto JSON.
 	 * Útil para converter o objeto JSON do request no objeto que será trabalhado na camada de negócio
 	 * @param classOfObj classe do objeto que será serializado. Exemplo: Municipio.class
+	 * @param <T> classe do objeto que será serializado. Exemplo: Municipio.class
 	 * @return Object
 	 * @author Everton de Vargas Agilar
 	 */
@@ -401,6 +417,7 @@ public class EmsRequest implements IEmsRequest {
 	/**
 	 * Permite obter uma propriedade incluída pelo desenvolvedor. Se não existe a proprieadade, retorna o defaultValue.
 	 * @param nome nome da propriedade
+	 * @param defaultValue valor default
 	 * @return Object 
 	 * @author Everton de Vargas Agilar
 	 */
@@ -418,7 +435,7 @@ public class EmsRequest implements IEmsRequest {
 	/**
 	 * Permite ao desenvolvedor definir uma propriedade e armazenar na requisição.
 	 * @param nome nome da propriedade
-	 * @return Object 
+	 * @param value valor do objeto
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
@@ -434,7 +451,7 @@ public class EmsRequest implements IEmsRequest {
 	
 	/**
 	 * Retorna o payload do request como map. Um erro será gerado se não for possível ler o objeto JSON.
-	 * @return Map<String, Object>
+	 * @return map
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
@@ -446,6 +463,43 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
+	public List<Map<String, Object>> getPayloadAsList(){
+		try{
+			return (List<Map<String, Object>>) EmsUtil.fromJson(getPayload(), List.class);
+		}catch (Exception e){
+			throw new EmsValidationException("Não foi possível converter o payload do request em um objeto da interface java.util.List. Erro interno: "+ e.getMessage());
+		}
+	}
+	
+	/**
+	 * Retorna o payload do request como um array de objetos
+	 * @param classOfArray classe do array para serializar. Ex. Usuario[].class
+	 * @return list
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
+	public <T> T getPayloadAsArray(Class<T> classOfArray) {
+		try{
+			String payload = getPayload();
+			return EmsUtil.gson.fromJson(payload, classOfArray);
+		}catch (Exception e){
+			throw new EmsValidationException("Não foi possível converter o payload do request em uma lista de objetos. Erro interno: "+ e.getMessage());
+		}
+	}
+	
+	/**
+	 * Retorna o payload do request como uma lista de objetos
+	 * @param classOfArray classe do array para serializar. Ex. Usuario[].class
+	 * @return list
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
+	public <T> List<T> getPayloadAsList(Class<T[]> classOfArray) {
+		T[] result = getPayloadAsArray(classOfArray);
+		return Arrays.asList(result);
+	}
+	
 	/**
 	 * Retorna o ContentType do request.
 	 * @return ContentType do request
@@ -574,12 +628,22 @@ public class EmsRequest implements IEmsRequest {
 
 	/**
 	 * Obter o scopo oauth2 do request.
-	 * @return string 
+	 * @return oauth2 scope 
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
 	public String getScope() {
-		return new String(((OtpErlangBinary)otp_request.elementAt(12)).binaryValue());
+		return scope;
+	}
+
+	/**
+	 * Obter access_token do request.
+	 * @return oauth2 access token 
+	 * @author Everton de Vargas Agilar
+	 */
+	@Override
+	public String getAccessToken() {
+		return access_token;
 	}
 
 	/**
@@ -611,5 +675,6 @@ public class EmsRequest implements IEmsRequest {
 	public boolean isPostOrUpdateRequest() {
 		return isPostOrUpdateRequestFlag;
 	}
-	
+
+
 }

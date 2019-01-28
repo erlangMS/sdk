@@ -13,7 +13,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -39,7 +38,6 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -80,7 +78,6 @@ import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
-import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
@@ -137,7 +134,7 @@ public final class EmsUtil {
 	public static final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
 	public static final Logger logger = Logger.getLogger("erlangms");
 	private static NumberFormat doubleFormatter = null;
-	private static Gson gson = null;
+	public static Gson gson = null;
 	private static Gson gson2 = null;
 	public static EmsProperties properties = null;
 	private static final SimpleDateFormat dateFormatDDMMYYYY = new SimpleDateFormat("dd/MM/yyyy");
@@ -150,7 +147,7 @@ public final class EmsUtil {
 	private static java.util.Base64.Encoder base64Encoder = null;
 	private final static String HEX = "0123456789ABCDEF";
 	private final static String seed = "LDAPCorp_pwdupdate";
-    private static int WORKER_BUSY = 120000;
+    private static String[] args = null;
 
 	static{
 		doubleFormatter = NumberFormat.getInstance(Locale.US);
@@ -162,7 +159,6 @@ public final class EmsUtil {
 			e1.printStackTrace();
 		}
 		base64Encoder = java.util.Base64.getEncoder(); 
-		properties = getProperties();
 		gson = new GsonBuilder()
 	    	.setExclusionStrategies(new SerializeStrategy())
 	    	.setDateFormat("dd/MM/yyyy")
@@ -413,7 +409,7 @@ public final class EmsUtil {
                }
             })    
         .create();		
-	
+		properties = getProperties();
 	}
 	
 	public static boolean isAnyParameterAnnotated(Method method, Class<?> annotationType) {
@@ -545,7 +541,9 @@ public final class EmsUtil {
 	/**
 	 * Serializa um objeto a partir de uma string json
 	 * @param jsonString String json
+	 * @param <T> String json
 	 * @param classOfObj	Classe do objeto que será serializado
+	 * @return objeto
 	 * @author Everton de Vargas Agilar
 	 */
 	public static <T> T fromJson(final String jsonString, final Class<T> classOfObj) {
@@ -556,8 +554,10 @@ public final class EmsUtil {
 	 * Serializa um objeto a partir de uma string json.
 	 * Quando a string json é vazio, apenas instância um objeto da classe.
 	 * @param jsonString String json
+	 * @param <T>  String json
 	 * @param classOfObj	Classe do objeto que será serializado
-	 * @param jsonModelAdapter adaptador para permitir obter atributos de modelo 
+	 * @param jsonModelAdapter adaptador para permitir obter atributos de modelo
+	 * @return objeto  
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
@@ -600,7 +600,9 @@ public final class EmsUtil {
 	/**
 	 * Obtém uma lista a partir de um json
 	 * @param jsonString String json
+	 * @param <T> String json
 	 * @param classOfObj	Classe do objeto que será serializado
+	 * @return list
 	 * @author Everton de Vargas Agilar
 	 */
 	public static <T> List<T> fromListJson(final String jsonString, final Class<T> classOfObj) {
@@ -611,7 +613,9 @@ public final class EmsUtil {
 	 * Obtém uma lista a partir de um json. Se o json estiver vazio, retorna apenas uma lista vazia.
 	 * @param jsonString String json
 	 * @param classOfObj	Classe do objeto que será serializado
- 	 * @param jsonModelAdapter adaptador para permitir obter atributos de modelo 
+	 * @param <T>	Classe do objeto que será serializado
+ 	 * @param jsonModelAdapter adaptador para permitir obter atributos de modelo
+ 	 * @return list 
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
@@ -787,10 +791,9 @@ public final class EmsUtil {
 	
 	
 	/**
-	 * Passando um objeto, retorna um Map<String, Object> com os campos do objeto.
-	 * Se o obj já é um map não faz nada e apenas o retorna.
+	 * Passando um objeto e retorna um map. Se o obj já é um map não faz nada e apenas o retorna.
 	 * @param obj Instância de um objeto
-	 * @param values	Map com chave/valor dos campos do objeto
+	 * @return map de objetos
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
@@ -836,6 +839,8 @@ public final class EmsUtil {
 	 * Seta os valores no objeto a partir de um map.
 	 * @param obj Instância de um objeto
 	 * @param values	Map com chave/valor dos dados que serão aplicados no objeto
+	 * @param jsonModelAdapter jsonModelAdapter
+	 * @return Object objeto
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -1130,8 +1135,7 @@ public final class EmsUtil {
 	
 	/**
 	 * Retorna o id de um objeto. O id é um campo que tenha a anotação @Id
-	 * @param clazz Classe pojo. Ex.: OrgaoInterno.class
-	 * @param ann	anotação que será pesquisada. Ex.: Id.class
+	 * @param obj	objeto
 	 * @return Id ou null se não encontrado
 	 * @author Everton de Vargas Agilar
 	 */
@@ -1202,9 +1206,7 @@ public final class EmsUtil {
 
 	/**
 	 * Converte um inteiro para a enumeração de acordo com clazz
-	 * @param code código da enumeração
-	 * @param clazz	classe da enumeração
-	 * @return enumeração
+	 * @return Rest client
 	 * @author Everton de Vargas Agilar
 	 */
 	public static javax.ws.rs.client.Client getRestStream(){
@@ -1216,7 +1218,7 @@ public final class EmsUtil {
 	 * Converte um objeto Java para um oobjeto de response.
 	 * Isso é utilizado para enviar a resposta para o barramento no formato nativo Erlang.
 	 * @param ret objeto
-	 * @param rid Request Id da requisição
+	 * @param request requisição
 	 * @return OtpErlangTuple
 	 * @author Everton de Vargas Agilar
 	 */
@@ -1472,7 +1474,7 @@ public final class EmsUtil {
 	/**
 	 * Gera um relatório no formato pdf a partir de um template jasper. 
 	 * É importante o contrato do serviço declarar "content_type" : "application/pdf" para que o browser exiba o pdf corretamente.
-	 * @param params parâmetros do relatório. Pode ser um model ou Map<String, Object> ou null. 
+	 * @param params parâmetros do relatório.  
 	 * @param datasource é o objeto ou lista de objetos do relatório. Pode ser null.
 	 * @param templateJasper arquivo .jasper do template criado no Ireport. É obrigatório. Ex.: "/relatorios/DeclaracaoAlunoRegular.jasper"
 	 * @param owner referência para objeto quem invoca esse metodo. Utilizado para owner.getClass().getResourceAsStream() 	
@@ -1531,7 +1533,8 @@ public final class EmsUtil {
 
 	/**
 	 * Obter o array de unique constraints de um model  
-	 * @return array of UniqueConstraint[]
+	 * @param classOfModel classe do modelo
+	 * @return array of UniqueConstraint
 	 * @author Everton de Vargas Agilar
 	 */
 	public static UniqueConstraint[] getTableUniqueConstraints(final Class<?> classOfModel){
@@ -1545,8 +1548,9 @@ public final class EmsUtil {
 
 	/**
 	 * Obter a lista de fields com unique constraint de um model.
-	 * Obs.: Id não é retornado embora tenha a constraint unique.  
-	 * @return List<Field> 
+	 * Obs.: Id não é retornado embora tenha a constraint unique.
+	 * @param classOfModel classe do modelo  
+	 * @return lista de campos 
 	 * @author Everton de Vargas Agilar
 	 */
 	public static List<Field> getFieldsWithUniqueConstraint(final Class<?> classOfModel){
@@ -1569,7 +1573,8 @@ public final class EmsUtil {
 	/**
 	 * Obter a lista de fields de um model.
 	 * Obs.: somente fields com a anotação Column são retornados.  
-	 * @return List<Field> 
+	 * @param classOfModel classe do modelo
+	 * @return lista de campos 
 	 * @author Everton de Vargas Agilar
 	 */
 	public static List<Field> getFieldsFromModel(final Class<?> classOfModel){
@@ -1634,12 +1639,13 @@ public final class EmsUtil {
 
 	
 	/**
-	 * Realiza a conversão de um List<Object> para um List<Map<String, Object>>.
+	 * Realiza a conversão de um lista para map
 	 * 
 	 * Para que seja posśivel a conversão é necessário passar a lista dos campos (fields).
 	 * 
 	 * @param fields lista de campos. Pode ser passado como um array de campos, string de campos separado por vírgula ou lista de campos.
-	 * @return List<Map<String, Object>> ou exception EmsValidationException
+	 * @param listObj lista de objetos
+	 * @return list ou exception EmsValidationException
 	 * @author Everton de Vargas Agilar, 
 	 * @author Rogério Guimarães Sampaio
 	 */
@@ -1704,36 +1710,43 @@ public final class EmsUtil {
 		public String cookie;	 		   // Ex: erlangms
     	public String ESB_URL;			   // Ex: http://localhost:2301
     	public String hostName;	
-    	public  String nodeName;
+    	public String nodeName;
     	public String nodeUser;
     	public String nodePasswd;
         public String authorizationHeaderName;
         public String authorizationHeaderValue;
+        public Map<String, Object> daemon_params;
+        public String daemon_params_encode;
         public boolean debug;
         public int msg_timeout = 60000;
         public String environment = "desenv";
         public boolean isWindows = System.getProperty("os.name").toLowerCase().indexOf("win") >= 0;
         public boolean isLinux = System.getProperty("os.name").toLowerCase().indexOf("nux") >= 0;
         public boolean isMac = System.getProperty("os.name").toLowerCase().indexOf("mac") >= 0;
-        
+        public int pidfileWatchdogTimer = 30000;
+		public String pidfile;
+		public String logfile;
+		public String daemon_service;
+		public String daemon_id;
+
         // smtp
-        public int smtpPort;			  // Ex: 25
-		public String smtp;				  // Ex: smtp.unb.br
-		public String smtpFrom;			  // Ex: evertonagilar@unb.br
+        public int smtpPort;			  		// Ex: 25
+		public String smtp;				  		// Ex: smtp.unb.br
+		public String smtpFrom;			  		// Ex: evertonagilar@unb.br
 		public String smtpPasswd;		  
 
 		// ldap
-    	public String ldapUrl;				// Ex: ldap://localhost:2389
-		public String ldapAdmin;			// Ex: cn=admin,dc=unb,dc=br
-		public String ldapAdminPasswd;		// Ex: 123456
-		public int postUpdateTimeout;		// Ex: 30000
+    	public String ldapUrl;					// Ex: ldap://localhost:2389
+		public String ldapAdmin;				// Ex: cn=admin,dc=unb,dc=br
+		public String ldapAdminPasswd;			// Ex: 123456
+		public int postUpdateTimeout;			// Ex: 30000
+		public String service_scan = "br.unb";
     }
     
 	/**
 	 * Retorna as propriedades para o SDK do barramento de serviços ERLANGMS.
 	 * 
 	 * Exemplo: 
-	 *    -Dcookie=erlangms
 	 *    -Dems_node=node01
 	 *    -Dems_emsbus_url=http://localhost:2301
 	 *    -Dems_emsbus=ems_bus
@@ -1750,9 +1763,34 @@ public final class EmsUtil {
 	 *    -Dems_smtp="mail.unb.br"
 	 * @author Everton de Vargas Agilar
 	 */
+	@SuppressWarnings("unchecked")
 	private static EmsProperties getProperties() {
 		EmsProperties prop = new EmsProperties();
-		String tmp_thread_pool = System.getProperty("ems_thread_pool");
+		
+		// Atenção: ems_daemon_params deve ser o primeiro parâmetro lido das propriedades
+		// pois os próximos parâmetros podem ser armazenados em ems_daemon_params ou obtidos das properties da JVM
+		String tmp_daemon_params = getProperty("ems_daemon_params");
+		if (tmp_daemon_params != null) {
+			try{
+				// O barramento vai passar sempre como base64
+				// mas na IDE o desenvolvedor pode passar texto puro
+				if (tmp_daemon_params.startsWith("base64:")){
+					prop.daemon_params_encode = "base64";
+					tmp_daemon_params = tmp_daemon_params.substring(7);
+					tmp_daemon_params = decode64(tmp_daemon_params);
+				}else {
+					prop.daemon_params_encode = "";
+				}
+				prop.daemon_params = EmsUtil.fromJson(tmp_daemon_params, HashMap.class);
+			}catch (Exception e) {
+				System.out.println("Não foi possível fazer o parse do parâmetro ems_daemon_params. Erro interno: "+ e.getMessage());
+				prop.daemon_params = new HashMap<String, Object>();
+			}
+		}else {
+			prop.daemon_params = new HashMap<String, Object>(); 
+		}
+			
+		String tmp_thread_pool = getProperty("ems_thread_pool");
 		if (tmp_thread_pool != null){
 			try{
 				prop.maxThreadPool = Integer.parseInt(tmp_thread_pool);
@@ -1763,14 +1801,14 @@ public final class EmsUtil {
 			prop.maxThreadPool = 12;
 		}
 		
-		String tmp_cookie = System.getProperty("ems_cookie");
+		String tmp_cookie = getProperty("ems_cookie");
 		if (tmp_cookie != null){
 		   prop.cookie = tmp_cookie;
 	   }else{
 		   prop.cookie = "erlangms";
 	   }
 
-	   String tmp_host = System.getProperty("ems_host");
+	   String tmp_host = getProperty("ems_host");
 	   if (tmp_host != null){
 		   prop.hostName = tmp_host;
 	   }else{
@@ -1782,27 +1820,29 @@ public final class EmsUtil {
 			}
 	   }
 
-	   if (System.getProperty("ems_debug", "false").equalsIgnoreCase("true")){
+	   if (getProperty("ems_debug", "false").equalsIgnoreCase("true")){
 		   prop.debug = true;
 	   }else{
 		   prop.debug = false;
 	   }
 
-	   String tmp_nodeName = System.getProperty("ems_node");
+	   prop.service_scan  = getProperty("ems_service_scan", "br.unb");
+
+	   String tmp_nodeName = getProperty("ems_node");
 	   if (tmp_nodeName != null){
 		   prop.nodeName = tmp_nodeName;
 	   }else{
 		   prop.nodeName = "node01";
 	   }
 	   
-	   String tmp_environment = System.getProperty("ems_environment");
+	   String tmp_environment = getProperty("ems_environment");
 	   if (tmp_environment != null){
 		   prop.environment = tmp_environment;
 	   }else{
 		   prop.environment = "desenv";
 	   }
 
-	   String tmp_ESB_URL = System.getProperty("ems_bus_url");
+	   String tmp_ESB_URL = getProperty("ems_bus_url");
 	   if (tmp_ESB_URL != null){
 		   if (tmp_ESB_URL.indexOf(":") == -1){
 			   tmp_ESB_URL = tmp_ESB_URL + ":2301";
@@ -1812,22 +1852,15 @@ public final class EmsUtil {
 		   prop.ESB_URL = "http://localhost:2301";
 	   }
 	   
-	   String tmp_ems_bus_node1 = System.getProperty("ems_bus_node1");
-	   if (tmp_ems_bus_node1 != null){
-		   prop.ems_bus_node1 = tmp_ems_bus_node1;
-	   }else{
-		   prop.ems_bus_node1 = "ems_bus";
-	   }
-
-	   
-	   String tmp_user = System.getProperty("ems_user");
+   
+	   String tmp_user = getProperty("ems_user");
 	   if (tmp_user != null){
 		   prop.nodeUser = tmp_user;
 	   }else{
 		   prop.nodeUser = "geral";
 	   }
 	   
-	   String tmp_password = System.getProperty("ems_password");
+	   String tmp_password = getProperty("ems_password");
 	   if (tmp_password != null){
 		   prop.nodePasswd = tmp_password;
 	   }else{
@@ -1840,14 +1873,14 @@ public final class EmsUtil {
 
        // SMTP properties
        
-	   String tmp_smtp = System.getProperty("ems_smtp");
+	   String tmp_smtp = getProperty("ems_smtp");
 	   if (tmp_smtp != null){
 		   prop.smtp = tmp_smtp;
 	   }else{
 		   prop.smtp = "smtp.unb.br";
 	   }
 
-	   String tmp_smtp_port = System.getProperty("ems_smtp_port");
+	   String tmp_smtp_port = getProperty("ems_smtp_port");
 	   if (tmp_smtp_port != null){
 		   try{
 			   prop.smtpPort = Integer.parseInt(tmp_smtp_port);
@@ -1858,14 +1891,14 @@ public final class EmsUtil {
 		   prop.smtpPort = 25;
 	   }
        
-	   String tmp_smtp_from = System.getProperty("ems_smtp_from");
+	   String tmp_smtp_from = getProperty("ems_smtp_from");
 	   if (tmp_smtp_from != null){
 		   prop.smtpFrom = tmp_smtp_from;
 	   }else{
 		   prop.smtpFrom = "erlangms@unb.br";
 	   }
 
-	   String tmp_smtp_passwd = System.getProperty("ems_smtp_passwd");
+	   String tmp_smtp_passwd = getProperty("ems_smtp_passwd");
 	   if (tmp_smtp_passwd != null){
 		   prop.smtpPasswd = tmp_smtp_passwd;
 	   }else{
@@ -1874,7 +1907,7 @@ public final class EmsUtil {
 
 	   // LDAP properties
 	   
-	   String tmp_ldap_url = System.getProperty("ems_ldap_url");
+	   String tmp_ldap_url = getProperty("ems_ldap_url");
 	   if (tmp_ldap_url != null){
 		   if (tmp_ldap_url.indexOf(":") == -1){
 			   tmp_ldap_url = tmp_ldap_url + ":2389";
@@ -1887,21 +1920,21 @@ public final class EmsUtil {
 		   prop.ldapUrl = "ldap://localhost:2389";
 	   }
 
-	   String tmp_ldap_admin = System.getProperty("ems_ldap_admin");
+	   String tmp_ldap_admin = getProperty("ems_ldap_admin");
 	   if (tmp_ldap_admin != null){
 		   prop.ldapAdmin = tmp_ldap_admin;
 	   }else{
 		   prop.ldapAdmin = "cn=admin,dc=unb,dc=br";
 	   }
 
-	   String tmp_ldap_admin_passwd = System.getProperty("ems_ldap_admin_passwd");
+	   String tmp_ldap_admin_passwd = getProperty("ems_ldap_admin_passwd");
 	   if (tmp_ldap_admin_passwd != null){
 		   prop.ldapAdminPasswd = tmp_ldap_admin_passwd;
 	   }else{
 		   prop.ldapAdminPasswd = "123456";
 	   }
 
-		String tmp_msg_timeout = System.getProperty("ems_msg_timeout");
+		String tmp_msg_timeout = getProperty("ems_msg_timeout");
 		if (tmp_msg_timeout != null){
 			try{
 				prop.msg_timeout = Integer.parseInt(tmp_msg_timeout);
@@ -1912,7 +1945,7 @@ public final class EmsUtil {
 			prop.msg_timeout = 60000;
 		}
 
-		String tmp_postUpdateTimeout = System.getProperty("ems_post_update_timeout");
+		String tmp_postUpdateTimeout = getProperty("ems_post_update_timeout");
 		if (tmp_postUpdateTimeout != null){
 			try{
 				prop.postUpdateTimeout = Integer.parseInt(tmp_postUpdateTimeout);
@@ -1926,7 +1959,13 @@ public final class EmsUtil {
 			prop.postUpdateTimeout = 30000;
 		}
 		
-	   return prop;
+		prop.pidfile = getProperty("ems_pidfile");
+		prop.pidfileWatchdogTimer = getPropertyAsInt("ems_pidfile_watchdog_timer", 30000);
+		prop.logfile = getProperty("ems_logfile");
+		prop.daemon_service = getProperty("ems_daemon_service");
+		prop.daemon_id = getProperty("ems_daemon_id");
+
+		return prop;
 	}
 
     private static class MyAuthenticator  extends Authenticator{
@@ -2209,6 +2248,8 @@ public final class EmsUtil {
 
 	/**
 	 * Algoritmo SHA-1
+	 * @param value valor
+	 * @return valor em SHA1
 	 * @author Everton de Vargas Agilar
 	 */
     public static String toSHA1(final String value) {
@@ -2221,6 +2262,8 @@ public final class EmsUtil {
     
 	/**
 	 * Algoritmo base64
+	 * @param value valor
+	 * @return valor em base 64
 	 * @author Everton de Vargas Agilar
 	 */
     public static String toBase64(final String value){
@@ -2493,59 +2536,9 @@ public final class EmsUtil {
     }
     
     
-    //
-    // Formata o nome do arquivo de pid para um processo
-    //
-    public static String formatPidFileName(final String pid, final String nomeProcesso){
-    	String currentDir = System.getProperty("user.dir");
-    	String fileNamePid = String.format("%s%s%s.pid", currentDir, File.separator, nomeProcesso);
-    	return fileNamePid;
-    }
-    
-    //
-    // Retorna true/false se o pid existe
-    //
-    public static boolean existePidFile(final String pid, final String nomeProcesso){
-    	String fileNamePid = formatPidFileName(pid, nomeProcesso);
-    	File arquivo = new File(fileNamePid);
-    	return arquivo.exists();    	
-    }
-    
 
     //
-    // Cria o arquivo pid para controle de execução do processo. Não será permitido 
-    // criar um processo se o pid ja existir.
-    //
-    public static String createPidFile(final String pid, final String nomeProcesso, boolean deleteIfExists) throws Exception {
-    	String fileNamePid = formatPidFileName(pid, nomeProcesso);
-    	File arquivo = new File(fileNamePid);
-    	if (deleteIfExists){
-    		arquivo.delete();
-    	}else{
-	    	if (arquivo.exists()){
-		    	throw new Exception(String.format("O processo %s já está sendo executado (%s)", nomeProcesso, arquivo.getAbsolutePath()));
-		    }
-    	}
-	    try{
-	    	arquivo.createNewFile();
-	    	FileWriter fw = null;
-	        try {
-	        	fw = new FileWriter(arquivo);
-	        	fw.write(pid);
-	        	fw.flush();
-	        }finally{
-	        	if (fw != null){
-	        		fw.close();
-	        	}
-	        }
-	        return fileNamePid;
-	    }catch(IOException ex){
-	    	throw new Exception(String.format("Não foi possível criar o arquivo de pid do processo %s.\n Arquivo pid: %s", nomeProcesso, arquivo.getAbsolutePath()));
-	    }
-    }
-    
-    //
-    // Remove o pid de um processo pelo seu nome de processo.
+    // Remove o pid de um processo de forma segura
     //
     //
     public static void removePidFile(final String fileNamePid){
@@ -2558,125 +2551,8 @@ public final class EmsUtil {
     		// não retorna erro ao processo chamador em caso de falha aqui
     	}
     }
-
-    //
-    // Retorna um iterator de File para a lista de pids.
-    // Uso: Se não informado codigoRefeitorio retorna todos senão somente do refeitório específico.
-    //
-    private static Integer filter_codigoRefeitorio = null;
-    private static Iterator<File> getListWorkerPids(Integer codigoRefeitorio) throws RuntimeException{
-    	try{
-	    	String currentDir = System.getProperty("user.dir");
-
-    		// filtro para obter os pid
-	    	filter_codigoRefeitorio = codigoRefeitorio;
-			FilenameFilter filter = new FilenameFilter() {  
-                public boolean accept(File dir, String name) {  
-                    boolean result = name.endsWith(".pid") && name.contains("_worker_");
-                    if (result && filter_codigoRefeitorio != null){
-                    	try{
-	                    	int p = name.indexOf("worker_id_")+10;
-	                    	String cod_name = name.substring(p, p+3);
-	                    	if (filter_codigoRefeitorio == Integer.parseInt(cod_name)){
-	                    		return true;
-	                    	}
-                    	}catch (Exception e){
-                    		// ignora
-                    	}
-                    	return false;
-                    }
-                    return result;
-                }  
-			};  
-			
-			File[] files = new File(currentDir).listFiles(filter);
-			List<File> retorno = new ArrayList<File>();
-			for (File file : files) {
-				retorno.add(file);
-			}
-			return retorno.iterator();
-    	}catch (Exception e){
-    		String erro = String.format("Não consegui obter a lista de PIDs. Erro interno: %s.", e.getMessage()); 
-    		logger.info(erro);
-    		throw new RuntimeException(erro);
-    	}
-    }
     
 
-    //
-    // Fecha todos os processos workers que estão executando.
-    //
-	public static void fechaTodosWorkers() {
-		int count = 0;
-		Iterator<File> listPids = getListWorkerPids(null);
-		List<String> fileNamePids = new ArrayList<String>();
-		while (listPids.hasNext()){
-			File file = listPids.next();
-			try {
-	        	Integer pid = lePid(file.getAbsolutePath());
-	        	EmsUtil.kill(pid, false);
-				fileNamePids.add(file.getAbsolutePath());
-            	count++;
-            } catch (Exception e) {
-				logger.info(String.format("Falha ao finalizar processo %s. Motivo: ", file.getName(), e.getMessage()));
-			}
-		}
-		
-		// Timeout por segurança
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			// aguarda 1 seg antes de continuar
-		}
-		
-		// Remove os arquivos de pids 
-    	for (String fileName : fileNamePids){
-    		EmsUtil.removePidFile(fileName);
-    	}
-
-		
-		if (count > 1){
-			logger.info(String.format("%d workers finalizados.", count));
-		} else if (count > 0){
-			logger.info("1 worker finalizado.");
-		}else{
-			logger.info("Nenhum worker ativo.");
-		}
-	}
-
-    //
-    // Fecha um processo worker espcífico pelo código do refeitório
-    //
-	public static void fechaWorker(final Integer codigoRefeitorio) {
-		Iterator<File> listPids = getListWorkerPids(codigoRefeitorio);
-		int count = 0;
-		while (listPids.hasNext()){
-			File file = listPids.next();
-			try {
-            	Integer pid = lePid(file.getAbsolutePath());
-            	EmsUtil.kill(pid, false);
-            	EmsUtil.removePidFile(file.getAbsolutePath());
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					// aguarda 1 seg antes de continuar
-				}
-				count++;
-				break;
-			} catch (Exception e) {
-				logger.info(String.format("Falha ao finalizar processo %s. Motivo: ", file.getName(), e.getMessage()));
-			}
-		}
-		
-		if (count == 1){
-			logger.info("1 worker finalizado.");
-		} else if (count == 0){
-			logger.info("Nenhum worker ativo.");
-		}
-		
-	}
-
-	
 	//
 	// Obtém o pid do processo atual 
 	//
@@ -2685,37 +2561,6 @@ public final class EmsUtil {
 	}
 
 
-	//
-	// Inicia um processo dedicado (worker process) para atender um refeitório.
-	//
-	public static void startWorkerParaRefeitorio(final Integer codigo, final String args_str) throws IOException {
-    	String currentDir = System.getProperty("user.dir");
-    	String currentJVM = System.getProperty("java.home");
-    	String cmd = String.format("%s%sbin%sjava -jar %s%ssisruCatraca.jar %s --refeitorio=%d", currentJVM, 
-    																							File.separator,
-    																							File.separator,
-    																							currentDir, 
-    																							File.separator, 
-    																							args_str, 
-    																							codigo);
-    	EmsUtil.executeCommand(cmd, false);
-	}
-
-	//
-	// Inicia um processo dedicado (worker process) para atender um refeitório.
-	//
-	public static void restartWorkerParaRefeitorio(final Integer codigo, final String configFileName) throws IOException {
-    	String currentDir = System.getProperty("user.dir");
-    	String currentJVM = System.getProperty("java.home");
-    	String cmd = String.format("%s%sbin%sjava -jar %s%ssisruCatraca.jar --config=%s --refeitorio=%d restart", currentJVM,
-    																										 	  File.separator,
-    																										 	  File.separator,
-    																										 	  currentDir, 
-    																										 	  File.separator, 
-    																										 	  configFileName, 
-    																										 	  codigo);
-    	EmsUtil.executeCommand(cmd, false);
-	}
 
 	//
 	// Captura o sinal enviado por kill para finalizar o processo e faça o encerramento corretamente.
@@ -2749,124 +2594,6 @@ public final class EmsUtil {
 	}
 
 
-	// 
-	// Gera um nome único para o processo worker
-	// 
-	public static String criaNomeProcessoWorker(Integer codigoRefeitorio, final String ipCatraca) {
-		return  String.format("sisruCatraca_worker_id_%s_ip_%s", String.format("%03d", codigoRefeitorio), ipCatraca);
-	}
-
-
-	//
-	// Monitora o arquivo de pid e o mantem atualizado enquanto o processo estiver rodando
-	//
-	public static void addUpdatePidFileHook(final String pid, String fileNamePid) {
-		class UpdatePidFileThead extends Thread {
-			private String fileNamePid = null;
-			private String pid = null;
-			private final Integer TIMEOUT_UPDATE_PID = 30000;
-			
-			@PersistenceContext(unitName = "service_context")
-			private EntityManager entityManager;
-
-			public UpdatePidFileThead(final String pid, String fileNamePid){
-				this.fileNamePid = fileNamePid;
-				this.pid = pid;
-				setPriority(MIN_PRIORITY);
-			}
-
-			@Override
-			public void run() {
-		        while (isAlive()){
-					try {
-						Thread.sleep(TIMEOUT_UPDATE_PID);
-					} catch (InterruptedException e2) {
-						// A cada timeout segundos atualiza o arquivo de pid
-					}
-					if (isAlive()){
-						try{
-							FileWriter fw = null;
-							entityManager.createQuery("SELECT 1").getSingleResult();
-					    	try {
-					    		fw = new FileWriter(this.fileNamePid);
-						        fw.write(this.pid);
-						        fw.flush();
-					        }finally{
-					        	if (fw != null){
-					        		fw.close();
-					        	}
-					        }
-					    }catch(Exception e){
-					    	
-					    }
-					}
-		        }
-			}
-		}
-		new UpdatePidFileThead(pid, fileNamePid).start();
-	}
-
-	
-	//
-	// Verifica se tem algum worker travado
-	//
-	public static void checkWorkersRodando() {
-		Iterator<File> listaPids = getListWorkerPids(null);
-		boolean tudoCerto = true;
-		boolean temWorkerRodando = false;
-		while (listaPids.hasNext()){
-			temWorkerRodando = true;
-			File arq = listaPids.next();
-			if (System.currentTimeMillis() - arq.lastModified() > WORKER_BUSY){
-				tudoCerto = false;
-				String fileNamePid = arq.getName();
-				Integer pid = null;
-				Integer codigoRefeitorio = null;
-				try{
-					int p = fileNamePid.indexOf("_worker_id_");
-					codigoRefeitorio = Integer.parseInt(fileNamePid.substring(p+11, p+14));
-				} catch (Exception e){
-					System.out.println(String.format("Não consegui obter status para o worker %s.", fileNamePid));
-					continue;
-				}
-				
-				try{
-					pid = lePid(fileNamePid);
-				} catch (Exception e1) {
-					try { 
-						Thread.sleep(1000); 
-					} 
-					catch (Exception e2){
-						
-					};
-					try {
-						pid = lePid(fileNamePid);
-					} catch (Exception e3) {
-						System.out.println(String.format("Não consegui obter status para o worker %s.", fileNamePid));
-						continue;
-					}
-				}
-				System.out.println(String.format("Worker do refeitorio %s (pid=%d) parece estar morto.", codigoRefeitorio, pid));
-			}
-		}
-		if (tudoCerto){
-			if (temWorkerRodando){
-				System.out.println("Tudo certo com os workers.");
-			}else{
-				System.out.println("Nenhum worker rodando.");
-			}
-		}
-	}
-
-
-	//
-	// Retorna true/false se um worker está morto
-	//
-	public static boolean isWorkerBusy(Integer codigoRefeitorio) {
-		File file = getListWorkerPids(codigoRefeitorio).next();
-		return (System.currentTimeMillis() - file.lastModified() > WORKER_BUSY);
-	}
-	
 	public static String getMeuIp(){
 		Enumeration<NetworkInterface> nis = null;  
         try {  
@@ -2932,7 +2659,7 @@ public final class EmsUtil {
 	}
 	
 	
-	public static String join(String[] list, String conjunction){
+	public static String join(final String[] list, final String conjunction){
 		   StringBuilder sb = new StringBuilder();
 		   boolean first = true;
 		   for (String item : list)
@@ -2944,22 +2671,410 @@ public final class EmsUtil {
 		      sb.append(item);
 		   }
 		   return sb.toString();
-		}
+	}
 
-	 public  static String join(ArrayList<String> list, String conjunction){
-			   StringBuilder sb = new StringBuilder();
-			   boolean first = true;
-			   for (String item : list)
-			   {
-			      if (first)
-			         first = false;
-			      else
-			         sb.append(conjunction);
-			      sb.append(item);
-			   }
-			   return sb.toString();
+	 public  static String join(final ArrayList<String> list, final String conjunction){
+		   StringBuilder sb = new StringBuilder();
+		   boolean first = true;
+		   for (String item : list)
+		   {
+		      if (first)
+		         first = false;
+		      else
+		         sb.append(conjunction);
+		      sb.append(item);
+		   }
+		   return sb.toString();
+	}
+
+	 
+	/**
+	 * Obtém um parâmetro de configuração. Se ocorrer erro retorna null
+	 * @param p propriedade
+	 * @return valor do parâmetro ou null
+	 * @author Everton de Vargas Agilar, Renato Carauta
+	 */
+	public static String getProperty(final String p) {
+		if (p != null && !p.isEmpty()) {
+			
+			// Obs.: na inicialização do sdk, properties pode não estar disponível ainda
+			if (properties != null) {
+				Map<String, Object> c = properties.daemon_params;
+				
+				// Parâmetro erlangms.thread_pool
+				if ((p.equals("erlangms.java_thread_pool") || p.equals("ems_thread_pool")) && c.containsKey("erlangms.java_thread_pool")){
+					return c.get("erlangms.java_thread_pool").toString();
+				}
+	
+				// Parâmetro erlangms.host
+				if ((p.equals("erlangms.host") || p.equals("ems_host")) && c.containsKey("erlangms.host")){
+					return (String) c.get("erlangms.host");
+				}
+	
+				// Parâmetro erlangms.url
+				if ((p.equals("erlangms.url") || p.equals("ems_bus_url")) && c.containsKey("erlangms.url")){
+					return (String) c.get("erlangms.url");
+				}
+	
+				// Parâmetro erlangms.user
+				if ((p.equals("erlangms.user") || p.equals("ems_user")) && c.containsKey("erlangms.user")){
+					return (String) c.get("erlangms.user");
+				}
+	
+				// Parâmetro erlangms.password
+				if ((p.equals("erlangms.password") || p.equals("ems_password")) && c.containsKey("erlangms.password")){
+					return (String) c.get("erlangms.password");
+				}
+	
+				// Parâmetro erlangms.smtp.password
+				if ((p.equals("erlangms.smtp.password") || p.equals("ems_smtp_passwd")) && c.containsKey("erlangms.smtp.password")){
+					return (String) c.get("erlangms.smtp.password");
+				}
+	
+				// Parâmetro erlangms.smtp.from
+				if ((p.equals("erlangms.smtp.from") || p.equals("ems_smtp_from")) && c.containsKey("erlangms.smtp.from")){
+					return (String) c.get("erlangms.smtp.from");
+				}
+	
+				// Parâmetro erlangms.smtp.port
+				if ((p.equals("erlangms.smtp.port") || p.equals("ems_smtp_port")) && c.containsKey("erlangms.smtp.port")){
+					return (String) c.get("erlangms.smtp.port").toString();
+				}
+	
+				// Parâmetro erlangms.smtp.port
+				if ((p.equals("erlangms.smtp.mail") || p.equals("ems_smtp")) && c.containsKey("erlangms.smtp.mail")){
+					return (String) c.get("erlangms.smtp.mail");
+				}
+	
+				// Parâmetro erlangms.environment
+				if ((p.equals("erlangms.environment") || p.equals("ems_environment")) && c.containsKey("erlangms.environment")){
+					return (String) c.get("erlangms.environment");
+				}
+	
+				// Parâmetro erlangms.node
+				if ((p.equals("erlangms.node") || p.equals("ems_node")) && c.containsKey("erlangms.node")){
+					return (String) c.get("erlangms.node");
+				}
+	
+				// Parâmetro erlangms.cookie
+				if ((p.equals("erlangms.cookie") || p.equals("ems_cookie")) && c.containsKey("erlangms.cookie")){
+					return (String) c.get("erlangms.cookie");
+				}
+				
+				// Parâmetro erlangms.max_thread_pool_by_agent
+				if ((p.equals("erlangms.max_thread_pool_by_agent") || p.equals("ems_max_thread_pool_by_agent")) && c.containsKey("erlangms.max_thread_pool_by_agent")){
+					return (String) c.get("erlangms.max_thread_pool_by_agent");
+				}
+	
+				// Parâmetro erlangms.debug
+				if ((p.equals("erlangms.debug") || p.equals("ems_debug")) && c.containsKey("erlangms.debug")){
+					return (String) c.get("erlangms.debug").toString();
+				}
+	
+				// Parâmetro erlangms.ldap.passwd
+				if ((p.equals("erlangms.ldap.passwd") || p.equals("ems_ldap_admin_passwd")) && c.containsKey("erlangms.ldap.passwd")){
+					return (String) c.get("erlangms.ldap.passwd");
+				}
+	
+				// Parâmetro erlangms.ldap.admin
+				if ((p.equals("erlangms.ldap.admin") || p.equals("ems_ldap_admin")) && c.containsKey("erlangms.ldap.admin")){
+					return (String) c.get("erlangms.ldap.admin");
+				}
+				
+				// Parâmetro erlangms.ldap.url
+				if ((p.equals("erlangms.ldap.url") || p.equals("ems_ldap_url")) && c.containsKey("erlangms.ldap.url")){
+					return (String) c.get("erlangms.ldap.url");
+				}
+				
+				// Parâmetro erlangms.msg_timeout
+				if ((p.equals("erlangms.msg_timeout") || p.equals("ems_msg_timeout")) && c.containsKey("erlangms.msg_timeout")){
+					return (String) c.get("erlangms.msg_timeout").toString();
+				}
+	
+				// Parâmetro erlangms.post_update_timeout
+				if ((p.equals("erlangms.post_update_timeout") || p.equals("ems_post_update_timeout")) && c.containsKey("erlangms.post_update_timeout")){
+					return (String) c.get("erlangms.post_update_timeout").toString();
+				}
+	
+				// Parâmetro erlangms.daemon_id
+				if ((p.equals("erlangms.daemon_id") || p.equals("ems_daemon_id")) && c.containsKey("erlangms.daemon_id")){
+					return (String) c.get("erlangms.daemon_id");
+				}
+
+				// Parâmetro erlangms.daemon_service
+				if ((p.equals("erlangms.daemon_service") || p.equals("ems_daemon_service")) && c.containsKey("erlangms.daemon_service")){
+					return (String) c.get("erlangms.daemon_service");
+				}
+
+				// Parâmetro erlangms.logfile
+				if ((p.equals("erlangms.logfile") || p.equals("ems_logfile")) && c.containsKey("erlangms.logfile")){
+					return (String) c.get("erlangms.logfile");
+				}
+
+				// Parâmetro erlangms.pidfile
+				if ((p.equals("erlangms.pidfile") || p.equals("ems_pidfile")) && c.containsKey("erlangms.pidfile")){
+					return (String) c.get("erlangms.pidfile");
+				}
+
+				// Parâmetro erlangms.pidfile_watchdog_timer
+				if ((p.equals("erlangms.pidfile_watchdog_timer") || p.equals("ems_pidfile_watchdog_timer")) && c.containsKey("erlangms.pidfile_watchdog_timer")){
+					return (String) c.get("erlangms.pidfile_watchdog_timer").toString();
+				}
+			
+				// Parâmetro pode ter sido enviado em daemon_params 
+				if (c.containsKey(p)){
+					String result = c.get(p).toString();
+					return (result == null || result.isEmpty()) ? "" : result.trim();
+				}
+				
+				// Parâmetro erlangms.service_scan
+				if ((p.equals("erlangms.service_scan") || p.equals("ems_service_scan")) && c.containsKey("erlangms.service_scan")){
+					return (String) c.get("erlangms.service_scan");
+				}
+
 			}
 
+			// Os parâmetros podem vir de args do método main também
+			// para isso, a aplicação precisa invocar EmsUtil.setArgs()
+			if (args != null) {
+				try {
+					for (String prop : args) {
+						int posEq = prop.indexOf("=");
+						if (posEq != -1) {
+							String key = prop.substring(1, posEq);
+							if (key.startsWith("-D")) key = key.substring(2); // -D
+							if (key.startsWith("-")) key = key.substring(1);  // - 
+							if (key.startsWith("-")) key = key.substring(1);  // --
+							if(key.equalsIgnoreCase(p) || key.equalsIgnoreCase("D" + p)) {
+								return prop.substring(posEq+1).trim();
+							}
+						}else {
+							if (prop.equalsIgnoreCase(p)) {
+								return prop.trim();
+							}
+						}
+					}
+				}catch (Exception e) {
+					return null;
+				}
+			}
+			String result = System.getProperty(p);
+			// String vazia também é null
+			if (result != null) {
+				if (result.trim().isEmpty()) {
+					return null;
+				}else {
+					return result;
+				}
+			}else {
+				return null;
+			}
+		}else {
+			return null;
+		}
+	}
 
-    
+	/**
+	 * Obtém um parâmetro de configuração ou defaultValue se não encontrar
+	 * @param property propriedade
+	 * @param defaultValue valor default
+	 * @return valor do parâmetro ou defaultValue se não encontrar
+	 * @author Everton de Vargas Agilar
+	 */
+	public static String getProperty(final String property, final String defaultValue) {
+		String result = getProperty(property);
+		return (result == null || result.isEmpty()) ? defaultValue : result;
+	}
+	
+	
+	/**
+	 * Obtém um parâmetro de configuração como inteiro. Se não encontrar retorna null
+	 * @param property propriedade
+	 * @return valor do parâmetro ou null
+	 * @author Everton de Vargas Agilar
+	 */
+	public static Integer getPropertyAsInt(final String property) {
+		try {
+			return Integer.parseInt(getProperty(property));
+		} catch (Exception e) {  
+            return null;  
+        }  			
+	}
+	
+	/**
+	 * Obtém um parâmetro de configuração como inteiro ou defaultValue se não encontrar.
+	 * @param property propriedade
+	 * @param defaultValue valor default
+	 * @return valor do parâmetro ou defaultValue
+	 * @author Everton de Vargas Agilar
+	 */
+	public static Integer getPropertyAsInt(final String property, Integer defaultValue) {
+		try {
+			return Integer.parseInt(getProperty(property));
+		} catch (Exception e) {  
+            return defaultValue;  
+        }  			
+	}
+	
+	
+	/**
+	 * Permite passar args que recebido em main para o SDK
+	 * É utilizado para buscar parâmetros com getProperty
+	 * @param args argumentos
+	 * @author Everton de Vargas Agilar
+	 */
+	public static void setArgs(final String[] args) {
+		EmsUtil.args = args;
+		properties = getProperties(); 
+	}
+	 
+
+	/**
+	 * Cria um arquivo de pid para o processo.
+	 * @param fileNamePid nome do arquivo de pid
+	 * @param deleteIfExists apaga o arquivo se existe
+	 * @throws Exception retorna erro se não consegue criar o pid  
+	 * @return nome do arquivo criado ou exception
+	 * @author Everton de Vargas Agilar
+	 */
+	 public static String createPidFile(final String fileNamePid, boolean deleteIfExists) throws Exception {
+		 if (fileNamePid != null && !fileNamePid.isEmpty()) {
+			 File arq = new File(fileNamePid);
+			 if (arq.exists()){
+				 System.out.println(String.format("Atenção: O arquivo de pid %s já existia.", fileNamePid));
+				 if (deleteIfExists) {
+					 arq.delete();
+				 }
+			 }
+			 
+			 try(FileWriter fw = new FileWriter(arq)) {
+				 fw.write(getMeuPid());
+	        	 fw.flush();
+	        	 return fileNamePid;
+			 }catch(IOException e){
+				 throw new Exception("Não foi possível criar o arquivo de pid "+ fileNamePid + ". Motivo: "+ e.getMessage());
+			 }
+		 }else {
+			 throw new Exception("Parâmetro fileNamePid é inválido para EmsUtil.createPidFile.");
+		 }
+	 }
+
+	 
+	/**
+	 * Adiciona um hook na JVM para monitorar e manter o arquivo de pid do processo
+	 * baseado no algorítmo criado para o SisRuCatracas
+	 * @param fileNamePid nome do arquivo de pid
+	 * @param serviceContext contexto JPA
+	 * @param watchdogTimer tempo em milisegundos
+	 * @author Everton de Vargas Agilar, Renato Carauta
+	 */
+	public static void addUpdatePidFileHook(final String fileNamePid, final EntityManager serviceContext, final Integer watchdogTimer) {
+		class UpdatePidFileThead extends Thread {
+			private String fileNamePid = null;
+			private Integer watchdogTimer = null;
+						
+			public UpdatePidFileThead(final String fileNamePid, EntityManager serviceContext, Integer watchdogTimer){
+				this.fileNamePid = fileNamePid;
+				this.watchdogTimer = watchdogTimer;  
+				setPriority(NORM_PRIORITY);
+			}
+
+			@Override
+			public void run() {
+				String pidStr = getMeuPid();
+				//Query query = serviceContext.createNativeQuery("SELECT 1"); 
+				while (isAlive()){
+					try {
+						Thread.sleep(watchdogTimer);
+					} catch (InterruptedException e2) {
+						// acordou
+					}
+					if (isAlive()){
+						try{
+							try { 
+								// Pode travar e não voltar -^-
+								// Se ficar muito tempo travado o barramento vai matar o processo e subir uma nova instãncia
+								//query.getSingleResult(); 
+							} catch (Exception e) {
+								throw new Exception("Falha de conexão ao banco de dados identificada.");
+							};  
+							try (FileWriter arq = new FileWriter(this.fileNamePid)){
+						        arq.write(pidStr);
+						        arq.flush();
+					        } catch (Exception e) {
+					        	throw new Exception("Erro na gravação do arquivo de pid.");
+					        }
+					    }catch(Exception e){
+					    	logger.info("Atenção: Não foi possível atualizar o arquivo de pid "+ fileNamePid + ". Motivo: "+ e.getMessage());
+					    }
+					}
+		        }
+			}
+		}
+		logger.info("Adicionando um hook para atualizar o arquivo de pid "+ fileNamePid + " a cada " + String.valueOf(watchdogTimer) + "ms."); 
+		new UpdatePidFileThead(fileNamePid, serviceContext, watchdogTimer).start();
+	}
+	
+	
+	/**
+	 * Adiciona um hook na JVM para monitorar o arquivo de pid do processo
+	 * Se ficar desatualizado por muito tempo, o processo será encerrado normalmente
+	 * @param fileNamePid nome do arquivo do pid
+	 * @param watchdogTimer tempo em milisegundos
+	 * @author Everton de Vargas Agilar, Renato Carauta
+	 */
+	public static void addMonitorPidFileHook(final String fileNamePid, Integer watchdogTimer) {
+		class UpdatePidFileThead extends Thread {
+			private String fileNamePid = null;
+			private Integer watchdogTimer = 60000;
+
+			public UpdatePidFileThead(final String fileNamePid, Integer watchdogTimer){
+				this.fileNamePid = fileNamePid;
+				this.watchdogTimer = watchdogTimer;
+				setPriority(MIN_PRIORITY);
+			}
+
+			@Override
+			public void run() {
+				int numeroTentativas = 1;
+				while (isAlive()){
+					try {
+						Thread.sleep(watchdogTimer);
+					} catch (InterruptedException e2) {
+						// acordou
+					}
+					if (isAlive()){
+						try{
+					    		File arq = new File(fileNamePid);
+					    		if (!arq.exists()) {
+					    			throw new Exception("O arquivo de pid "+ fileNamePid + " não foi encontrado.");
+					    		}
+					    		long tempoDecorrido = System.currentTimeMillis() - arq.lastModified();
+					    		long diffTempo = tempoDecorrido - watchdogTimer;
+					    		if(diffTempo > watchdogTimer) {
+					    			throw new Exception("O arquivo de pid "+ fileNamePid + " está desatualizado há mais de "+ String.valueOf(diffTempo) + "ms.");
+					    		}
+					    		numeroTentativas = 1; // O contador é zerado quando o arquivo é verificado com sucesso
+					    }catch(Exception e){
+					    	// O processo será encerrado somente na terceira tentativa
+					    	// antes disso, somente um alerta no log será feito
+					    	if (numeroTentativas > 3 ) {
+					    		logger.info("Fatal: O processo será encerrado pois está travado. Erro interno: " + e.getMessage());
+					    		removePidFile(fileNamePid); 
+					    		System.exit(1);
+					    	}else {
+					    		logger.info("Atenção: O processo parece estar travado (Tentativa: "+ String.valueOf(numeroTentativas) + "). Erro interno: " + e.getMessage());
+					    	}
+					    	numeroTentativas++;
+					    }
+					}
+		        }
+			}
+		}
+		logger.info("Adicionando um hook para monitorar o arquivo de pid "+ fileNamePid + " a cada " + String.valueOf(watchdogTimer) + "ms.");
+		new UpdatePidFileThead(fileNamePid, watchdogTimer).start();
+	}
+	
 }
+	 
+	 
