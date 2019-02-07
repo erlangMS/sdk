@@ -1075,7 +1075,12 @@ public final class EmsUtil {
 						}
 					}else if (tipo_field == byte[].class){
 						byte[] value = null;
-						value = toByteArray((ArrayList)new_value);
+						
+						if(new_value instanceof ArrayList) {
+							value = toByteArray((ArrayList)new_value);
+						} else {
+							value =  new_value.toString().getBytes();
+						}
 						
 						field.set(obj, value);
 					}else if (tipo_field instanceof Object && 

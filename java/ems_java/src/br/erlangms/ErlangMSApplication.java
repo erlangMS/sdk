@@ -22,6 +22,9 @@ import javax.servlet.ServletContainerInitializer;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 
+import org.jboss.vfs.VFS;
+import org.jboss.vfs.VirtualFile;
+
 public class ErlangMSApplication implements ServletContainerInitializer{
 	
 	private static List<EmsConnection> listServices = new ArrayList<EmsConnection>();
@@ -65,15 +68,24 @@ public class ErlangMSApplication implements ServletContainerInitializer{
 		    ClassLoader classLoader = ErlangMSApplication.class.getClassLoader();
 		    String packagePath  = packageName.replace('.', '/');
 		    URL url = classLoader.getResource(packagePath);
-		    File folder = new File(url.getPath());
-		    File[] classes = folder.listFiles();
-		    if (classes != null && classes.length > 0) {
+		    VirtualFile file = VFS.getChild(url);
+		    List<VirtualFile> children = file.getChildrenRecursively();
+		    List<File> classes = new ArrayList<>();
+		    
+		    for (VirtualFile virtualFile : children) {
+				if (virtualFile.isFile()) {
+					URL urlFile = virtualFile.asFileURL();
+					classes.add(new File(urlFile.getPath()));
+				}
+			}  
+
+		    if (classes != null && classes.size() > 0) {
 			    for(File classe : classes){
 			        try {
 				        if (classe.isFile()) {
-				        	int index = classe.getName().indexOf(".");
-				        	String className = classe.getName().substring(0, index);
-					        String classNamePath = packageName+ "." + className;
+				        	String pathClassSlash = classe.getPath().split("/classes/")[1];
+				        	String classWithoutClass = pathClassSlash.split(".class")[0];
+					        String classNamePath = classWithoutClass.replaceAll("/",".");
 					        Class<?> serviceClass;
 					        serviceClass = Class.forName(classNamePath);
 					        if (serviceClass.isAnnotationPresent(EmsService.class)) {
