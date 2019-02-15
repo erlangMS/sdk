@@ -16,6 +16,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -33,7 +35,9 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -110,6 +114,7 @@ import com.google.gson.JsonSerializer;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
+import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -1075,7 +1080,12 @@ public final class EmsUtil {
 						}
 					}else if (tipo_field == byte[].class){
 						byte[] value = null;
-						value = toByteArray((ArrayList)new_value);
+						
+						if(new_value instanceof ArrayList) {
+							value = toByteArray((ArrayList)new_value);
+						} else {
+							value = toByteArray(new ArrayList(((LinkedTreeMap<Integer, Double>)new_value).values()));
+						}
 						
 						field.set(obj, value);
 					}else if (tipo_field instanceof Object && 
@@ -1109,7 +1119,6 @@ public final class EmsUtil {
 		}
 		return obj;
 	}
-	
 
 	/**
 	 * Retorna o primeiro campo que encontrar a anotação passada como argumento.
