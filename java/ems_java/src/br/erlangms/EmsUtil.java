@@ -2179,7 +2179,6 @@ public final class EmsUtil {
 
 	/**
 	 * Permite enviar um e-mail em formato HTML com uma lista de anexos. (private porque ainda não funciona)
-	 * Ex.: EmsUtil.sendHtmlMail("evertonagilar@gmail.com", "isso é um teste", "<h1>contedo do email<h1>", null);
 	 * 
 	 * As seguintes informações são lidas das properties. Verifique EmsUtil.properties:
 	 *    -Dems_smtp_passwd="xxxxxxxx"
