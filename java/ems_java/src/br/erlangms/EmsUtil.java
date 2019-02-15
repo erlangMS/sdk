@@ -2196,7 +2196,7 @@ public final class EmsUtil {
 	 * @author Everton de Vargas Agilar
 	 */
     @SuppressWarnings("unused")
-	private static void sendHtmlMail(final String to, 
+	public static void sendHtmlMail(final String to, 
 									 final String subject, 
 									 final String content,
 									 final String[] attachment){
@@ -2246,8 +2246,9 @@ public final class EmsUtil {
                 bodyPart.setFileName(mailInfo.getAttachFileNames()[0]);
                 multipart.addBodyPart(bodyPart);
 //                    }
+                mailMessage.setContent(multipart);
             }
-            mailMessage.setContent(multipart);
+            
             Transport.send(mailMessage);
         } catch (MessagingException ex) {
         	throw new EmsValidationException("Não foi possível enviar e-mail para "+ to + ". Erro interno: "+ ex.getMessage());
