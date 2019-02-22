@@ -81,6 +81,7 @@ public class EmsRequest implements IEmsRequest {
 			this.scope = "";
 			this.access_token = "";
 		}
+		
 	}
 	
 	/**
