@@ -242,7 +242,7 @@ public class EmsRequest implements IEmsRequest {
 				OtpErlangBinary OtpNome = new OtpErlangBinary(nome.getBytes());
 				OtpErlangBinary otp_result = (OtpErlangBinary) Queries.get(OtpNome);
 				if (otp_result != null){
-					String result = new String(otp_result.binaryValue());
+					String result = new String(otp_result.binaryValue(),"ISO-8859-1");
 					return result;
 				}else{
 					return null;
