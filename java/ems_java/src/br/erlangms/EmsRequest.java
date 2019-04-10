@@ -34,6 +34,7 @@ public class EmsRequest implements IEmsRequest {
 	private long timeout = 0L;
 	private long t1 = 0L;
 	private boolean isPostOrUpdateRequestFlag = false;
+	private byte[] payloadByte;
 	private String method = null;
 	private String url = null;
 	private Map<String, Object> userJson = null;
@@ -68,6 +69,7 @@ public class EmsRequest implements IEmsRequest {
 		this.function = ((OtpErlangString)otp_request.elementAt(8)).stringValue();
 		this.payload = new String(((OtpErlangBinary)otp_request.elementAt(5)).binaryValue());
 		this.paramCount = ((OtpErlangMap)otp_request.elementAt(3)).arity();
+		this.payloadByte = ((OtpErlangBinary)otp_request.elementAt(5)).binaryValue();
 		this.userJson = null;
 		this.clientJson = null;
 		OtpErlangObject OAuth2FieldObj = otp_request.elementAt(12);
@@ -77,6 +79,14 @@ public class EmsRequest implements IEmsRequest {
 				this.scope = new String(((OtpErlangBinary)OAuth2Field.elementAt(1)).binaryValue());
 				this.access_token = new String(((OtpErlangBinary)OAuth2Field.elementAt(1)).binaryValue());
 			}
+			
+		int contador = 0;
+		for (OtpErlangObject object : otp_request.elements()) {
+			
+			System.out.println(contador + "   " + object);
+			contador++;
+		}
+			
 		}else {
 			this.scope = "";
 			this.access_token = "";
@@ -539,6 +549,10 @@ public class EmsRequest implements IEmsRequest {
 	@Override
 	public OtpErlangObject getOtpRequest(){
 		return this.otp_request;
+	}
+
+	public byte[] getPayloadByte() {
+		return payloadByte;
 	}
 
 	/**
