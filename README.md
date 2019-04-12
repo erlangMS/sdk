@@ -1,6 +1,6 @@
 # Módulo: sdk
 
-O sdk integra a linguagem de programação com o barramento msbus e permite que os serviços possam ser implementados em qualquer linguagem.
+O sdk integra a linguagem de programação com o barramento e permite que os serviços possam ser implementados em qualquer linguagem.
 
 **Atualmente o SDK está implementado somente na linguagem Java.**
 
