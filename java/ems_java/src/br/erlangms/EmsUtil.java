@@ -2993,7 +2993,7 @@ public final class EmsUtil {
 						try{
 							try { 
 								// Pode travar e não voltar -^-
-								// Se ficar muito tempo travado o barramento vai matar o processo e subir uma nova instãncia
+								// Se ficar muito tempo travado o barramento vai matar o processo e subir uma nova instância
 								//query.getSingleResult(); 
 							} catch (Exception e) {
 								throw new Exception("Falha de conexão ao banco de dados identificada.");
