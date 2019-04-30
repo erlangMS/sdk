@@ -11,8 +11,8 @@ import javax.persistence.EntityManager;
  * @author evertonagilar
  */
 public class RestApiJpaManager extends RestApiManager {
-
-    private EntityManager entityManager;
+	private static final long serialVersionUID = 2441865672862917079L;
+	private EntityManager entityManager;
 
     public RestApiJpaManager() {
     }

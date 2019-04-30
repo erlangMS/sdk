@@ -21,7 +21,8 @@ import java.util.Objects;
  *
  */
 public final class RestApiRequest implements IRestApiRequest {
-    public static final Integer REST_API_MAX_LIMIT_VALUE = 1000;
+	private static final long serialVersionUID = -6902253220018384046L;
+	public static final Integer REST_API_MAX_LIMIT_VALUE = 1000;
     public static final Integer REST_API_DEFAULT_LIMIT_VALUE = 100;
     public static final Long REST_API_MAX_ID_VALUE = 99999999999999L;
     private int hashCodeComputed = 0;
@@ -62,7 +63,7 @@ public final class RestApiRequest implements IRestApiRequest {
             this.fieldsList = new ArrayList<>(apiProvider.getContract().getSchema().getFieldsList());
         } else {
             this.fields = null;
-            this.fieldsList = null;
+            this.fieldsList = new ArrayList<>();
         }
         this.sort = null;
         this.sortList = new ArrayList<>();
@@ -153,12 +154,7 @@ public final class RestApiRequest implements IRestApiRequest {
                 this.hashCodeComputed = 0;
                 break;
             case PARSING:
-                if (fields != null && !fields.isEmpty()) {
-                    if (dataFormat == RestApiDataFormat.ENTITY) {
-                        throw new RestApiConstraintException(RestApiConstraintException.FORMATO_ENTITY_NAO_SUPORTA_OPERADOR_FIELS);
-                    }
-                    this.fieldsList = RestApiRequestParser.parseFields(fields, apiProvider);
-                }
+                this.fieldsList = RestApiRequestParser.parseFields(fields, apiProvider);
                 break;
             case PARSED:
                 interruptChange();
@@ -476,7 +472,7 @@ public final class RestApiRequest implements IRestApiRequest {
                     this.dataFormat = apiProvider.getContract().getRequestDefault().getDataFormat();
                     this.hashCodeComputed = 0;
                 }
-                if (fields == null) {
+                if (fields == null || fields.isEmpty()) {
                     this.fieldsList = new ArrayList<>(apiProvider.getContract().getRequestDefault().getFieldsList());
                     this.fields = apiProvider.getContract().getRequestDefault().getFields();
                     this.hashCodeComputed = 0;
@@ -487,7 +483,7 @@ public final class RestApiRequest implements IRestApiRequest {
                 if (maxLimit == null) {
                     this.maxLimit = apiProvider.getContract().getRequestDefault().getMaxLimit();
                 }
-                if (sort == null) {
+                if (sort == null || sort.isEmpty()) {
                     this.sortList = new ArrayList<>(apiProvider.getContract().getRequestDefault().getSortList());
                     this.sort = apiProvider.getContract().getRequestDefault().getSort();
                     this.hashCodeComputed = 0;
