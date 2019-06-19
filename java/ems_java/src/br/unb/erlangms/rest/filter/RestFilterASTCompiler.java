@@ -10,7 +10,7 @@ import java.util.ArrayList;
 /**
  * Responsável por compilar o operador filter e gerar um Abstract Syntax Tree (AST)
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 26/03/2019
  */

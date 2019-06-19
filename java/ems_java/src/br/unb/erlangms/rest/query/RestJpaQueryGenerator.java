@@ -19,7 +19,7 @@ import javax.persistence.Query;
 /**
  * Classe responsável por gerar a query JPQL da requisição REST
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 12/03/2019
  *

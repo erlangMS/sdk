@@ -35,7 +35,7 @@ public class RestFilterJsonAST extends RestFilterAST {
     /**
      * Método responsável por fazer o parser de um jsonFilter
      *
-     * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+     * @author Everton de Vargas Agilar 
      * @version 1.0.0
      * @param filter
      * @param apiProvider

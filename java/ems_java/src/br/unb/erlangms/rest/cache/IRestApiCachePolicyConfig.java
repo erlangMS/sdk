@@ -3,7 +3,7 @@ package br.unb.erlangms.rest.cache;
 /**
  * Interface que cont�m configura��es para a pol�tica do subsistema de cache da API REST.
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 17/04/2019
  *

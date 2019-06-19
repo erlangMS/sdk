@@ -29,7 +29,7 @@ import javax.persistence.Query;
 /**
  * Implementa IRestApiManager e fornece acesso a camada de abstração REST.
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 27/03/2019
  *

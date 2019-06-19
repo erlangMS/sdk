@@ -14,7 +14,7 @@ import java.util.List;
  * O contrato define por exemplo, se o provider aceita operadores filter com and/and ou os
  * dados podem ser ordenados com o operador sort e o schema de dados retornado.
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 18/04/2019
  *

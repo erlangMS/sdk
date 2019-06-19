@@ -12,20 +12,6 @@ import java.util.List;
  *
  * Classe responsavel por criar o xml que representa um ClientDataSet
  *
- * Exemplo:
- *
- * <?xml version="1.0" encoding="UTF-8" standalone="no"?>
- * <DATAPACKET Version="2.0">
- * <METADATA>
- * <FIELDS>
- * <FIELD attrname="ID_TIPO_CLASSE" fieldtype="i4"/>
- * </FIELDS>
- * </METADATA>
- * <ROWDATA>
- * <ROW COD_OPERADOR="1" CONCORRENCIA="0" DESCR_TIPO_CLASSE="Grupo" DT_ALTERACAO="20150922" HR_ALTERACAO="15:59:47000" ID_TIPO_CLASSE="1"/>
- * </ROWDATA>
- * </DATAPACKET>
- *
  */
 public class ClientDataSetXmlSerializer {
     private static final String XML_HEADER = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>";

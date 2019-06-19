@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Implementa um visitor para localizar uma condição dado um voFieldName
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 03/04/2019
  *

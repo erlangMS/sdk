@@ -17,7 +17,7 @@ import org.apache.commons.lang3.time.FastDateFormat;
 /**
  * Classe que representa um campo de um objeto.
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 27/03/2019
  *
@@ -305,8 +305,8 @@ public class RestField implements Serializable {
     /**
      * Parse um objeto String, Double ou Float em um valor Double.
      *
-     * @param fieldValue    valor String, Double ou Float.
-     * @param allowValidate
+     * @param fieldValue    	valor String, Double ou Float.
+     * @param allowValidate		indica se permite validar durante o parser
      * @return Double ou null
      * @author Everton de Vargas Agilar (revisão)
      */

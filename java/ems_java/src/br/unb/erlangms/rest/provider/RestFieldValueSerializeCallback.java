@@ -7,7 +7,7 @@ import java.io.Serializable;
  * Interface funcional para permitir modificar o valor de um campo durante a serialização.
  *
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 01/03/2019
  */

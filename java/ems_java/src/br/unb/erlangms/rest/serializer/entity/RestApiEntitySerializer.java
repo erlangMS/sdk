@@ -7,7 +7,7 @@ import br.unb.erlangms.rest.request.IRestApiRequestInternal;
 /**
  * Classe que implementa a serialização para entity JPA.
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 17/04/2019
  *

@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * Interface para o parser do operador filter
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 26/03/2019
  *

@@ -55,7 +55,7 @@ import org.olap4j.impl.ArrayMap;
  * <p>
  * Funções úteis para trabalhar com RESTful</p>
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  */
 public final class RestUtils {
 
@@ -455,7 +455,7 @@ public final class RestUtils {
      * @param obj    Instância de um objeto
      * @param values Map com chave/valor dos dados que seráo aplicados no objeto
      * @return Object objeto mapeado
-     * @throws java.lang.Exception
+     * @throws java.lang.Exception exception
      * @author Everton de Vargas Agilar
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -470,7 +470,7 @@ public final class RestUtils {
      * @param values           Map com chave/valor dos dados que seráo aplicados no objeto
      * @param jsonModelAdapter permite mapear atributos objetos
      * @return Object objeto mapeado
-     * @throws java.lang.Exception
+     * @throws java.lang.Exception exception
      * @author Everton de Vargas Agilar
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -837,7 +837,7 @@ public final class RestUtils {
      * @param <T>        String json
      * @param classOfObj	Classe do objeto que será serializado
      * @return objeto
-     * @throws java.lang.Exception
+     * @throws java.lang.Exception	exception
      * @author Everton de Vargas Agilar
      */
     public static <T> T fromJson(final String jsonString, final Class<T> classOfObj) throws Exception {
@@ -850,11 +850,11 @@ public final class RestUtils {
      *
      * @param jsonString       String json
      * @param <T>              String json
-     * @param classOfObj	      Classe do objeto que será serializado
+     * @param classOfObj	   Classe do objeto que será serializado
      * @param jsonModelAdapter adaptador para permitir obter atributos de modelo
      * @return objeto
      * @author Everton de Vargas Agilar
-     * @throws java.lang.Exception
+     * @throws java.lang.Exception	exception
      */
     @SuppressWarnings("unchecked")
     public static <T> T fromJson(String jsonString, final Class<T> classOfObj, final JsonModelAdapter jsonModelAdapter) throws Exception {
@@ -1601,7 +1601,7 @@ public final class RestUtils {
     /**
      * Remove todos os espaços de uma string.
      *
-     * @param str
+     * @param str	string
      * @return str string sem os espaços
      * @author Everton de Vargas Agilar
      */

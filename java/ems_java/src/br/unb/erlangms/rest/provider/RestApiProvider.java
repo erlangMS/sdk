@@ -18,7 +18,7 @@ import javax.persistence.EntityManager;
 /**
  * Classe de implementação do IRestApiProvider
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 13/03/2019
  *
@@ -152,8 +152,8 @@ public abstract class RestApiProvider implements IRestApiProvider {
      * Obs: Não usado ainda na UFSM pois a versão do hibernate parece que  Não suporta
      *
      * @author Everton de Vargas Agilar
-     * @param entityManager
-     * @return
+     * @param entityManager entityManager
+     * @return EntityGraph
      */
     @Override
     public EntityGraph getEntityGraph(final EntityManager entityManager) {

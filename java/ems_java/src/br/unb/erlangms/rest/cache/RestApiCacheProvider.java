@@ -7,7 +7,7 @@ import br.unb.erlangms.rest.request.IRestApiRequestInternal;
 /**
  * Classe que implementa o cache para um RestApiProvider
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 27/03/2019
  *

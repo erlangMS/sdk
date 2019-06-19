@@ -12,7 +12,7 @@ public interface IRestApiService extends Serializable {
     /**
      * Retorna uma lista de objetos a partir de um RestApiRequest
      *
-     * @param request
+     * @param request	objeto da requisição
      * @return lista dos objetos
      * @author Everton de Vargas Agilar
      */
@@ -21,7 +21,7 @@ public interface IRestApiService extends Serializable {
     /**
      * Retorna um objeto específico a partir de um RestApiRequest. Se o objeto não existe, retorna RestApiNotFoundException.
      *
-     * @param request
+     * @param request	objeto da requisição
      * @return lista dos objetos
      * @author Everton de Vargas Agilar
      */
@@ -30,7 +30,7 @@ public interface IRestApiService extends Serializable {
     /**
      * Permite atualizar um objeto específico. Se o objeto não existe, retorna RestApiNotFoundException.
      *
-     * @param request
+     * @param request	objeto da requisição
      * @return objeto ou lista de atributos do objeto atualizado.
      * @author Everton de Vargas Agilar
      */
@@ -39,7 +39,7 @@ public interface IRestApiService extends Serializable {
     /**
      * Permite cadastrar um objeto.
      *
-     * @param request
+     * @param request	objeto da requisição 
      * @return objeto ou lista de atributos do objeto cadastrado.
      * @author Everton de Vargas Agilar
      */
@@ -48,7 +48,7 @@ public interface IRestApiService extends Serializable {
     /**
      * Método responsável por persistir um objeto.
      *
-     * @param request
+     * @param request	objeto da requisição
      * @author Everton de Vargas Agilar
      */
     public void persist(IRestApiRequest request);

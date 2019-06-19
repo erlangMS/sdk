@@ -8,7 +8,7 @@ import java.util.Optional;
  * Representa o esquema de dados para um provedor a qual
  * é composto por atributos que devem ser retornados em uma consulta REST.
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 22/04/2019
  *

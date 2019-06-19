@@ -17,7 +17,7 @@ import java.util.List;
 /**
  * Implementa o gerador de código para a condição where do operador filter
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 20/02/2019
  *

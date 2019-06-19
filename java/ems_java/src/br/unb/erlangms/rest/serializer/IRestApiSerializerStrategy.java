@@ -14,7 +14,7 @@ import br.unb.erlangms.rest.request.IRestApiRequestInternal;
  * dado após a etapa de serialização. Se não for possível
  * estimar o tamanho, devem retornar null em getEstimatedSize().
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 17/04/2019
  *

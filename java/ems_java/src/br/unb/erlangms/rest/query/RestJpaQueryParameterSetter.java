@@ -22,7 +22,7 @@ import javax.persistence.Query;
  * Classe responsável por setar os parâmetros de uma query parametrizada
  * a partir dos dados contidos em uma AST do filter
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 28/03/2019
  *

@@ -12,7 +12,7 @@ import br.unb.erlangms.rest.schema.RestJoinType;
 /**
  * Implementa o gerador de código dos fetchs join do operador filter para JPA
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 01/04/2019
  *

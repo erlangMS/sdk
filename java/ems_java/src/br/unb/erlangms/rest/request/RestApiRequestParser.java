@@ -14,7 +14,7 @@ import java.util.Optional;
 /**
  * Classe responsável por prover métodos para fazer o parser dos operadores da API RESTful
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 21/03/2019
  *

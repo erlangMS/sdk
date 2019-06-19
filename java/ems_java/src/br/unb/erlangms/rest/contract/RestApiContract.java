@@ -18,7 +18,7 @@ import java.util.List;
  * Classe de implementação para IRestApiContract responsável
  * por definir o contrato do provider do serviço.
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 05/04/2019
  *

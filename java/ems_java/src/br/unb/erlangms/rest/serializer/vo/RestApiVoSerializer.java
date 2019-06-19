@@ -18,7 +18,7 @@ import javax.persistence.Entity;
 /**
  * Classe que implementa a serialização para VO (Value Objects)
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 17/04/2019
  *

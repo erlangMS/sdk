@@ -6,7 +6,7 @@ import java.io.Serializable;
 /**
  * Interface para permitir visitar os nodes do AST do operador filter
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 28/03/2019
  *

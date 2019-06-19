@@ -14,7 +14,7 @@ import javax.persistence.EntityManager;
 /**
  * Interface responsável por representar o provedor de conteúdo da Api RESTful
  *
- * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
+ * @author Everton de Vargas Agilar 
  * @version 1.0.0
  * @since 15/03/2019
  *
