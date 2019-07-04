@@ -1,5 +1,6 @@
 package br.unb.erlangms.rest.util;
 
+import br.unb.erlangms.EmsJsonModelAdapter;
 import br.unb.erlangms.rest.exception.RestApiException;
 import br.unb.erlangms.rest.schema.RestField;
 import com.google.gson.ExclusionStrategy;
@@ -46,6 +47,7 @@ import javax.persistence.OneToOne;
 import javax.persistence.Query;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
+import javax.xml.datatype.XMLGregorianCalendar;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.hibernate.Hibernate;
 import org.hibernate.proxy.HibernateProxy;
@@ -55,7 +57,7 @@ import org.olap4j.impl.ArrayMap;
  * <p>
  * Funções úteis para trabalhar com RESTful</p>
  *
- * @author Everton de Vargas Agilar 
+ * @author Everton de Vargas Agilar
  */
 public final class RestUtils {
 
@@ -138,6 +140,13 @@ public final class RestUtils {
                                 return new JsonPrimitive(FastDateFormat.getInstance(dateFormatDDMMYYYY_HHmmss).format(value));
                             }
                         }
+                    }
+                })
+                .registerTypeAdapter(XMLGregorianCalendar.class, new JsonSerializer<XMLGregorianCalendar>() {
+                    @SuppressWarnings("deprecation")
+                    @Override
+                    public JsonElement serialize(XMLGregorianCalendar value, Type typeOfSrc, JsonSerializationContext context) {
+                        return new JsonPrimitive(value.toXMLFormat());
                     }
                 })
                 .registerTypeAdapter(java.util.Date.class, new JsonDeserializer<java.util.Date>() {
@@ -245,6 +254,13 @@ public final class RestUtils {
                     @Override
                     public JsonElement serialize(Float value, Type typeOfSrc, JsonSerializationContext context) {
                         return new JsonPrimitive(value);
+                    }
+                })
+                .registerTypeAdapter(XMLGregorianCalendar.class, new JsonSerializer<XMLGregorianCalendar>() {
+                    @SuppressWarnings("deprecation")
+                    @Override
+                    public JsonElement serialize(XMLGregorianCalendar value, Type typeOfSrc, JsonSerializationContext context) {
+                        return new JsonPrimitive(value.toXMLFormat());
                     }
                 })
                 .registerTypeAdapter(java.util.Date.class, new JsonSerializer<java.util.Date>() {
@@ -365,7 +381,7 @@ public final class RestUtils {
     }
 
     public static String getClassAnnotationValue(@SuppressWarnings("rawtypes") Class classType,
-                                                 @SuppressWarnings("rawtypes") Class annotationType, String attributeName) {
+            @SuppressWarnings("rawtypes") Class annotationType, String attributeName) {
         String value = null;
         @SuppressWarnings("unchecked")
         Annotation annotation = classType.getAnnotation(annotationType);
@@ -377,6 +393,7 @@ public final class RestUtils {
         }
         return value;
     }
+
     private static class SerializeStrategy implements ExclusionStrategy {
 
         @Override
@@ -445,14 +462,10 @@ public final class RestUtils {
         }
     }
 
-    public interface JsonModelAdapter {
-        public Object findById(Class<?> classOfModel, Integer id);
-    }
-
     /**
      * Seta os valores no objeto a partir de um map.
      *
-     * @param obj    Instância de um objeto
+     * @param obj Instância de um objeto
      * @param values Map com chave/valor dos dados que seráo aplicados no objeto
      * @return Object objeto mapeado
      * @throws java.lang.Exception exception
@@ -466,15 +479,15 @@ public final class RestUtils {
     /**
      * Seta os valores no objeto a partir de um map.
      *
-     * @param obj              Instância de um objeto
-     * @param values           Map com chave/valor dos dados que seráo aplicados no objeto
+     * @param obj Instância de um objeto
+     * @param values Map com chave/valor dos dados que seráo aplicados no objeto
      * @param jsonModelAdapter permite mapear atributos objetos
      * @return Object objeto mapeado
      * @throws java.lang.Exception exception
      * @author Everton de Vargas Agilar
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public static Object setValuesFromMap(final Object obj, final Map<String, Object> values, final JsonModelAdapter jsonModelAdapter) throws Exception {
+    public static Object setValuesFromMap(final Object obj, final Map<String, Object> values, final EmsJsonModelAdapter jsonModelAdapter) throws Exception {
         if (obj != null && values != null && values.size() > 0) {
             Class<? extends Object> class_obj = obj.getClass();
             for (String field_name : values.keySet()) {
@@ -713,7 +726,7 @@ public final class RestUtils {
 
                         field.set(obj, value);
                     } else if (tipo_field instanceof Object
-                               && findFieldByAnnotation(tipo_field, Id.class) != null) {
+                            && findFieldByAnnotation(tipo_field, Id.class) != null) {
                         try {
                             Integer idValue = null;
                             if (new_value instanceof String) {
@@ -743,7 +756,7 @@ public final class RestUtils {
      * Retorna o primeiro campo que encontrar a anotação passada como argumento.
      *
      * @param clazz Classe pojo. Ex.: OrgaoInterno.class
-     * @param ann	  anotação que será pesquisada. Ex.: Id.class
+     * @param ann	anotação que será pesquisada. Ex.: Id.class
      * @return Field ou null se Não encontrado
      * @author Everton de Vargas Agilar
      */
@@ -811,7 +824,7 @@ public final class RestUtils {
     /**
      * Serializa um objeto para json
      *
-     * @param obj                 Objeto que será serializado para json
+     * @param obj Objeto que será serializado para json
      * @param serializeFullObject Se true, serializa atributos de classe também
      * @return string json da serialização
      * @author Everton de Vargas Agilar
@@ -834,7 +847,7 @@ public final class RestUtils {
      * Serializa um objeto a partir de uma string json
      *
      * @param jsonString String json
-     * @param <T>        String json
+     * @param <T> String json
      * @param classOfObj	Classe do objeto que será serializado
      * @return objeto
      * @throws java.lang.Exception	exception
@@ -845,19 +858,19 @@ public final class RestUtils {
     }
 
     /**
-     * Serializa um objeto a partir de uma string json.
-     * Quando a string json for vazio, apenas Instância um objeto da classe.
+     * Serializa um objeto a partir de uma string json. Quando a string json for
+     * vazio, apenas Instância um objeto da classe.
      *
-     * @param jsonString       String json
-     * @param <T>              String json
-     * @param classOfObj	   Classe do objeto que será serializado
+     * @param jsonString String json
+     * @param <T> String json
+     * @param classOfObj	Classe do objeto que será serializado
      * @param jsonModelAdapter adaptador para permitir obter atributos de modelo
      * @return objeto
      * @author Everton de Vargas Agilar
      * @throws java.lang.Exception	exception
      */
     @SuppressWarnings("unchecked")
-    public static <T> T fromJson(String jsonString, final Class<T> classOfObj, final JsonModelAdapter jsonModelAdapter) throws Exception {
+    public static <T> T fromJson(String jsonString, final Class<T> classOfObj, final EmsJsonModelAdapter jsonModelAdapter) throws Exception {
         if (classOfObj != null) {
             try {
                 if (jsonString != null && !jsonString.isEmpty()) {
@@ -895,7 +908,7 @@ public final class RestUtils {
      * Obtém uma lista a partir de um json
      *
      * @param jsonString String json
-     * @param <T>        String json
+     * @param <T> String json
      * @param classOfObj	Classe do objeto que será serializado
      * @return list
      * @author Everton de Vargas Agilar
@@ -905,17 +918,18 @@ public final class RestUtils {
     }
 
     /**
-     * Obtém uma lista a partir de um json. Se o json estiver vazio, retorna apenas uma lista vazia.
+     * Obtém uma lista a partir de um json. Se o json estiver vazio, retorna
+     * apenas uma lista vazia.
      *
-     * @param jsonString       String json
-     * @param classOfObj	      Classe do objeto que será serializado
-     * @param <T>	             Classe do objeto que será serializado
+     * @param jsonString String json
+     * @param classOfObj	Classe do objeto que será serializado
+     * @param <T>	Classe do objeto que será serializado
      * @param jsonModelAdapter adaptador para permitir obter atributos de modelo
      * @return list
      * @author Everton de Vargas Agilar
      */
     @SuppressWarnings("unchecked")
-    public static <T> List<T> fromListJson(final String jsonString, final Class<T> classOfObj, final JsonModelAdapter jsonModelAdapter) {
+    public static <T> List<T> fromListJson(final String jsonString, final Class<T> classOfObj, final EmsJsonModelAdapter jsonModelAdapter) {
         if (classOfObj != null) {
             ArrayList<T> newList = new ArrayList<>();
             if (jsonString != null && !jsonString.isEmpty()) {
@@ -944,7 +958,7 @@ public final class RestUtils {
     /**
      * Seta os valores nos Parâmetros de um query a partir de um map
      *
-     * @param query  query com Parâmetros a setar
+     * @param query query com Parâmetros a setar
      * @param values	map com chave/valor dos dados que seráo aplicados na query
      * @author Everton de Vargas Agilar
      */
@@ -956,9 +970,10 @@ public final class RestUtils {
     /**
      * Seta os valores nos Parâmetros de um query a partir de um map
      *
-     * @param query          query com Parâmetros a setar
-     * @param values	        map com chave/valor dos dados que seráo aplicados na query
-     * @param parameterIndex a apartir de que índice deve acessar os parameters da query
+     * @param query query com Parâmetros a setar
+     * @param values	map com chave/valor dos dados que seráo aplicados na query
+     * @param parameterIndex a apartir de que índice deve acessar os parameters
+     * da query
      * @author Everton de Vargas Agilar
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -1148,7 +1163,8 @@ public final class RestUtils {
     }
 
     /**
-     * Retorna o id de um objeto. O id é um campo que tenha a anotação @Id da JPA
+     * Retorna o id de um objeto. O id é um campo que tenha a anotação @Id da
+     * JPA
      *
      * @param obj	objeto
      * @return Id ou null se Não encontrado
@@ -1330,7 +1346,6 @@ public final class RestUtils {
         }
     }
 
-
     /**
      * Parse um objeto String, Double ou Float em um valor Double.
      *
@@ -1419,8 +1434,8 @@ public final class RestUtils {
     }
 
     /**
-     * Obter a lista de fields com unique constraint de um model.
-     * Obs.: Id não é retornado embora tenha a constraint unique.
+     * Obter a lista de fields com unique constraint de um model. Obs.: Id não é
+     * retornado embora tenha a constraint unique.
      *
      * @param classOfModel classe do modelo
      * @return lista de campos
@@ -1443,8 +1458,8 @@ public final class RestUtils {
     }
 
     /**
-     * Obter a lista de fields de um model.
-     * Obs.: somente fields com a anotação Column s�o retornados.
+     * Obter a lista de fields de um model. Obs.: somente fields com a anotação
+     * Column s�o retornados.
      *
      * @param classOfModel classe do modelo
      * @return lista de campos
@@ -1464,9 +1479,11 @@ public final class RestUtils {
     /**
      * Realiza a conversão de um lista para map
      *
-     * Para que seja possível a conversão é necessário passar a lista dos campos (fields).
+     * Para que seja possível a conversão é necessário passar a lista dos campos
+     * (fields).
      *
-     * @param fields  lista de campos. Pode ser passado como um array de campos, string de campos separado por vírgula ou lista de campos.
+     * @param fields lista de campos. Pode ser passado como um array de campos,
+     * string de campos separado por vírgula ou lista de campos.
      * @param listObj lista de objetos
      * @return list ou exception Exception
      * @author Everton de Vargas Agilar,
@@ -1506,8 +1523,10 @@ public final class RestUtils {
      * @author Everton de Vargas Agilar
      */
     public static class EmsFilterStatement {
+
         StringBuilder where = null;
         Map<String, Object> filtro_obj = null;
+
         public EmsFilterStatement(final StringBuilder where, final Map<String, Object> filtro_obj) {
             this.where = where;
             this.filtro_obj = filtro_obj;
@@ -1515,11 +1534,13 @@ public final class RestUtils {
     }
 
     /**
-     * Faz o parser do Parâmetro filter e retorna a cláusula where para um sql nativo.
-     * Se Não for informado o Parâmetro filter ou o filtro for vazio, retorna null.
-     * Se o filter estiver com sintáxe incorreta, retorna exception Exception.
+     * Faz o parser do Parâmetro filter e retorna a cláusula where para um sql
+     * nativo. Se Não for informado o Parâmetro filter ou o filtro for vazio,
+     * retorna null. Se o filter estiver com sintáxe incorreta, retorna
+     * exception Exception.
      *
-     * @param filter filtro. Ex.: {"nome":"Everton de Vargas Agilar", "ativo":true}
+     * @param filter filtro. Ex.: {"nome":"Everton de Vargas Agilar",
+     * "ativo":true}
      * @return filtro ou null
      * @author Everton de Vargas Agilar
      */
@@ -1531,7 +1552,7 @@ public final class RestUtils {
                 Map<String, Object> filtro_obj;
                 boolean useAnd = false;
                 filtro_obj
-                = (Map<String, Object>) fromJson(filter, HashMap.class
+                        = (Map<String, Object>) fromJson(filter, HashMap.class
                         );
                 where = new StringBuilder(" where ");
                 for (String field : filtro_obj.keySet()) {
@@ -1611,6 +1632,5 @@ public final class RestUtils {
         }
         return str;
     }
-
 
 }

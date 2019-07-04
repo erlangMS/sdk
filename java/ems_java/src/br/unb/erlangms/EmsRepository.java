@@ -8,6 +8,7 @@
 
 package br.unb.erlangms;
 
+import br.unb.erlangms.EmsUtil.EmsFilterStatement;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -16,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
-
 import javax.annotation.PostConstruct;
 import javax.persistence.Column;
 import javax.persistence.EntityManager;
@@ -28,12 +28,9 @@ import javax.persistence.Parameter;
 import javax.persistence.Query;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
-
 import org.hibernate.transform.AliasToEntityMapResultTransformer;
 import org.jinq.jpa.JPAJinqStream;
 import org.jinq.jpa.JinqJPAStreamProvider;
-
-import br.unb.erlangms.EmsUtil.EmsFilterStatement;
 
 public abstract class EmsRepository<Model> implements Serializable {
 	private static final long serialVersionUID = 4246028326643284073L;
@@ -64,7 +61,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 	public EmsRepository(){
 
 	}
-	
+
 	@PostConstruct
 	private void postConstruct(){
 		classOfModel = getClassOfModel();
@@ -76,7 +73,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 				// idField é obrigatório para que os recursos desta classe funcionem corretamente
 				idField = EmsUtil.findFieldByAnnotation(classOfModel, Id.class);
 				if (idField != null){
-					idFieldName = idField.getName(); 
+					idFieldName = idField.getName();
 					tableAnnotation = classOfModel.getAnnotation(Table.class); // não é obrigatório o seu seu uso em VO
 					idFieldColumn = idField.getAnnotation(Column.class); // não é obrigatório o seu seu uso em VO
 					if (tableAnnotation != null){
@@ -85,12 +82,12 @@ public abstract class EmsRepository<Model> implements Serializable {
 					fieldsConstraints = EmsUtil.getFieldsWithUniqueConstraint(classOfModel);
 					fields = EmsUtil.getFieldsFromModel(classOfModel);
 					fieldNames = new String[fields.size()];
-					for (int i = 0; i < fields.size(); i++){ 
+					for (int i = 0; i < fields.size(); i++){
 						Field f = fields.get(i); // importante para conseguir acessar o valor do campo
 						f.setAccessible(true);
 						fieldNames[i] = f.getName();
-					}  
-					// doCreateCachedNamedQueries é invocado somente para models que possuem a anotação @Table. 
+					}
+					// doCreateCachedNamedQueries é invocado somente para models que possuem a anotação @Table.
 					if (tableAnnotation != null){
 						doCreateCachedNamedQueries();
 					}
@@ -117,7 +114,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 
 	/**
 	 * Retorna um stream para realizar pesquisas com lambda.
-	 * @param classOfModel classe do modelo 
+	 * @param classOfModel classe do modelo
 	 * @param <T> classe do modelo
 	 * @return stream para pesquisa
 	 * @author Everton de Vargas Agilar
@@ -130,13 +127,13 @@ public abstract class EmsRepository<Model> implements Serializable {
 			throw new EmsValidationException("Parâmetro classOfModel não pode ser null para EsRepository.getStreams.");
 		}
 	}
-	
-	
+
+
 	/**
 	 * Retorna uma lista de objetos a partir de um objeto request.
 	 * O objeto request deve possuir os seguintes atributos padrão:
 	 * @param request IEmsRequest - objeto da requisição
-	 * @return List 
+	 * @return List
 	 * @author Everton de Vargas Agilar
 	 */
 	public List<Map<String, Object>> findAsMap(final IEmsRequest request){
@@ -159,7 +156,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 	 * @param limit Quantidade objetos trazer na pesquisa
 	 * @param offset A partir de que posição. Iniciando em 1
 	 * @param sort trazer ordenado por quais campos o conjunto de dados
-	 * @return list of maps 
+	 * @return list of maps
 	 * @author Everton de Vargas Agilar
 	 */
 	public List<Map<String, Object>> findAsMap(final String filter, final String fields, int limit, int offset, final String sort){
@@ -172,12 +169,12 @@ public abstract class EmsRepository<Model> implements Serializable {
 		List<Map<String,Object>> result = q.list();
 		return result;
 	}
-	
+
 	/**
 	 * Retorna uma lista de objetos a partir de um sql nativo.
 	 * Obs.: Somente sql nativo é suportado.
 	 * @param sql - texto sql
-	 * @return list of maps 
+	 * @return list of maps
 	 * @author Everton de Vargas Agilar
 	 */
 	public List<Map<String, Object>> findAsMap(final String sql) {
@@ -193,8 +190,8 @@ public abstract class EmsRepository<Model> implements Serializable {
 			throw new EmsValidationException("Parâmetro sql não pode ser null para EmsRepository.find.");
 		}
 	}
-	
-	
+
+
 	/**
 	 * Retorna uma lista de objetos a partir de um sql nativo.
 	 * Obs.: Somente sql nativo é suportado.
@@ -204,7 +201,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 	 * @param limit Quantidade objetos trazer na pesquisa
 	 * @param offset A partir de que posição. Iniciando em 1
 	 * @param sort trazer ordenado por quais campos o conjunto de dados
-	 * @return list of maps 
+	 * @return list of maps
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
@@ -225,8 +222,8 @@ public abstract class EmsRepository<Model> implements Serializable {
 		String namedQuery = prefixFindNamedQuery + EmsUtil.toBase64(EmsUtil.toSHA1(sql + filter + fields + sort));
 		if (!cachedNativeNamedQuery.contains(namedQuery)){
 			where = EmsUtil.parseSqlNativeFilter(filter);
-	
-			// Inclui a lista de campos no sql 
+
+			// Inclui a lista de campos no sql
 			if (fields != null && !fields.isEmpty()){
 				try{
 					field_smnt = new StringBuilder();
@@ -237,7 +234,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 							field_smnt.append(",");
 						}
 						if (field_name.equals("pk")){
-							field_smnt.append("this.").append(idField.getName()); 
+							field_smnt.append("this.").append(idField.getName());
 						}else{
 							field_smnt.append("this.").append(field_name);
 						}
@@ -247,7 +244,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 					throw new EmsValidationException("Lista de campos da pesquisa inválido. Erro interno: "+ e.getMessage());
 				}
 			}
-		
+
 			// Define o sort se foi informado
 			if (sort != null && !sort.isEmpty()){
 				try{
@@ -266,7 +263,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 							}
 							sort_smnt.append(" this.").append(sort_field).append(" desc");
 						}else{
-							sort_field = s;	
+							sort_field = s;
 							if (sort_field.equals("pk")){
 								sort_field =  idField.getName();
 							}
@@ -278,7 +275,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 					throw new EmsValidationException("Sort da pesquisa inválido. Erro interno: "+ e.getMessage());
 				}
 			}
-		
+
 			try{
 				// formata o sql
 				StringBuilder sqlBuilder;
@@ -287,10 +284,10 @@ public abstract class EmsRepository<Model> implements Serializable {
 			    		.append(" from (").append(sql).append(") this ");
 				if (where != null){
 					sqlBuilder.append(where.where.toString());
-				}	
+				}
 				if (sort_smnt != null){
 					sqlBuilder.append(sort_smnt.toString());
-				}	
+				}
 				String sqlCommand = sqlBuilder.toString();
 				query = createNativeNamedQuery(namedQuery, sqlCommand, null);
 			}catch (Exception e){
@@ -300,7 +297,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 			query = getNamedQuery(namedQuery);
 			where = EmsUtil.parseSqlNativeFilter(filter);
 		}
-		
+
 		// Seta os parâmetros da query para cada campo do filtro
 		if (where != null){
 			EmsUtil.setQueryParameterFromMap(query, where.filtro_obj);
@@ -320,7 +317,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
 	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param sort trazer ordenado por quais campos o conjunto de dados
-	 * @return list of maps 
+	 * @return list of maps
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
@@ -335,8 +332,8 @@ public abstract class EmsRepository<Model> implements Serializable {
 		String namedQuery = prefixFindNamedQuery + EmsUtil.toBase64(EmsUtil.toSHA1(sql + filter + fields + sort));
 		if (!cachedNativeNamedQuery.contains(namedQuery)){
 			where = EmsUtil.parseSqlNativeFilter(filter);
-	
-			// Inclui a lista de campos no sql 
+
+			// Inclui a lista de campos no sql
 			if (fields != null && !fields.isEmpty()){
 				try{
 					field_smnt = new StringBuilder();
@@ -347,7 +344,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 							field_smnt.append(",");
 						}
 						if (field_name.equals("pk")){
-							field_smnt.append("this.").append(idField.getName()); 
+							field_smnt.append("this.").append(idField.getName());
 						}else{
 							field_smnt.append("this.").append(field_name);
 						}
@@ -357,7 +354,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 					throw new EmsValidationException("Lista de campos da pesquisa inválido. Erro interno: "+ e.getMessage());
 				}
 			}
-		
+
 			// Define o sort se foi informado
 			if (sort != null && !sort.isEmpty()){
 				try{
@@ -376,7 +373,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 							}
 							sort_smnt.append(" this.").append(sort_field).append(" desc");
 						}else{
-							sort_field = s;	
+							sort_field = s;
 							if (sort_field.equals("pk")){
 								sort_field =  idField.getName();
 							}
@@ -388,7 +385,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 					throw new EmsValidationException("Sort da pesquisa inválido. Erro interno: "+ e.getMessage());
 				}
 			}
-		
+
 			try{
 				// formata o sql
 				StringBuilder sqlBuilder;
@@ -397,10 +394,10 @@ public abstract class EmsRepository<Model> implements Serializable {
 			    		.append(" from (").append(sql).append(") this ");
 				if (where != null){
 					sqlBuilder.append(where.where.toString());
-				}	
+				}
 				if (sort_smnt != null){
 					sqlBuilder.append(sort_smnt.toString());
-				}	
+				}
 				String sqlCommand = sqlBuilder.toString();
 				query = createNativeNamedQuery(namedQuery, sqlCommand, null);
 			}catch (Exception e){
@@ -410,7 +407,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 			query = getNamedQuery(namedQuery);
 			where = EmsUtil.parseSqlNativeFilter(filter);
 		}
-		
+
 		// Seta os parâmetros da query para cada campo do filtro
 		if (where != null){
 			EmsUtil.setQueryParameterFromMap(query, where.filtro_obj);
@@ -421,7 +418,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 		return result;
 	}
 
-	
+
 	/**
 	 * Retorna uma lista de objetos a partir de um filtro no formato json
 	 * @param filter json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
@@ -462,9 +459,9 @@ public abstract class EmsRepository<Model> implements Serializable {
 		}
 	}
 
-	
+
 	/**
-	 * Retorna uma lista de objeto a partir de um objeto pai, utilizando os filtros. Variação do método find, acrescentando o objeto pai. 
+	 * Retorna uma lista de objeto a partir de um objeto pai, utilizando os filtros. Variação do método find, acrescentando o objeto pai.
 	 * @param filter objeto json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
 	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param limit Quantidade objetos trazer na pesquisa
@@ -475,16 +472,16 @@ public abstract class EmsRepository<Model> implements Serializable {
 	 * @author André Luciano Claret
 	 */
 	@SuppressWarnings("unchecked")
-	public List<Model> find(final String filter, final String fields, int limit, int offset, final String sort, final Object owner){
+	public List<Model> find(final String filter, final String fields, int limit, int offset, final String sort, final Object owner) throws Exception{
 		String new_filter = null;
 		String fieldName = null;
 		Integer idOwner;
 		if (owner != null){
 			idOwner = EmsUtil.getIdFromObject(owner);
-			fieldName = "id" + owner.getClass().getSimpleName();			
+			fieldName = "id" + owner.getClass().getSimpleName();
 		} else {
 			throw new EmsValidationException("Parâmetro owner não pode ser nulo para EmsRepository.find.");
-		}	
+		}
 		if (filter != null){
 			Map<String,Object> filtro_obj = new HashMap<String, Object>();
 			filtro_obj = EmsUtil.fromJson(filter, HashMap.class);
@@ -495,9 +492,9 @@ public abstract class EmsRepository<Model> implements Serializable {
 			throw new EmsValidationException("Parâmetro filter não pode ser nulo para EmsRepository.find.");
 		}
 	}
-	
+
 	/**
-	 * Retorna uma lista de objeto a partir de um filtro por HashMap. 
+	 * Retorna uma lista de objeto a partir de um filtro por HashMap.
 	 * @param filter HashMap com os campos do filtro.
 	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param limit Quantidade objetos trazer na pesquisa
@@ -514,7 +511,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 			throw new EmsValidationException("Parâmetro filter não pode ser nulo para EmsRepository.find.");
 		}
 	}
-	
+
 	/**
 	 * Retorna um objeto pelo seu id. O id é obtido direto do request.
 	 * @param request requisição
@@ -523,7 +520,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 	 */
 	public Model findById(IEmsRequest request){
 		if (request != null){
-			Integer id = request.getParamAsInt("id"); 
+			Integer id = request.getParamAsInt("id");
 			if (id != null && id >= 0){
 				Model obj = entityManager.find(classOfModel, id);
 				if (obj == null){
@@ -534,10 +531,10 @@ public abstract class EmsRepository<Model> implements Serializable {
 				throw new EmsValidationException("Parâmetro id não pode ser null para EmsRepository.findById.");
 			}
 		}else{
-			throw new EmsValidationException("Parâmetro request não pode ser null para EsRepository.find.");	
+			throw new EmsValidationException("Parâmetro request não pode ser null para EsRepository.find.");
 		}
 	}
-	
+
 	/**
 	 * Retorna um objeto pelo seu id.
 	 * @param id identificador do objeto
@@ -575,7 +572,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 			throw new EmsValidationException("Parâmetro id não pode ser null para EmsRepository.findById.");
 		}
 	}
-	
+
 	/**
 	 * Retorna uma lista de objetos pesquisando por determinado campo.
 	 * Obs.: O campo deve existir no model.
@@ -643,7 +640,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 			throw new EmsValidationException("Parâmetro field não pode ser null para EmsRepository.findFirstByField.");
 		}
 	}
-	
+
 	/**
 	 * Retorna o primeiro objeto pesquisando por determinado nome de campo.
 	 * @param fieldName nome do campo do model.
@@ -662,9 +659,9 @@ public abstract class EmsRepository<Model> implements Serializable {
 	}
 
 	/**
-	 * Verifica se o objeto existe, passando um mapa com os nomes dos atributos e seus valores. 
+	 * Verifica se o objeto existe, passando um mapa com os nomes dos atributos e seus valores.
 	 * @param filter_map Mapa com os nomes dos atributos e seus valores
-	 * @return true se o objeto foi encontrado 
+	 * @return true se o objeto foi encontrado
 	 * @author André Luciano Claret
 	 */
 	public boolean exists(final Map<String, Object> filter_map){
@@ -673,7 +670,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 			Query query = null;
 			String fieldName = null;
 			String filter = null;
-			List<String> listFunction = new ArrayList<String>(); 
+			List<String> listFunction = new ArrayList<String>();
 			if (!filter_map.isEmpty()){
 				for (String field: filter_map.keySet()){
 					fieldName = field;
@@ -689,19 +686,19 @@ public abstract class EmsRepository<Model> implements Serializable {
 			long result = (long) query.getSingleResult();
 			if (result >= 1){
 				anyMatch = true;
-			}			
+			}
 			return anyMatch;
 		}else {
 			throw new EmsValidationException("Parâmetro filter_map não pode ser null para EmsRepository.exists.");
 		}
 	}
-	
+
 	/**
-	 * Verifica se o objeto existe passando o id do objeto. 
+	 * Verifica se o objeto existe passando o id do objeto.
 	 * @param id Id do objeto
-	 * @return true se o objeto foi encontrado 
+	 * @return true se o objeto foi encontrado
 	 * @author André Luciano Claret
-	 * 		   Everton de Vargas Agilar	
+	 * 		   Everton de Vargas Agilar
 	 */
 	public boolean exists(final Integer id){
 		if (id != null && id >= 0){
@@ -711,7 +708,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 					.getSingleResult();
 				return true;
 			} catch (NoResultException e) {
-				return false;				
+				return false;
 			} catch (NonUniqueResultException e){
 				return true;
 			}
@@ -739,7 +736,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 			throw new EmsValidationException("Parâmetros classOfModel e id não podem ser null para EmsRepository.findById.");
 		}
 	}
-	
+
 	/**
 	 * Persiste as modificações de um objeto.
 	 * @param obj objeto que será persistido
@@ -749,7 +746,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 	public Model update(final Model obj){
 		return update(obj, true);
 	}
-	
+
 	/**
 	 * Persiste as modificações de um objeto.
 	 * @param obj objeto que será persistido
@@ -838,7 +835,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 				throw new EmsValidationException("Não é possível verificar as constraints do objeto "+ classOfModel.getSimpleName() + ". Erro interno: "+ e.getMessage());
 			}
 		}
-		
+
 		try{
 			query.getSingleResult();
 		}catch (NoResultException e){
@@ -846,11 +843,11 @@ public abstract class EmsRepository<Model> implements Serializable {
 		}catch (Exception e){
 			throw new EmsValidationException("Não é possível verificar as constraints do objeto "+ classOfModel.getSimpleName() + ". Erro interno: "+ e.getMessage());
 		}
-		
+
 		// Se chegou até aqui então o registro está duplicado. Não há registro quando ocorrer uma exception NoResultException.
 		throw new EmsValidationException("Registro duplicado, verifique.");
 	}
-	
+
 	/**
 	 * Insere ou atualiza um objeto.
 	 * @param obj objeto que será inserido ou atualizado.
@@ -860,7 +857,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 	public Model insertOrUpdate(final Model obj){
 		return insertOrUpdate(obj, true);
 	}
-	
+
 	/**
 	 * Insere ou atualiza um objeto.
 	 * @param obj objeto que será inserido ou atualizado.
@@ -936,9 +933,9 @@ public abstract class EmsRepository<Model> implements Serializable {
 	 * @author Everton de Vargas Agilar
 	 */
 	protected void createCachedNamedQueries() {
-	}	
+	}
 
-	
+
 	/**
 	 * Cria uma query a partir de um filtro e a partir de uma função sql.
 	 * @param filter objeto json com os campos do filtro. Ex: {"nome":"Everton de Vargas Agilar", "ativo":true}
@@ -951,11 +948,11 @@ public abstract class EmsRepository<Model> implements Serializable {
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
-	public Query parseQuery(final String filter, 
-							 final String fields, 
-							 int limit, 
-							 int offset, 
-							 final String sort, 
+	public Query parseQuery(final String filter,
+							 final String fields,
+							 int limit,
+							 int offset,
+							 final String sort,
 							 final List<String> listFunction){
 		Query query = null;
 		StringBuilder field_smnt = null;
@@ -972,11 +969,11 @@ public abstract class EmsRepository<Model> implements Serializable {
 		if (!(offset >= 0 && offset < 999999999)){
 			throw new EmsValidationException("Parâmetro offset da pesquisa fora do intervalo permitido. Deve ser maior que zero e menor que 999999999");
 		}
-		
+
 		// tem filtro?
 		if (filter != null && filter.length() > 5){
 			try{
-				boolean useAnd = false; 
+				boolean useAnd = false;
 				filtro_obj = (Map<String, Object>) EmsUtil.fromJson(filter, HashMap.class);
 				where = new StringBuilder("where ");
 				int p = 1;
@@ -988,7 +985,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 					String fieldName;
 					String fieldOperator;
 					String sqlOperator;
-					int field_len = field_defs.length; 
+					int field_len = field_defs.length;
 					if (field_len == 1){
 						fieldName = field;
 						fieldOperator = "=";
@@ -1008,7 +1005,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 					}
 					if (field_len == 2){
 						if (fieldOperator.equals("isnull")){
-							boolean fieldBoolean = EmsUtil.parseAsBoolean(filtro_obj.get(field)); 
+							boolean fieldBoolean = EmsUtil.parseAsBoolean(filtro_obj.get(field));
 							if (fieldBoolean){
 								where.append(fieldName).append(" is null ");
 							}else{
@@ -1036,7 +1033,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 			}
 		}
 
-		// Inclui a lista de campos no sql 
+		// Inclui a lista de campos no sql
 		if (fields != null && !fields.isEmpty()){
 			try{
 				field_smnt = new StringBuilder();
@@ -1047,7 +1044,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 						field_smnt.append(",");
 					}
 					if (field_name.equals("pk")){
-						field_smnt.append("this.").append(idField.getName()); 
+						field_smnt.append("this.").append(idField.getName());
 					}else{
 						field_smnt.append("this.").append(field_name);
 					}
@@ -1076,7 +1073,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 						}
 						sort_smnt.append(" this.").append(sort_field).append(" desc");
 					}else{
-						sort_field = s;	
+						sort_field = s;
 						if (sort_field.equals("pk")){
 							sort_field =  idField.getName();
 						}
@@ -1088,13 +1085,13 @@ public abstract class EmsRepository<Model> implements Serializable {
 				throw new EmsValidationException("Sort da pesquisa inválido. Erro interno: "+ e.getMessage());
 			}
 		}
-		
-		//verifica se a função sql passada existe 
+
+		//verifica se a função sql passada existe
 		if (listFunction != null && !listFunction.isEmpty()){
-			sqlFunction = EmsUtil.listFunctionToSqlFunction(listFunction);		
+			sqlFunction = EmsUtil.listFunctionToSqlFunction(listFunction);
 		}
-		
-	
+
+
 		try{
 			// formata o sql
 			StringBuilder sqlBuilder;
@@ -1109,10 +1106,10 @@ public abstract class EmsRepository<Model> implements Serializable {
 			}
 			if (where != null){
 				sqlBuilder.append(where.toString());
-			}	
+			}
 			if (sort_smnt != null){
 				sqlBuilder.append(sort_smnt.toString());
-			}	
+			}
 			String sql = sqlBuilder.toString();
 			query = createNamedQuery(sql, sql);
 		}catch (Exception e){
@@ -1123,24 +1120,24 @@ public abstract class EmsRepository<Model> implements Serializable {
 		if (where != null){
 			EmsUtil.setQueryParameterFromMap(query, filtro_obj);
 		}
-		
+
 		return query;
 	}
-	
-	
+
+
 	/**
 	 * Permite criar uma named query JPA para posterior execução. Depois de criado pode ser obtido com getNamedQuery.
 	 * NamedQuery são mais rápidas e economizam recursos. Use isto em vez de criar uma query a cada execução de código.
-	 * Se a namedQuery já existe, apenas é retornado sua referência. 
+	 * Se a namedQuery já existe, apenas é retornado sua referência.
 	 * @param namedQuery nome da query.
 	 * @param sql sql JPA da query
-	 * @return query ou exception 
+	 * @return query ou exception
 	 * @author Everton de Vargas Agilar
 	 */
 	protected Query createNamedQuery(final String namedQuery, final String sql) {
 		Query query = null;
 		if (cachedNamedQuery.contains(namedQuery)){
-			query = entityManager.createNamedQuery(namedQuery);	
+			query = entityManager.createNamedQuery(namedQuery);
 		}else{
 			cachedNamedQuery.add(namedQuery);
 			try {
@@ -1154,15 +1151,15 @@ public abstract class EmsRepository<Model> implements Serializable {
 		}
 		return query;
 	}
-	
+
 	/**
 	 * Permite criar uma named query com sql nativo para posterior execução. Depois de criado pode ser obtido com getNamedQuery.
-	 * NamedQuery são mais rápidas e economiza recursos. Use isto em vez de criar uma query a cada execução de código. 
+	 * NamedQuery são mais rápidas e economiza recursos. Use isto em vez de criar uma query a cada execução de código.
 	 * @param namedQuery nome da query.
 	 * @param sql sql nativo da query
 	 * @param resultClass informe a classe do objeto se a query tem que mapear senão null.
 	 * @param <T> objeto do modelo
-	 * @return query 
+	 * @return query
 	 * @author Everton de Vargas Agilar
 	 */
 	protected <T> Query createNativeNamedQuery(final String namedQuery, final String sql, final Class<T> resultClass) {
@@ -1185,7 +1182,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 
 	/**
 	 * Retorna a referẽncia para um query previamente criada para execução.
-	 * NamedQuery são mais rápidas e economiza recursos. Use isto em vez de criar uma query a cada execução de código. 
+	 * NamedQuery são mais rápidas e economiza recursos. Use isto em vez de criar uma query a cada execução de código.
 	 * @param namedQuery nome da query.
 	 * @return query
 	 * @author Everton de Vargas Agilar
@@ -1194,7 +1191,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 		return entityManager.createNamedQuery(namedQuery);
 	}
 
-	
+
 	/**
 	 * Um método interno para criar as named queries
 	 * @author Everton de Vargas Agilar
@@ -1204,19 +1201,19 @@ public abstract class EmsRepository<Model> implements Serializable {
 		String simpleNameOfModel = classOfModel.getSimpleName();
 
 		// ************* create query delete *****************
-		
+
 		NAMED_QUERY_DELETE = nameOfModel + ".delete";
 		String sqlDelete = new StringBuilder("delete from ")
 											.append(simpleNameOfModel)
 											.append(" where ")
 											.append(idFieldName).append("=:pId").toString();
 		createNamedQuery(NAMED_QUERY_DELETE, sqlDelete);
-		
-		
-	
+
+
+
 
 		// // ************* create query exists *****************
-		
+
 		NAMED_QUERY_EXISTS = nameOfModel + ".exists";
 		String sqlExists =  new StringBuilder("select 1 from ")
 											.append(simpleNameOfModel)
@@ -1232,22 +1229,22 @@ public abstract class EmsRepository<Model> implements Serializable {
 		if (hasContraints){
 			NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT = nameOfModel + ".checkConstraintInsert";
 			createNativeNamedQuery(NAMED_QUERY_CHECK_CONTRAINTS_ON_INSERT, sqlQueryConstraintInsert, null);
-			
+
 			String sqlQueryConstraintUpdate = createSqlForConstraintCheck(false);
 			NAMED_QUERY_CHECK_CONTRAINTS_ON_UPDATE = nameOfModel + ".checkConstraintUpdate";
 			createNativeNamedQuery(NAMED_QUERY_CHECK_CONTRAINTS_ON_UPDATE, sqlQueryConstraintUpdate, null);
 		}
-		
+
 
 		// ************* create cached named queries of inherited class *****************
 		createCachedNamedQueries();
 	}
-	
+
 
 	/**
 	 * Cria e retorna um sql para validar constraints de um modelo.
 	 * @param isInsert se true é um insert senão é um update
-	 * @return sql ou null se  não houver nenhuma constraint no modelo 
+	 * @return sql ou null se  não houver nenhuma constraint no modelo
 	 * @author Everton de Vargas Agilar
 	 */
 	private String createSqlForConstraintCheck(boolean isInsert){
@@ -1259,13 +1256,13 @@ public abstract class EmsRepository<Model> implements Serializable {
 			sql.append("select top(1) 1 ")
 									 .append("from ").append(tableAnnotation.name())
 									 .append(" this where ");
-			
+
 			// Se não é um insert então é um update :)
 			if (!isInsert){
 				String idFieldColumnName = idFieldColumn.name();
 				sql.append(idFieldColumnName).append("!=:").append(idFieldColumnName).append(" and (");
 			}
-			
+
 			// build table constraints conditions
 			for (int i = 0; i < tableConstraintsCount; i++){
 				UniqueConstraint c = tableContrains[i];
@@ -1284,7 +1281,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 					sql.append(" or ");
 				}
 			}
-			
+
 			// build field constraints conditions
 			if (fieldConstraintsCount > 0){
 				if (tableConstraintsCount > 0){
@@ -1302,27 +1299,27 @@ public abstract class EmsRepository<Model> implements Serializable {
 				}
 				sql.append(")");
 			}
-			
+
 			if (!isInsert){
 				sql.append(")");
 			}
-			
+
 			return sql.toString();
 		}
-		
+
 		// return null porque não há constraint na declaração do modelo
 		return null;
 	}
-	
+
 	/**
-	 * Retorna a referência para um field de um model. 
+	 * Retorna a referência para um field de um model.
 	 * Semelhante a getClass().getField mas mais rápido pois não faz as checagens de segurança que a JVM realizada.
 	 * @param fieldName nome do campo para a busca.
 	 * @return field ou EmsValidationException.
 	 * @author Everton de Vargas Agilar
 	 */
 	protected Field getField(final String fieldName){
-		 // Certamente, para poucos elementos (menos de 20) uma pesquisa sequencial é mais rápido que um Hashtable 
+		 // Certamente, para poucos elementos (menos de 20) uma pesquisa sequencial é mais rápido que um Hashtable
 		for (Field field : fields){
 			if (field.getName().equals(fieldName)){
 				return field;
@@ -1332,10 +1329,10 @@ public abstract class EmsRepository<Model> implements Serializable {
 	}
 
 	/**
-	 * Retorna o id de um model. 
+	 * Retorna o id de um model.
 	 * Semelhante a EmsUtil.getIdFromObject mas mais rápido pois a classe EmsRepository possui uma referência direta para idField.
 	 * @param obj objeto para obter o id
-	 * @return id ou null se não tem valor 
+	 * @return id ou null se não tem valor
 	 * @author Everton de Vargas Agilar
 	 */
 	protected Integer getIdFromObject(final Model obj){
@@ -1347,9 +1344,9 @@ public abstract class EmsRepository<Model> implements Serializable {
 		}
 	}
 
-	
+
 	/**
-	 * Classe utilizada pelo método find(String sql) para mapear os dados  
+	 * Classe utilizada pelo método find(String sql) para mapear os dados
 	 * @author Everton de Vargas Agilar
 	 */
 	public static class EmsAliasToEntityMapResultTransformer extends org.hibernate.transform.AliasedTupleSubsetResultTransformer {
@@ -1368,7 +1365,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 		public Object transformTuple(Object[] tuple, String[] aliases) {
 			int tupleLengh = tuple.length;
 			if (aliases[tupleLengh-1].startsWith("__")){
-				--tupleLengh; 
+				--tupleLengh;
 			}
 			Map result = new HashMap(tupleLengh);
 			for ( int i=0; i<tupleLengh; i++ ) {
@@ -1394,7 +1391,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 			return INSTANCE;
 		}
 	}
-	
+
 }
 
 

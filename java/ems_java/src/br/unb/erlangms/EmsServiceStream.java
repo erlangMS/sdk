@@ -9,7 +9,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Map;
-
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -21,7 +20,7 @@ public class EmsServiceStream {
 	private String from_url;
 	private Map<String, Object> queries;
 	private String response;
-	
+
 	static {
 	        TrustManager[] trustAllCerts = new TrustManager[] {new X509TrustManager() {
 		            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
@@ -33,7 +32,7 @@ public class EmsServiceStream {
 		            }
 		        }
 		    };
-		
+
 		    // Install the all-trusting trust manager
 		    SSLContext sc = null;
 			try {
@@ -47,33 +46,33 @@ public class EmsServiceStream {
 				e.printStackTrace();
 			}
 		    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-		
+
 		    // Create all-trusting host name verifier
 		    HostnameVerifier allHostsValid = new HostnameVerifier() {
 		        public boolean verify(String hostname, SSLSession session) {
 		            return true;
 		        }
 		    };
-		
+
 		    // Install the all-trusting host verifier
 		    HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
 	}
-	
+
 	public EmsServiceStream(){
 		this.from_url = null;
 		this.queries = new java.util.HashMap<>();
 		this.response = null;
 	}
-	
+
 	public EmsServiceStream from(final String url){
-		if (url == null || url.isEmpty()) 
+		if (url == null || url.isEmpty())
 			throw new EmsValidationException("Parâmetro do método EmsServiceStream.from(final String url) não pode ser nulo.");
 		this.from_url = url;
 		return this;
 	}
 
 	public EmsServiceStream setParameter(final Integer value) {
-		if (value == null) 
+		if (value == null)
 			throw new EmsValidationException("Parâmetro value do EmsServiceStream.setParameter não pode ser nulo.");
 		from_url = from_url.replaceFirst(":id", value.toString());
 		return this;
@@ -84,7 +83,7 @@ public class EmsServiceStream {
 		return this;
 	}
 
-    
+
 	public EmsServiceStream request() {
 		String restUrl = EmsUtil.properties.ESB_URL + from_url;
 		URL url = null;
@@ -109,7 +108,7 @@ public class EmsServiceStream {
 			e.printStackTrace();
 			throw new EmsValidationException("EmsServiceStream não conseguiu ler o response da url "+ restUrl);
 		}
-	    
+
 		return this;
 	}
 
@@ -118,16 +117,16 @@ public class EmsServiceStream {
 	}
 
 	@SuppressWarnings("unchecked")
-	public List<Object> toList() {
+	public List<Object> toList() throws Exception {
 		return (List<Object>) EmsUtil.fromJson(response.toString(), List.class);
 	}
 
-	public <T> T getObject(Class<T> classOfModel) {
+	public <T> T getObject(Class<T> classOfModel) throws Exception {
 		return (T) EmsUtil.fromJson(response, classOfModel);
 	}
 
 	public Object getObject() {
 		return response;
 	}
-}	
+}
 

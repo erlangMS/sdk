@@ -40,17 +40,17 @@
     </scm>
 
     <developers>
-		<developer>
-			<id>evagilar</id>
-			<name>Everton de Vargas Agilar</name>
-			<email>evertonagilar@gmail.com</email>
-			<organization>ErlangMS</organization>
-			<organizationUrl>https://github.com/erlangms</organizationUrl>
-			<roles>
-				<role>Project-Administrator</role>
-				<role>Developer</role>
-			</roles>
-		</developer>
+        <developer>
+            <id>evagilar</id>
+            <name>Everton de Vargas Agilar</name>
+            <email>evertonagilar@gmail.com</email>
+            <organization>ErlangMS</organization>
+            <organizationUrl>https://github.com/erlangms</organizationUrl>
+            <roles>
+                <role>Project-Administrator</role>
+                <role>Developer</role>
+            </roles>
+        </developer>
         <developer>
             <id>rcarauta</id>
             <name>Renato Carauta Ribeiro</name>
@@ -136,12 +136,12 @@
             <scope>provided</scope>
         </dependency>
 
-		<dependency>
-			<groupId>com.lowagie</groupId>
-			<artifactId>itext</artifactId>
-			<version>2.1.7</version>
-			<scope>provided</scope>
-		</dependency>
+        <dependency>
+            <groupId>com.lowagie</groupId>
+            <artifactId>itext</artifactId>
+            <version>2.1.7</version>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.commons</groupId>

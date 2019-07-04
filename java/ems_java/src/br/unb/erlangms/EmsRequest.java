@@ -8,14 +8,7 @@
 
 package br.unb.erlangms;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import br.unb.erlangms.rest.util.RestUtils;
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
 import com.ericsson.otp.erlang.OtpErlangLong;
@@ -24,6 +17,13 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangRangeException;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class EmsRequest implements IEmsRequest {
 	private OtpErlangTuple otp_request = null;
@@ -52,13 +52,13 @@ public class EmsRequest implements IEmsRequest {
 
 	public EmsRequest(){
 	}
-	
+
 	public void setOtpRequest(final OtpErlangTuple otp_request) {
 		this.otp_request = otp_request;
 		this.properties = null;
 		this.queryCount = -1;
 		this.rid = ((OtpErlangLong)otp_request.elementAt(0)).longValue();
-		this.timeout = ((OtpErlangLong)otp_request.elementAt(14)).longValue(); 
+		this.timeout = ((OtpErlangLong)otp_request.elementAt(14)).longValue();
 		this.t1 = ((OtpErlangLong)otp_request.elementAt(13)).longValue();
 		this.method = ((OtpErlangString)otp_request.elementAt(2)).stringValue();
 		this.url = ((OtpErlangString)otp_request.elementAt(1)).stringValue();
@@ -82,7 +82,7 @@ public class EmsRequest implements IEmsRequest {
 			this.access_token = "";
 		}
 	}
-	
+
 	/**
 	 * Retorna o Request Identifier (RID) do request.
 	 * @return Request Identifier (RID) do request.
@@ -102,7 +102,7 @@ public class EmsRequest implements IEmsRequest {
 	public String getUrl(){
 		return url;
 	}
-	
+
 	/**
 	 * Retorna o método do request (GET, POST, PUT, DELETE)
 	 * @return String GET, POST, PUT, DELETE
@@ -167,10 +167,10 @@ public class EmsRequest implements IEmsRequest {
 		try {
 			return otp_result.intValue();
 		} catch (OtpErlangRangeException e) {
-			throw new EmsValidationException("Parâmetro "+ nome + " não é inteiro.");				
+			throw new EmsValidationException("Parâmetro "+ nome + " não é inteiro.");
 		}
 	}
-	
+
 	/**
 	 * Retorna um parâmetro do request pelo nome.
 	 * @param nome do parâmetro
@@ -214,7 +214,7 @@ public class EmsRequest implements IEmsRequest {
 		try{
 			OtpErlangObject Querystring = otp_request.elementAt(4);
 			if (!Querystring.equals(undefined)){
-				queryCount = ((OtpErlangMap) Querystring).arity(); 
+				queryCount = ((OtpErlangMap) Querystring).arity();
 			}else{
 				queryCount = 0;
 			}
@@ -300,7 +300,7 @@ public class EmsRequest implements IEmsRequest {
 	}
 
 	/**
-	 * Retorna uma querystring do request como int ou o valor default se não existir. 
+	 * Retorna uma querystring do request como int ou o valor default se não existir.
 	 * Um erro será gerado se não for possível retornar um int.
 	 * @param nome nome da querystring
 	 * @return valor int
@@ -321,7 +321,7 @@ public class EmsRequest implements IEmsRequest {
 	}
 
 	/**
-	 * Retorna uma querystring do request como Double. 
+	 * Retorna uma querystring do request como Double.
 	 * Um erro será gerado se não for possível retornar um double.
 	 * @param nome nome da querystring
 	 * @return valor double
@@ -337,7 +337,7 @@ public class EmsRequest implements IEmsRequest {
 	}
 
 	/**
-	 * Retorna uma querystring do request como Double ou o valor default se não existir. 
+	 * Retorna uma querystring do request como Double ou o valor default se não existir.
 	 * Um erro será gerado se não for possível retornar um double.
 	 * @param nome nome da querystring
 	 * @return valor double
@@ -378,7 +378,7 @@ public class EmsRequest implements IEmsRequest {
 	public <T> T getObject(final Class<T> classOfObj){
 		return getObject(classOfObj, null);
 	}
-	
+
 	@Override
 	public <T> T getObject(final Class<T> classOfObj, final EmsJsonModelAdapter jsonModelAdapter) {
 		try{
@@ -387,16 +387,16 @@ public class EmsRequest implements IEmsRequest {
 			throw new EmsValidationException(e.getMessage());
 		}
 	}
-	
+
 	@Override
 	public Map<String, Object> getObject() {
 		return getPayloadAsMap();
 	}
-	
+
 	/**
 	 * Permite obter uma propriedade incluída pelo desenvolvedor.
 	 * @param nome nome da propriedade
-	 * @return Object 
+	 * @return Object
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
@@ -410,7 +410,7 @@ public class EmsRequest implements IEmsRequest {
 		if (properties.containsKey(nome)){
 			return properties.get(nome);
 		}else{
-			throw new EmsValidationException("Propriedade "+ nome + " não existe na requisição."); 
+			throw new EmsValidationException("Propriedade "+ nome + " não existe na requisição.");
 		}
 	};
 
@@ -418,7 +418,7 @@ public class EmsRequest implements IEmsRequest {
 	 * Permite obter uma propriedade incluída pelo desenvolvedor. Se não existe a proprieadade, retorna o defaultValue.
 	 * @param nome nome da propriedade
 	 * @param defaultValue valor default
-	 * @return Object 
+	 * @return Object
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
@@ -448,7 +448,7 @@ public class EmsRequest implements IEmsRequest {
 		}
 		properties.put(nome, value);
 	};
-	
+
 	/**
 	 * Retorna o payload do request como map. Um erro será gerado se não for possível ler o objeto JSON.
 	 * @return map
@@ -471,7 +471,7 @@ public class EmsRequest implements IEmsRequest {
 			throw new EmsValidationException("Não foi possível converter o payload do request em um objeto da interface java.util.List. Erro interno: "+ e.getMessage());
 		}
 	}
-	
+
 	/**
 	 * Retorna o payload do request como um array de objetos
 	 * @param classOfArray classe do array para serializar. Ex. Usuario[].class
@@ -481,13 +481,13 @@ public class EmsRequest implements IEmsRequest {
 	@Override
 	public <T> T getPayloadAsArray(Class<T> classOfArray) {
 		try{
-			String payload = getPayload();
-			return EmsUtil.gson.fromJson(payload, classOfArray);
+			String payloadArray = getPayload();
+			return RestUtils.fromJson(payloadArray, classOfArray);
 		}catch (Exception e){
 			throw new EmsValidationException("Não foi possível converter o payload do request em uma lista de objetos. Erro interno: "+ e.getMessage());
 		}
 	}
-	
+
 	/**
 	 * Retorna o payload do request como uma lista de objetos
 	 * @param classOfArray classe do array para serializar. Ex. Usuario[].class
@@ -499,7 +499,7 @@ public class EmsRequest implements IEmsRequest {
 		T[] result = getPayloadAsArray(classOfArray);
 		return Arrays.asList(result);
 	}
-	
+
 	/**
 	 * Retorna o ContentType do request.
 	 * @return ContentType do request
@@ -556,6 +556,7 @@ public class EmsRequest implements IEmsRequest {
 	 * Realiza o merge dos atributos do objeto com o objeto JSON do request.
 	 * Útil para métodos que fazem o update dos dados no banco de dados
 	 * @param obj Objeto para fazer merge com o payload
+        * @param emsJsonModelSerialize emsJsonModelSerialize
 	 * @return objeto após merge
 	 * @author Everton de Vargas Agilar
 	 */
@@ -564,7 +565,11 @@ public class EmsRequest implements IEmsRequest {
 	public Object mergeObjectFromPayload(final Object obj, final EmsJsonModelAdapter emsJsonModelSerialize) {
 		if (obj != null){
 			final Map<String, Object> update_values = (Map<String, Object>) getObject(HashMap.class);
-			EmsUtil.setValuesFromMap(obj, update_values, emsJsonModelSerialize);
+                    try {
+                        EmsUtil.setValuesFromMap(obj, update_values, emsJsonModelSerialize);
+                    } catch (Exception ex) {
+                        return null;
+                    }
 			return obj;
 		}else{
 			return null;
@@ -574,7 +579,7 @@ public class EmsRequest implements IEmsRequest {
 
 	/**
 	 * Obter o cliente do request.
-	 * @return map com atributo/valor 
+	 * @return map com atributo/valor
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
@@ -590,10 +595,10 @@ public class EmsRequest implements IEmsRequest {
 		}
 		return clientJson;
 	}
-	
+
 	/**
 	 * Obter o usuário do request.
-	 * @return map com atributo/valor 
+	 * @return map com atributo/valor
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
@@ -612,7 +617,7 @@ public class EmsRequest implements IEmsRequest {
 
 	/**
 	 * Obter o catálogo do request.
-	 * @return map com atributo/valor 
+	 * @return map com atributo/valor
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
@@ -628,7 +633,7 @@ public class EmsRequest implements IEmsRequest {
 
 	/**
 	 * Obter o scopo oauth2 do request.
-	 * @return oauth2 scope 
+	 * @return oauth2 scope
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
@@ -638,7 +643,7 @@ public class EmsRequest implements IEmsRequest {
 
 	/**
 	 * Obter access_token do request.
-	 * @return oauth2 access token 
+	 * @return oauth2 access token
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
@@ -648,7 +653,7 @@ public class EmsRequest implements IEmsRequest {
 
 	/**
 	 * Obter o T1 do request.
-	 * @return long 
+	 * @return long
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
@@ -658,7 +663,7 @@ public class EmsRequest implements IEmsRequest {
 
 	/**
 	 * Obter o timeout do request.
-	 * @return int 
+	 * @return int
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
@@ -668,7 +673,7 @@ public class EmsRequest implements IEmsRequest {
 
 	/**
 	 * Is POST ou PUT request
-	 * @return boolean 
+	 * @return boolean
 	 * @author Everton de Vargas Agilar
 	 */
 	@Override
