@@ -25,6 +25,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -36,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.persistence.Column;
 import javax.persistence.FetchType;
@@ -501,6 +503,10 @@ public final class RestUtils {
                     }
                     field.setAccessible(true);
                     Object new_value = values.get(field_name);
+                    if (new_value == null) {
+                        field.set(obj, null);
+                        continue;
+                    }
                     Class<?> tipo_field = field.getType();
                     if (tipo_field == Integer.class || tipo_field == int.class) {
                         if (new_value instanceof String) {
@@ -691,6 +697,23 @@ public final class RestUtils {
                         } else {
                             throw new RestApiException(m_erro);
                         }
+                    } else if (tipo_field == java.util.List.class) {
+                        Type type = field.getAnnotatedType().getType();
+                        ParameterizedType paramType = (ParameterizedType) type;
+                        Class<?> jsonClass = (Class<?>) paramType.getActualTypeArguments()[0];
+                        List<Map> lista = (List<Map>) new_value;
+                        List lista2 = new ArrayList<>();
+                        for (Map item : lista) {
+                            Object objItem = null;
+                            try {
+                                objItem = jsonClass.getConstructor().newInstance();
+                            } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                                throw new RestApiException("Não consegue instanciar a classe " + jsonClass.getSimpleName() + ".");
+                            }
+                            setValuesFromMap(objItem, item);
+                            lista2.add(objItem);
+                        }
+                        field.set(obj, lista2);
                     } else if (tipo_field.isEnum()) {
                         try {
                             Integer idValue = null;
@@ -708,7 +731,7 @@ public final class RestUtils {
                             }
                             field.set(obj, value);
                         } catch (IllegalArgumentException | IllegalAccessException e) {
-                            throw new RestApiException(field_name + " não é v�lido.");
+                            throw new RestApiException(field_name + " não é válido.");
                         }
                     } else if ((tipo_field.newInstance()) instanceof ItemTabEstruturada) {
                         int intValue = (int) new_value;
@@ -725,18 +748,36 @@ public final class RestUtils {
                         }
 
                         field.set(obj, value);
-                    } else if (tipo_field instanceof Object
-                            && findFieldByAnnotation(tipo_field, Id.class) != null) {
+                    } else if (tipo_field instanceof Object) {
                         try {
-                            Integer idValue = null;
-                            if (new_value instanceof String) {
-                                idValue = Integer.parseInt((String) new_value);
+                            if (jsonModelAdapter != null) {
+                                Integer idValue = null;
+                                if (new_value instanceof String) {
+                                    idValue = Integer.parseInt((String) new_value);
+                                } else {
+                                    idValue = ((Double) new_value).intValue();
+                                }
+                                if (idValue > 0) {
+                                    Object model = jsonModelAdapter.findById(tipo_field, idValue);
+                                    field.set(obj, model);
+                                }else{
+                                    field.set(obj, null);
+                                }
                             } else {
-                                idValue = ((Double) new_value).intValue();
-                            }
-                            if (idValue > 0 && jsonModelAdapter != null) {
-                                Object model = jsonModelAdapter.findById(tipo_field, idValue);
-                                field.set(obj, model);
+                                Class<?> jsonClass = field.getType();
+
+                                Object objItem = null;
+
+                                try {
+                                    objItem = jsonClass.getConstructor().newInstance();
+                                } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                                    throw new RestApiException("Não consegue instanciar a classe " + jsonClass.getSimpleName() + ".");
+                                }
+
+                                Map objMap = (Map) new_value;
+                                setValuesFromMap(objItem, objMap);
+                                field.set(obj, objItem);
+
                             }
                         } catch (IllegalArgumentException | IllegalAccessException e) {
                             throw new RestApiException(field_name + " inválido.");
@@ -745,6 +786,7 @@ public final class RestUtils {
                         throw new RestApiException("Não suporta o tipo de dado do campo " + field_name + ".");
                     }
                 } catch (IllegalAccessException | RestApiException | InstantiationException e) {
+                    logger.log(Level.SEVERE, e.getMessage());
                     throw new RestApiException("Campo " + field_name + " inválido. Motivo: " + e.getMessage());
                 }
             }
@@ -855,6 +897,10 @@ public final class RestUtils {
      */
     public static <T> T fromJson(final String jsonString, final Class<T> classOfObj) throws Exception {
         return (T) fromJson(jsonString, classOfObj, null);
+    }
+
+    public static <T> T fromGson(final String jsonString, final Class<T> classOfObj) throws Exception {
+        return (T) gson.fromJson(jsonString, classOfObj);
     }
 
     /**
