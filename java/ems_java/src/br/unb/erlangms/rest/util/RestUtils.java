@@ -17,6 +17,7 @@ import com.google.gson.JsonSerializer;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
+import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -49,6 +50,7 @@ import javax.persistence.OneToOne;
 import javax.persistence.Query;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
+import javax.xml.bind.annotation.XmlEnumValue;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.hibernate.Hibernate;
@@ -74,10 +76,50 @@ public final class RestUtils {
     private static Gson gson = null;
     private static Gson gson2 = null;
 
+    public static class EnumAdapterFactory implements TypeAdapterFactory {
+
+        @Override
+        public <T> TypeAdapter<T> create(final Gson gson, final TypeToken<T> type) {
+            Class<? super T> rawType = type.getRawType();
+            if (rawType.isEnum()) {
+                return new EnumTypeAdapter<T>();
+            }
+            return null;
+        }
+
+        public class EnumTypeAdapter<T> extends TypeAdapter<T> {
+
+            @Override
+            public void write(JsonWriter out, T value) throws IOException {
+                if (value == null || !value.getClass().isEnum()) {
+                    out.nullValue();
+                    return;
+                }
+
+                out.beginObject();
+                out.name("value");
+                if (value.getClass().isAnnotationPresent(SerializedName.class)) {
+                    out.value(value.getClass().getAnnotation(SerializedName.class).value());
+                } else if (value.getClass().isAnnotationPresent(XmlEnumValue.class)) {
+                    out.value(value.getClass().getAnnotation(XmlEnumValue.class).value());
+                }
+                out.value(value.toString());
+                out.endObject();
+            }
+
+            public T read(JsonReader in) throws IOException {
+                // Properly deserialize the input (if you use deserialization)
+                return null;
+            }
+        }
+    }
+
     static {
+
         gson = new GsonBuilder()
                 .setExclusionStrategies(new SerializeStrategy())
                 .setDateFormat(dateFormatDDMMYYYY)
+                //.registerTypeAdapterFactory(new EnumAdapterFactory())
                 //.serializeNulls() <-- uncomment to serialize NULL fields as well
                 .registerTypeAdapter(BigDecimal.class, new JsonSerializer<BigDecimal>() {
                     @Override
@@ -149,6 +191,13 @@ public final class RestUtils {
                     @Override
                     public JsonElement serialize(XMLGregorianCalendar value, Type typeOfSrc, JsonSerializationContext context) {
                         return new JsonPrimitive(value.toXMLFormat());
+                    }
+                })
+                .registerTypeAdapter(XMLGregorianCalendar.class, new JsonDeserializer<XMLGregorianCalendar>() {
+                    @Override
+                    public XMLGregorianCalendar deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+                        Object dt = json.getAsJsonObject();
+                        return (XMLGregorianCalendar) dt;
                     }
                 })
                 .registerTypeAdapter(java.util.Date.class, new JsonDeserializer<java.util.Date>() {
@@ -498,8 +547,12 @@ public final class RestUtils {
                     try {
                         field = class_obj.getDeclaredField(field_name);
                     } catch (NoSuchFieldException e) {
-                        // Ignora o campo quando ele Não existe
-                        continue;
+                        try {
+                            field = class_obj.getDeclaredField(field_name.toLowerCase());
+                        } catch (NoSuchFieldException e2) {
+                            // Ignora o campo quando ele Não existe
+                            continue;
+                        }
                     }
                     field.setAccessible(true);
                     Object new_value = values.get(field_name);
@@ -701,19 +754,23 @@ public final class RestUtils {
                         Type type = field.getAnnotatedType().getType();
                         ParameterizedType paramType = (ParameterizedType) type;
                         Class<?> jsonClass = (Class<?>) paramType.getActualTypeArguments()[0];
-                        List<Map> lista = (List<Map>) new_value;
-                        List lista2 = new ArrayList<>();
-                        for (Map item : lista) {
-                            Object objItem = null;
-                            try {
-                                objItem = jsonClass.getConstructor().newInstance();
-                            } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                                throw new RestApiException("Não consegue instanciar a classe " + jsonClass.getSimpleName() + ".");
+                        if (jsonClass == String.class) {
+                            field.set(obj, new_value);
+                        } else {
+                            List<Map> lista = (List<Map>) new_value;
+                            List lista2 = new ArrayList<>();
+                            for (Map item : lista) {
+                                Object objItem = null;
+                                try {
+                                    objItem = jsonClass.getConstructor().newInstance();
+                                } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                                    throw new RestApiException("Não consegue instanciar a classe " + jsonClass.getSimpleName() + ".");
+                                }
+                                setValuesFromMap(objItem, item);
+                                lista2.add(objItem);
                             }
-                            setValuesFromMap(objItem, item);
-                            lista2.add(objItem);
+                            field.set(obj, lista2);
                         }
-                        field.set(obj, lista2);
                     } else if (tipo_field.isEnum()) {
                         try {
                             Integer idValue = null;
@@ -760,7 +817,7 @@ public final class RestUtils {
                                 if (idValue > 0) {
                                     Object model = jsonModelAdapter.findById(tipo_field, idValue);
                                     field.set(obj, model);
-                                }else{
+                                } else {
                                     field.set(obj, null);
                                 }
                             } else {
@@ -897,10 +954,6 @@ public final class RestUtils {
      */
     public static <T> T fromJson(final String jsonString, final Class<T> classOfObj) throws Exception {
         return (T) fromJson(jsonString, classOfObj, null);
-    }
-
-    public static <T> T fromGson(final String jsonString, final Class<T> classOfObj) throws Exception {
-        return (T) gson.fromJson(jsonString, classOfObj);
     }
 
     /**
