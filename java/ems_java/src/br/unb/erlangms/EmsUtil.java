@@ -5,7 +5,7 @@
  * @doc Funções úteis
  * @author Everton de Vargas Agilar <evertonagilar@gmail.com>
  * @copyright ErlangMS Team
- ********************************************************************
+ * *******************************************************************
  */
 package br.unb.erlangms;
 
@@ -19,12 +19,6 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPid;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
-import com.google.gson.Gson;
-import com.google.gson.TypeAdapter;
-import com.google.gson.TypeAdapterFactory;
-import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -96,8 +90,6 @@ import net.sf.jasperreports.engine.JasperPrint;
 import net.sf.jasperreports.engine.JasperReport;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import net.sf.jasperreports.engine.util.JRLoader;
-import org.hibernate.Hibernate;
-import org.hibernate.proxy.HibernateProxy;
 
 public final class EmsUtil {
 
@@ -110,19 +102,11 @@ public final class EmsUtil {
     public static final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
     public static final Logger logger = Logger.getLogger("erlangms");
     public static EmsProperties properties = null;
-    private static MessageDigest messageDigestSHA1 = null;
-    private static java.util.Base64.Encoder base64Encoder = null;
     private final static String HEX = "0123456789ABCDEF";
     private final static String seed = "LDAPCorp_pwdupdate";
     private static String[] args = null;
 
     static {
-        try {
-            messageDigestSHA1 = MessageDigest.getInstance("SHA-1");
-        } catch (NoSuchAlgorithmException e1) {
-            e1.printStackTrace();
-        }
-        base64Encoder = java.util.Base64.getEncoder();
         properties = getProperties();
     }
 
@@ -149,53 +133,6 @@ public final class EmsUtil {
             }
         }
         return value;
-    }
-
-    /**
-     * This TypeAdapter unproxies Hibernate proxied objects, and serializes them
-     * through the registered (or default) TypeAdapter of the base class.
-     */
-    public static class HibernateProxyTypeAdapter extends TypeAdapter<HibernateProxy> {
-
-        public final static TypeAdapterFactory FACTORY = new TypeAdapterFactory() {
-            @Override
-            @SuppressWarnings("unchecked")
-            public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
-                return (HibernateProxy.class.isAssignableFrom(type.getRawType()) ? (TypeAdapter<T>) new HibernateProxyTypeAdapter(gson) : null);
-            }
-        };
-        private final Gson context;
-
-        private HibernateProxyTypeAdapter(Gson context) {
-            this.context = context;
-        }
-
-        @Override
-        public HibernateProxy read(JsonReader in) throws IOException {
-            throw new UnsupportedOperationException("Not supported");
-        }
-
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        @Override
-        public void write(JsonWriter out, HibernateProxy value) throws IOException {
-            if (value == null) {
-                out.nullValue();
-                return;
-            }
-            try {
-                // Retrieve the original (not proxy) class
-                Class<?> baseType = Hibernate.getClass(value);
-                // Get the TypeAdapter of the original class, to delegate the serialization
-                TypeAdapter delegate = context.getAdapter(TypeToken.get(baseType));
-                // Get a filled instance of the original class
-                Object unproxiedValue = ((HibernateProxy) value).getHibernateLazyInitializer()
-                        .getImplementation();
-                // Serialize the value
-                delegate.write(out, unproxiedValue);
-            } catch (final Exception e) {
-                out.nullValue();
-            }
-        }
     }
 
     /**
@@ -329,7 +266,7 @@ public final class EmsUtil {
     }
 
     @SuppressWarnings("rawtypes")
-    public static byte[] toByteArray(List new_value) {
+    public static byte[] toByteArray(final List new_value) {
         final int n = new_value.size();
         byte ret[] = new byte[n];
         for (int i = 0; i < n; i++) {
@@ -1038,12 +975,12 @@ public final class EmsUtil {
     private static EmsProperties getProperties() {
         EmsProperties prop = new EmsProperties();
 
-		// Atenção: ems_daemon_params deve ser o primeiro parâmetro lido das propriedades
+        // Atenção: ems_daemon_params deve ser o primeiro parâmetro lido das propriedades
         // pois os próximos parâmetros podem ser armazenados em ems_daemon_params ou obtidos das properties da JVM
         String tmp_daemon_params = getProperty("ems_daemon_params");
         if (tmp_daemon_params != null) {
             try {
-				// O barramento vai passar sempre como base64
+                // O barramento vai passar sempre como base64
                 // mas na IDE o desenvolvedor pode passar texto puro
                 if (tmp_daemon_params.startsWith("base64:")) {
                     prop.daemon_params_encode = "base64";
@@ -1141,7 +1078,7 @@ public final class EmsUtil {
         prop.authorizationHeaderName = "Authorization";
         prop.authorizationHeaderValue = "Basic " + toBase64(usernameAndPassword);
 
-       // SMTP properties
+        // SMTP properties
         String tmp_smtp = getProperty("ems_smtp");
         if (tmp_smtp != null) {
             prop.smtp = tmp_smtp;
@@ -1174,7 +1111,7 @@ public final class EmsUtil {
             prop.smtpPasswd = "123456";
         }
 
-	   // LDAP properties
+        // LDAP properties
         String tmp_ldap_url = getProperty("ems_ldap_url");
         if (tmp_ldap_url != null) {
             if (tmp_ldap_url.indexOf(":") == -1) {
@@ -1526,7 +1463,12 @@ public final class EmsUtil {
      */
     public static String toSHA1(final String value) {
         if (value != null) {
-            return new String(messageDigestSHA1.digest(value.getBytes()));
+            try {
+                MessageDigest messageDigestSHA1 = MessageDigest.getInstance("SHA-1");
+                return new String(messageDigestSHA1.digest(value.getBytes()));
+            } catch (NoSuchAlgorithmException ex) {
+                throw new RuntimeException(ex.getMessage());
+            }
         } else {
             return "";
         }
@@ -1541,9 +1483,11 @@ public final class EmsUtil {
      */
     public static String toBase64(final String value) {
         if (value != null) {
+            java.util.Base64.Encoder base64Encoder = java.util.Base64.getEncoder();
             return base64Encoder.encodeToString(value.getBytes());
         } else {
             return "";
+
         }
     }
 
@@ -1581,9 +1525,12 @@ public final class EmsUtil {
                 StringBuilder where = null;
                 Map<String, Object> filtro_obj = null;
                 boolean useAnd = false;
-                filtro_obj = (Map<String, Object>) EmsUtil.fromJson(filter, HashMap.class);
+                filtro_obj
+                        = (Map<String, Object>) EmsUtil.fromJson(filter, HashMap.class
+                        );
                 where = new StringBuilder(" where ");
-                for (String field : filtro_obj.keySet()) {
+                for (String field
+                        : filtro_obj.keySet()) {
                     if (useAnd) {
                         where.append(" and ");
                     }
@@ -1624,6 +1571,7 @@ public final class EmsUtil {
                     }
                     useAnd = true;
                 }
+
                 return new EmsFilterStatement(where, filtro_obj);
             } catch (Exception e) {
                 throw new EmsValidationException("Filtro da pesquisa inválido. Erro interno: " + e.getMessage());
@@ -1727,9 +1675,7 @@ public final class EmsUtil {
     }
 
     public static String decode64(String str) {
-
         String strdec = "";
-
         try {
             Base64.Decoder dec = Base64.getDecoder();
             strdec = new String(dec.decode(str.getBytes("UTF-8")));
@@ -1825,14 +1771,14 @@ public final class EmsUtil {
         }
     }
 
-	//
+    //
     // Obtém o pid do processo atual
     //
     public static String getMeuPid() {
         return java.lang.management.ManagementFactory.getRuntimeMXBean().getName().split("@")[0];
     }
 
-	//
+    //
     // Captura o sinal enviado por kill para finalizar o processo e faça o encerramento corretamente.
     // Agilar: Para ctrl + c ou kill [processo]. O poderoso kill -9 não é capturado, portanto seja legal e não use o parâmetro -9.
     //
@@ -1846,7 +1792,7 @@ public final class EmsUtil {
         });
     }
 
-	//
+    //
     // Lê o pid de um processo armazenado em um arquivo pid.
     //
     public static Integer lePid(final String fileNamePidProcesso) throws NumberFormatException, IOException {
@@ -1884,7 +1830,7 @@ public final class EmsUtil {
         return "";
     }
 
-	//
+    //
     // Mata um processo pelo seu pid
     //
     public static void kill(Integer pid, boolean force) {
@@ -1918,7 +1864,7 @@ public final class EmsUtil {
         }
     }
 
-	//
+    //
     // Retorna true/false se está rodando no Linux
     //
     public static boolean isLinuxOS() {
@@ -2101,7 +2047,7 @@ public final class EmsUtil {
 
             }
 
-			// Os parâmetros podem vir de args do método main também
+            // Os parâmetros podem vir de args do método main também
             // para isso, a aplicação precisa invocar EmsUtil.setArgs()
             if (args != null) {
                 try {
@@ -2270,7 +2216,7 @@ public final class EmsUtil {
                     if (isAlive()) {
                         try {
                             try {
-								// Pode travar e não voltar -^-
+                                // Pode travar e não voltar -^-
                                 // Se ficar muito tempo travado o barramento vai matar o processo e subir uma nova instância
                                 //query.getSingleResult();
                             } catch (Exception e) {
@@ -2336,7 +2282,7 @@ public final class EmsUtil {
                             }
                             numeroTentativas = 1; // O contador é zerado quando o arquivo é verificado com sucesso
                         } catch (Exception e) {
-					    	// O processo será encerrado somente na terceira tentativa
+                            // O processo será encerrado somente na terceira tentativa
                             // antes disso, somente um alerta no log será feito
                             if (numeroTentativas > 3) {
                                 logger.info("Fatal: O processo será encerrado pois está travado. Erro interno: " + e.getMessage());

@@ -29,11 +29,13 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -51,6 +53,8 @@ import javax.persistence.Query;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.xml.bind.annotation.XmlEnumValue;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.hibernate.Hibernate;
@@ -82,7 +86,7 @@ public final class RestUtils {
         public <T> TypeAdapter<T> create(final Gson gson, final TypeToken<T> type) {
             Class<? super T> rawType = type.getRawType();
             if (rawType.isEnum()) {
-                return new EnumTypeAdapter<T>();
+                return new EnumTypeAdapter<>();
             }
             return null;
         }
@@ -197,7 +201,7 @@ public final class RestUtils {
                     @Override
                     public XMLGregorianCalendar deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
                         Object dt = json.getAsJsonObject();
-                        return (XMLGregorianCalendar) dt;
+                        return doubleToXmlGregorianCalendar((Double)dt);
                     }
                 })
                 .registerTypeAdapter(java.util.Date.class, new JsonDeserializer<java.util.Date>() {
@@ -597,6 +601,26 @@ public final class RestUtils {
                         } else {
                             field.set(obj, BigDecimal.valueOf((double) new_value));
                         }
+                    } else if (tipo_field == BigInteger.class) {
+                        if (new_value instanceof String) {
+                            field.set(obj, BigInteger.valueOf(Long.parseLong((String) new_value)));
+                        } else if (new_value instanceof Double) {
+                            field.set(obj, BigInteger.valueOf(((Double) new_value).longValue()));
+                        } else if (new_value instanceof Long) {
+                            field.set(obj, BigInteger.valueOf((long) new_value));
+                        } else {
+                            final String m_erro = field_name + " não é um BigInteger válido.";
+                            throw new RestApiException(m_erro);
+                        }
+                    } else if (tipo_field == XMLGregorianCalendar.class) {
+                        if (new_value instanceof Double) {
+                            field.set(obj, doubleToXmlGregorianCalendar(((Double) new_value)));
+                        } else if (new_value instanceof Long) {
+                            field.set(obj, doubleToXmlGregorianCalendar(((Long) new_value)));
+                        } else {
+                            final String m_erro = field_name + " não é um XMLGregorianCalendar válido.";
+                            throw new RestApiException(m_erro);
+                        }
                     } else if (tipo_field == String.class) {
                         if (new_value instanceof String) {
                             field.set(obj, new_value);
@@ -673,6 +697,10 @@ public final class RestUtils {
                                     throw new RestApiException(m_erro);
                                 }
                             }
+                        }else if (new_value instanceof Double) {
+                            field.set(obj, new Date(((Double) new_value).longValue()));
+                        }else if (new_value instanceof Long) {
+                            field.set(obj, new Date((Long) new_value));
                         } else {
                             throw new RestApiException(m_erro);
                         }
@@ -1730,6 +1758,33 @@ public final class RestUtils {
             return str.replaceAll("\\s+", "");
         }
         return str;
+    }
+
+    public static XMLGregorianCalendar doubleToXmlGregorianCalendar(double value) {
+        Date date = new Date(((Double) value).longValue());
+        try {
+            GregorianCalendar cal = new GregorianCalendar();
+            cal.setGregorianChange(date);
+            XMLGregorianCalendar xmlGregorianCalendar = DatatypeFactory.newInstance().newXMLGregorianCalendar(cal);
+            return xmlGregorianCalendar;
+        } catch (DatatypeConfigurationException ex) {
+            throw new RestApiException("O valor %d não é uma data válida. Erro interno: %s.", value, ex.getMessage());
+        }
+    }
+
+    public static XMLGregorianCalendar dateToXmlGregorianCalendar(final Date value) {
+        if (value != null) {
+            try {
+                GregorianCalendar cal = new GregorianCalendar();
+                cal.setGregorianChange(value);
+                XMLGregorianCalendar xmlGregorianCalendar = DatatypeFactory.newInstance().newXMLGregorianCalendar(cal);
+                return xmlGregorianCalendar;
+            } catch (DatatypeConfigurationException ex) {
+                throw new RestApiException("O valor %s não é uma data válida. Erro interno: %s.", value.toString(), ex.getMessage());
+            }
+        } else {
+            throw new RestApiException("Informe uma data válida.");
+        }
     }
 
 }

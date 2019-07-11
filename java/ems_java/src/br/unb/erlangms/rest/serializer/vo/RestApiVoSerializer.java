@@ -18,7 +18,7 @@ import javax.persistence.Entity;
 /**
  * Classe que implementa a serialização para VO (Value Objects)
  *
- * @author Everton de Vargas Agilar 
+ * @author Everton de Vargas Agilar
  * @version 1.0.0
  * @since 17/04/2019
  *
@@ -53,7 +53,7 @@ public class RestApiVoSerializer implements IRestApiSerializerStrategy {
 
             // Se o objeto for um array, então vamos serializar uma lista de objetos
             if (obj instanceof ArrayList) {
-                // Atribui nesta variável para  Não precisar tanto cast j� que sabemos que eh um array
+                // Atribui nesta variável para  Não precisar tanto cast já que sabemos que eh um array
                 ArrayList list = (ArrayList) obj;
 
                 // Se a lista for vazio, então vamos serializar uma lista vazia
@@ -61,7 +61,7 @@ public class RestApiVoSerializer implements IRestApiSerializerStrategy {
                     return new ArrayList();
                 }
 
-                // Se a lista cont�m elementos do tipo Entity, então podemos chamar recursivamente
+                // Se a lista contém elementos do tipo Entity, então podemos chamar recursivamente
                 // toVo para cada entidade do array
                 if (list.get(0) instanceof Entity) {
                     List<Object> result = (List<Object>) list.stream()
@@ -70,7 +70,7 @@ public class RestApiVoSerializer implements IRestApiSerializerStrategy {
                     estimatedSize += result.size() * 100;
                     return result;
                 } else {
-                    // Bom, j� que  não é um array de Entity, deve ser um array de array
+                    // Bom, já que  não é um array de Entity, deve ser um array de array
                     if (fieldNamesList != null && (fieldNamesList.size() > 0)) {
                         // Quando � um array de arrays ou seja um array de registros e
                         // cada registro tem outro array com as colunas

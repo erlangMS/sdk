@@ -1,5 +1,9 @@
 package br.unb.erlangms.rest.util;
 
+import java.lang.reflect.Field;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * <p>Funções úteis para trabalhar com enums</p>
  *
@@ -46,7 +50,21 @@ public final class EnumUtils {
                                  return t;
                              }
                         }else{
-                            if(t.name().equalsIgnoreCase(value) || t.toString().equalsIgnoreCase(value)) {
+                           try {
+                               Field fld = t.getClass().getField(t.name());
+                               Object value2 = fld.get("value");
+                               System.out.println(fld.toString());
+                           } catch (NoSuchFieldException ex) {
+                               Logger.getLogger(EnumUtils.class.getName()).log(Level.SEVERE, null, ex);
+                           } catch (SecurityException ex) {
+                               Logger.getLogger(EnumUtils.class.getName()).log(Level.SEVERE, null, ex);
+                           } catch (IllegalArgumentException ex) {
+                               Logger.getLogger(EnumUtils.class.getName()).log(Level.SEVERE, null, ex);
+                           } catch (IllegalAccessException ex) {
+                               Logger.getLogger(EnumUtils.class.getName()).log(Level.SEVERE, null, ex);
+                           }
+
+                           if(t.name().equalsIgnoreCase(value) || t.toString().equalsIgnoreCase(value)) {
                                  return t;
                              }
                          }
