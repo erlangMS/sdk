@@ -167,7 +167,6 @@ public final class EmsUtil {
      * @param classOfObj	Classe do objeto que será serializado
      * @return objeto
      * @author Everton de Vargas Agilar
-     * @throws java.lang.Exception exception
      */
     public static <T> T fromJson(final String jsonString, final Class<T> classOfObj) {
         try {
@@ -1464,7 +1463,17 @@ public final class EmsUtil {
     }
 
     /**
-     * Envia e-mail no formato HTML recebendo configurações do servidor.
+     * Permite enviar um e-mail em formato HTML
+     * @param mailServerHost
+     * @param mailServerPort mailServerPort
+     * @param username username
+     * @param password password
+     * @param fromAddress fromAddress
+     * @param to to
+     * @param subject subject
+     * @param content content
+     * @param attachment attachment
+     * @param isTTLS isTTLS
      */
     public static void sendHtmlMail(String mailServerHost,
     								int mailServerPort,

@@ -468,7 +468,6 @@ public abstract class EmsRepository<Model> implements Serializable {
 	 * @param offset A partir de que posição. Iniciando em 1
 	 * @param sort trazer ordenado por quais campos o conjunto de dados
 	 * @param owner Objeto pai
-         * @throws Exception exception
 	 * @return lista dos objetos
 	 * @author André Luciano Claret
          */
