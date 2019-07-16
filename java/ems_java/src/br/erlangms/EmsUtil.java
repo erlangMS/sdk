@@ -1742,7 +1742,8 @@ public final class EmsUtil {
         public int smtpPort;			  		// Ex: 25
 		public String smtp;				  		// Ex: smtp.unb.br
 		public String smtpFrom;			  		// Ex: evertonagilar@unb.br
-		public String smtpPasswd;		  
+		public String smtpPasswd;	
+		public boolean isTTLS = true;
 
 		// ldap
     	public String ldapUrl;					// Ex: ldap://localhost:2389
@@ -2001,6 +2002,8 @@ public final class EmsUtil {
         private String subject;
         private String content;
         private String[] attachFileNames={};
+        private boolean isTTSL = true;
+
 
         private boolean withAttachment=true;
         public boolean isWithAttachment() {
@@ -2016,10 +2019,15 @@ public final class EmsUtil {
             p.put("mail.smtp.host", this.mailServerHost);
             p.put("mail.smtp.port", this.mailServerPort);
             p.put("mail.smtp.auth", validate ? "true" : "false");
+            p.put("mail.smtp.starttls.enable",isTTSL);
             return p;
         }
 
-        public void setMailServerHost(String mailServerHost) {
+		public void setTTLS(boolean isTTSL) {
+			this.isTTSL = isTTSL;
+		}
+
+		public void setMailServerHost(String mailServerHost) {
             this.mailServerHost = mailServerHost;
         }
 
@@ -2122,7 +2130,8 @@ public final class EmsUtil {
     public static void sendTextMail(final String to, 
     								final String subject, 
     								final String content,
-    								final String[] attachment) {
+    								final String[] attachment 
+    								) {
     	MailSenderInfo mailInfo = new MailSenderInfo();
         mailInfo.setMailServerHost(properties.smtp);
         mailInfo.setMailServerPort(Integer.toString(properties.smtpPort));
@@ -2133,6 +2142,9 @@ public final class EmsUtil {
         mailInfo.setToAddress(to);
         mailInfo.setSubject(subject);
         mailInfo.setContent(content);
+        mailInfo.setTTLS(properties.isTTLS);
+        
+        
         if (attachment != null && attachment.length != 0){
             mailInfo.setAttachFileNames(attachment);
         }else{
@@ -2141,6 +2153,7 @@ public final class EmsUtil {
         
         MyAuthenticator authenticator = null;
         Properties pro = mailInfo.getProperties();
+        
         if (mailInfo.isValidate()) {
             authenticator = new MyAuthenticator(mailInfo.getUserName(), mailInfo.getPassword());
         }
@@ -2177,6 +2190,33 @@ public final class EmsUtil {
         }
     }
 
+    
+    /**
+     * Envia e-mail no formato HTML recebendo configurações do servidor.
+     */
+    public static void sendHtmlMail(String mailServerHost,
+    								int mailServerPort,
+    								String username,
+    								String password,
+    								String fromAddress,
+    								String to,
+    								String subject, 
+    								String content,
+    								String[] attachment,
+    								boolean isTTLS) {
+    	
+    	properties.smtp = mailServerHost;
+    	properties.smtpPort = mailServerPort;
+    	properties.smtpFrom = username;
+    	properties.smtpPasswd = password;
+    	properties.isTTLS = isTTLS;
+    	
+    	sendHtmlMail(to, subject, content, attachment);
+    	
+    }
+    
+    
+    
 	/**
 	 * Permite enviar um e-mail em formato HTML com uma lista de anexos. (private porque ainda não funciona)
 	 * 
@@ -2199,6 +2239,7 @@ public final class EmsUtil {
 									 final String subject, 
 									 final String content,
 									 final String[] attachment){
+    	
     	MailSenderInfo mailInfo = new MailSenderInfo();
         mailInfo.setMailServerHost(properties.smtp);
         mailInfo.setMailServerPort(Integer.toString(properties.smtpPort));
@@ -2209,6 +2250,9 @@ public final class EmsUtil {
         mailInfo.setToAddress(to);
         mailInfo.setSubject(subject);
         mailInfo.setContent(content);
+        mailInfo.setTTLS(properties.isTTLS);
+        
+        
         if (attachment != null && attachment.length != 0){
             mailInfo.setAttachFileNames(attachment);
         }else{
@@ -2218,11 +2262,17 @@ public final class EmsUtil {
     	
         MyAuthenticator authenticator = null;
         Properties pro = mailInfo.getProperties();
+        
+        
         if (mailInfo.isValidate()) {
         	authenticator = new MyAuthenticator(mailInfo.getUserName(), mailInfo.getPassword());
         }
+        
         Session sendMailSession = Session.getDefaultInstance(pro,authenticator);
+        
+        
         try {
+        	
             Message mailMessage = new MimeMessage(sendMailSession);
             Address from = new InternetAddress(mailInfo.getFromAddress());
             mailMessage.setFrom(from);
@@ -2238,17 +2288,19 @@ public final class EmsUtil {
 
             BodyPart bodyPart=new MimeBodyPart();
             Multipart multipart=new MimeMultipart();
+            
             if(mailInfo.getAttachFileNames().length!=0){
-//                    for(int i=0;i<mailInfo.getAttachFileNames().length;i++) {
-                DataSource source = new FileDataSource(mailInfo.getAttachFileNames()[0]);
+            
+            	DataSource source = new FileDataSource(mailInfo.getAttachFileNames()[0]);
                 bodyPart.setDataHandler(new DataHandler(source));
                 bodyPart.setFileName(mailInfo.getAttachFileNames()[0]);
                 multipart.addBodyPart(bodyPart);
-//                    }
                 mailMessage.setContent(multipart);
+            
             }
             
             Transport.send(mailMessage);
+        
         } catch (MessagingException ex) {
         	throw new EmsValidationException("Não foi possível enviar e-mail para "+ to + ". Erro interno: "+ ex.getMessage());
         }
