@@ -9,6 +9,7 @@
  */
 package br.unb.erlangms;
 
+import br.unb.erlangms.rest.exception.RestApiException;
 import br.unb.erlangms.rest.util.RestUtils;
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
@@ -168,8 +169,14 @@ public final class EmsUtil {
      * @author Everton de Vargas Agilar
      * @throws java.lang.Exception exception
      */
-    public static <T> T fromJson(final String jsonString, final Class<T> classOfObj) throws Exception {
-        return RestUtils.fromJson(jsonString, classOfObj);
+    public static <T> T fromJson(final String jsonString, final Class<T> classOfObj) {
+        try {
+			return RestUtils.fromJson(jsonString, classOfObj);
+        } catch (RestApiException e) {
+        	throw e;
+    	} catch (Exception e) {
+			throw new RestApiException("Ocorreu um erro ao serializar. Erro interno: "+ e.getMessage());
+		}
     }
 
     /**
@@ -950,6 +957,7 @@ public final class EmsUtil {
         public String smtp;				  		// Ex: smtp.unb.br
         public String smtpFrom;			  		// Ex: evertonagilar@unb.br
         public String smtpPasswd;
+        public boolean isTTLS = true;
 
         // ldap
         public String ldapUrl;					// Ex: ldap://localhost:2389
@@ -1455,6 +1463,30 @@ public final class EmsUtil {
         }
     }
 
+    /**
+     * Envia e-mail no formato HTML recebendo configurações do servidor.
+     */
+    public static void sendHtmlMail(String mailServerHost,
+    								int mailServerPort,
+    								String username,
+    								String password,
+    								String fromAddress,
+    								String to,
+    								String subject, 
+    								String content,
+    								String[] attachment,
+    								boolean isTTLS) {
+    	
+    	properties.smtp = mailServerHost;
+    	properties.smtpPort = mailServerPort;
+    	properties.smtpFrom = username;
+    	properties.smtpPasswd = password;
+    	properties.isTTLS = isTTLS;
+    	
+    	sendHtmlMail(to, subject, content, attachment);
+    	
+    }
+    
     /**
      * Algoritmo SHA-1
      *

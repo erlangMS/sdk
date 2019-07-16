@@ -121,7 +121,7 @@ public class EmsServiceStream {
 		return (List<Object>) EmsUtil.fromJson(response.toString(), List.class);
 	}
 
-	public <T> T getObject(Class<T> classOfModel) throws Exception {
+	public <T> T getObject(Class<T> classOfModel) {
 		return (T) EmsUtil.fromJson(response, classOfModel);
 	}
 

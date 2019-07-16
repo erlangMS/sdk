@@ -473,7 +473,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 	 * @author André Luciano Claret
          */
 	@SuppressWarnings("unchecked")
-	public List<Model> find(final String filter, final String fields, int limit, int offset, final String sort, final Object owner) throws Exception{
+	public List<Model> find(final String filter, final String fields, int limit, int offset, final String sort, final Object owner){
 		String new_filter = null;
 		String fieldName = null;
 		Integer idOwner;
