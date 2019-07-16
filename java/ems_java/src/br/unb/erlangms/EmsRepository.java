@@ -44,8 +44,8 @@ public abstract class EmsRepository<Model> implements Serializable {
 	private Field idField = null;
 	private String idFieldName = null;
 	private Column idFieldColumn = null;
-	private List<String> cachedNamedQuery = new ArrayList<String>();
-	private List<String> cachedNativeNamedQuery = new ArrayList<String>();
+	private final List<String> cachedNamedQuery = new ArrayList<>();
+	private final List<String> cachedNativeNamedQuery = new ArrayList<>();
 	private boolean hasContraints = false;
 	private Table tableAnnotation = null;
 	private UniqueConstraint[] tableContrains = null;
@@ -138,12 +138,12 @@ public abstract class EmsRepository<Model> implements Serializable {
 	 */
 	public List<Map<String, Object>> findAsMap(final IEmsRequest request){
 		if (request != null){
-			String filter = request.getQuery("filter");
-			String fields = request.getQuery("fields");
-			int limit = request.getQueryAsInt("limit", 100);
-			int offset = request.getQueryAsInt("offset", 0);
-			String sort = request.getQuery("sort");
-			return findAsMap(filter, fields, limit, offset, sort);
+			String filterRequest = request.getQuery("filter");
+			String fieldsRequest = request.getQuery("fields");
+			int limitRequest = request.getQueryAsInt("limit", 100);
+			int offsetRequest = request.getQueryAsInt("offset", 0);
+			String sortRequest = request.getQuery("sort");
+			return findAsMap(filterRequest, fieldsRequest, limitRequest, offsetRequest, sortRequest);
 		}else{
 			throw new EmsValidationException("Parâmetro request não pode ser null para EsRepository.findAsMap.");
 		}
@@ -461,16 +461,17 @@ public abstract class EmsRepository<Model> implements Serializable {
 
 
 	/**
-	 * Retorna uma lista de objeto a partir de um objeto pai, utilizando os filtros. Variação do método find, acrescentando o objeto pai.
+	 * Retorna uma lista de objeto a partir de um objeto pai, utilizando os filtros.Variação do método find, acrescentando o objeto pai.
 	 * @param filter objeto json com os campos do filtro. Ex:/ {"nome":"Everton de Vargas Agilar", "ativo":true}
 	 * @param fields lista de campos ou o objeto inteiro se vazio. Ex: "nome, cpf, rg"
 	 * @param limit Quantidade objetos trazer na pesquisa
 	 * @param offset A partir de que posição. Iniciando em 1
 	 * @param sort trazer ordenado por quais campos o conjunto de dados
 	 * @param owner Objeto pai
+         * @throws Exception exception
 	 * @return lista dos objetos
 	 * @author André Luciano Claret
-	 */
+         */
 	@SuppressWarnings("unchecked")
 	public List<Model> find(final String filter, final String fields, int limit, int offset, final String sort, final Object owner) throws Exception{
 		String new_filter = null;

@@ -103,7 +103,7 @@ public final class EmsUtil {
     public static final Logger logger = Logger.getLogger("erlangms");
     public static EmsProperties properties = null;
     private final static String HEX = "0123456789ABCDEF";
-    private final static String seed = "LDAPCorp_pwdupdate";
+    private final static String SEED = "LDAPCorp_pwdupdate";
     private static String[] args = null;
 
     static {
@@ -254,7 +254,7 @@ public final class EmsUtil {
                         try {
                             map.put(field.getName(), field.get(obj));
                         } catch (IllegalArgumentException | IllegalAccessException e1) {
-                            e1.printStackTrace();
+                            throw new EmsValidationException("Não foi possível converter o objeto em um map. Erro interno: "+ e1.getMessage());
                         }
                     }
                 }
@@ -282,6 +282,7 @@ public final class EmsUtil {
      * @param obj Instância de um objeto
      * @param values	Map com chave/valor dos dados que serão aplicados no objeto
      * @param jsonModelAdapter jsonModelAdapter
+     * @throws Exception exception
      * @return Object objeto
      * @author Everton de Vargas Agilar
      */
@@ -1582,13 +1583,13 @@ public final class EmsUtil {
     }
 
     public static String encrypt(String cleartext) throws Exception {
-        byte[] rawKey = getRawKey(seed.getBytes());
+        byte[] rawKey = getRawKey(SEED.getBytes());
         byte[] result = encrypt(rawKey, cleartext.getBytes());
         return toHex(result);
     }
 
     public static String decrypt(String encrypted) throws Exception {
-        byte[] rawKey = getRawKey(seed.getBytes());
+        byte[] rawKey = getRawKey(SEED.getBytes());
         byte[] enc = toByte(encrypted);
         byte[] result = decrypt(rawKey, enc);
         return new String(result);
