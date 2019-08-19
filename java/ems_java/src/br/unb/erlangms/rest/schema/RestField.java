@@ -17,7 +17,7 @@ import org.apache.commons.lang3.time.FastDateFormat;
 /**
  * Classe que representa um campo de um objeto.
  *
- * @author Everton de Vargas Agilar 
+ * @author Everton de Vargas Agilar
  * @version 1.0.0
  * @since 27/03/2019
  *
@@ -272,6 +272,8 @@ public class RestField implements Serializable {
                     result = ((BigInteger) fieldValue).intValue();
                 } else if (fieldValue instanceof BigDecimal) {
                     result = ((BigDecimal) fieldValue).intValue();
+                } else if (fieldValue instanceof Boolean) {
+                    result = ((Boolean) fieldValue) ? 1 : 0;
                 } else {
                     throw new RestApiException(RestApiException.VALOR_ATRIBUTO_INTEGER_INVALIDO, fieldValue, getVoFieldName());
                 }
@@ -443,26 +445,12 @@ public class RestField implements Serializable {
         if (fieldValue != null) {
             if (fieldValue instanceof String) {
                 // ok
-            } else if (fieldValue instanceof Double) {
-                result = fieldValue.toString();
-            } else if (fieldValue instanceof Long) {
-                result = fieldValue.toString();
-            } else if (fieldValue instanceof Integer) {
-                result = fieldValue.toString();
-            } else if (fieldValue instanceof Boolean) {
-                result = fieldValue.toString();
-            } else if (fieldValue instanceof Character) {
-                result = fieldValue.toString();
-            } else if (fieldValue instanceof BigDecimal) {
-                result = fieldValue.toString();
-            } else if (fieldValue instanceof Short) {
-                result = fieldValue.toString();
-            } else if (fieldValue instanceof BigInteger) {
-                result = fieldValue.toString();
             } else if (fieldValue instanceof StringEnum) {
                 result = ((StringEnum) fieldValue).getValue();
+            } else if (fieldValue instanceof java.sql.Date) {
+                result = parseValueAsDate(fieldValue, allowValidate);
             } else {
-                throw new RestApiException(String.format(RestApiException.VALOR_ATRIBUTO_INCOMPATIVEL, getVoFieldName()));
+                result = fieldValue.toString();
             }
 
             if (autoTrim) {

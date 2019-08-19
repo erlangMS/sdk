@@ -14,7 +14,7 @@ import org.apache.commons.lang.reflect.FieldUtils;
 /**
  * Classe de implementação da interface IRestApiSchema
  *
- * @author Everton de Vargas Agilar 
+ * @author Everton de Vargas Agilar
  * @version 1.0.0
  * @since 22/04/2019
  *
@@ -165,6 +165,11 @@ public class RestApiSchema implements IRestApiSchema {
     }
 
     @Override
+    public RestField addFieldAsBoolean(final String voFieldName, final String fieldName) {
+        return createField(voFieldName, fieldName, RestFieldType.BOOLEAN, null, false);
+    }
+
+    @Override
     public RestField addFieldAsLong(String voFieldName, String fieldName) {
         return createField(voFieldName, fieldName, RestFieldType.LONG, null, false);
     }
@@ -274,6 +279,11 @@ public class RestApiSchema implements IRestApiSchema {
     @Override
     public RestField addFieldAsTime(String voFieldName, String fieldName, boolean filterRequired) {
         return createField(voFieldName, fieldName, RestFieldType.TIME, null, filterRequired);
+    }
+
+    @Override
+    public RestField addFieldAsBoolean(String voFieldName, String fieldName, boolean filterRequired) {
+        return createField(voFieldName, fieldName, RestFieldType.BOOLEAN, null, filterRequired);
     }
 
     @Override

@@ -8,7 +8,7 @@ import java.util.Optional;
  * Representa o esquema de dados para um provedor a qual
  * é composto por atributos que devem ser retornados em uma consulta REST.
  *
- * @author Everton de Vargas Agilar 
+ * @author Everton de Vargas Agilar
  * @version 1.0.0
  * @since 22/04/2019
  *
@@ -25,6 +25,7 @@ public interface IRestApiSchema {
     public RestField addFieldAsMonth(final String voFieldName, final String fieldName);
     public RestField addFieldAsYear(final String voFieldName, final String fieldName);
     public RestField addFieldAsEMail(final String voFieldName, final String fieldName);
+    public RestField addFieldAsBoolean(final String voFieldName, final String fieldName);
 
     public RestField addFieldAsExpression(final String voFieldName, final RestFieldExpressionCallback callback);
 
@@ -51,16 +52,11 @@ public interface IRestApiSchema {
     public RestField addFieldAsMonth(final String voFieldName, final String fieldName, boolean filterRequired);
     public RestField addFieldAsYear(final String voFieldName, final String fieldName, boolean filterRequired);
     public RestField addFieldAsEmail(final String voFieldName, final String fieldName, boolean filterRequired);
-
-
-
+    public RestField addFieldAsBoolean(String voFieldName, String fieldName, boolean filterRequired);
 
     public List<RestField> getFieldsList();
     public List<RestField> getRequiredFieldsList();
     public String getVoFields();
     public Optional<RestField> getFieldByVoName(final String voFieldName);
     public IRestApiContract getContract();
-
-
-
 }
