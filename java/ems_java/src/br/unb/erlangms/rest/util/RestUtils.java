@@ -201,7 +201,7 @@ public final class RestUtils {
                     @Override
                     public XMLGregorianCalendar deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
                         Object dt = json.getAsJsonObject();
-                        return doubleToXmlGregorianCalendar((Double)dt);
+                        return doubleToXmlGregorianCalendar((Double) dt);
                     }
                 })
                 .registerTypeAdapter(java.util.Date.class, new JsonDeserializer<java.util.Date>() {
@@ -554,8 +554,16 @@ public final class RestUtils {
                         try {
                             field = class_obj.getDeclaredField(field_name.toLowerCase());
                         } catch (NoSuchFieldException e2) {
-                            // Ignora o campo quando ele Não existe
-                            continue;
+                            try {
+                                field = class_obj.getSuperclass().getDeclaredField(field_name);
+                            } catch (NoSuchFieldException e3) {
+                                try {
+                                    field = class_obj.getSuperclass().getDeclaredField(field_name.toLowerCase());
+                                } catch (NoSuchFieldException e4) {
+                                    // Ignora o campo quando ele Não existe
+                                    continue;
+                                }
+                            }
                         }
                     }
                     field.setAccessible(true);
@@ -697,9 +705,9 @@ public final class RestUtils {
                                     throw new RestApiException(m_erro);
                                 }
                             }
-                        }else if (new_value instanceof Double) {
+                        } else if (new_value instanceof Double) {
                             field.set(obj, new Date(((Double) new_value).longValue()));
-                        }else if (new_value instanceof Long) {
+                        } else if (new_value instanceof Long) {
                             field.set(obj, new Date((Long) new_value));
                         } else {
                             throw new RestApiException(m_erro);
