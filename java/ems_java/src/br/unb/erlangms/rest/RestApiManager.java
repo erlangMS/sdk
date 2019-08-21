@@ -29,7 +29,7 @@ import javax.persistence.Query;
 /**
  * Implementa IRestApiManager e fornece acesso a camada de abstração REST.
  *
- * @author Everton de Vargas Agilar 
+ * @author Everton de Vargas Agilar
  * @version 1.0.0
  * @since 27/03/2019
  *
@@ -76,7 +76,6 @@ public abstract class RestApiManager implements IRestApiManager {
     }
 
     @Override
-    @SuppressWarnings("null")
     public Object find(IRestApiRequest request, final Class apiProviderClass) {
         if (request != null && apiProviderClass != null) {
             try {

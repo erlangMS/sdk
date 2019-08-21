@@ -23,6 +23,7 @@ import org.apache.commons.lang3.time.FastDateFormat;
  *
  */
 public class RestField implements Serializable {
+
     private static final long serialVersionUID = -1554944779502407806L;
     public static final Long MIN_IDENTITY_VALUE = 1L;
     public static final Long MAX_IDENTITY_VALUE = 999999999999L;
@@ -233,12 +234,18 @@ public class RestField implements Serializable {
         return this;
     }
 
-    public Object parseValueAsInteger(final Object fieldValue, boolean allowValidate) {
-        Object result = fieldValue;
+    public Object parseValueAsInteger(Object fieldValue, boolean allowValidate) {
+        Object result;
+
+        if (fieldValue != null && fieldValue instanceof String) {
+             String s = (String) fieldValue;
+             fieldValue = s.isEmpty() ? null : s;
+        }
+
         if (fieldValue != null) {
             try {
                 if (fieldValue instanceof Integer) {
-                    // ok
+                    result = fieldValue;
                 } else if (fieldValue instanceof String) {
                     try {
                         result = Integer.parseInt((String) fieldValue);
@@ -270,6 +277,9 @@ public class RestField implements Serializable {
                     result = ((Short) fieldValue).intValue();
                 } else if (fieldValue instanceof BigInteger) {
                     result = ((BigInteger) fieldValue).intValue();
+                } else if (fieldValue instanceof java.util.Date || fieldValue instanceof java.sql.Date) {
+                    result = parseValueAsDate(fieldValue, allowValidate);
+                    return parseValueAsInteger(result, allowValidate);
                 } else if (fieldValue instanceof BigDecimal) {
                     result = ((BigDecimal) fieldValue).intValue();
                 } else if (fieldValue instanceof Boolean) {
@@ -299,6 +309,8 @@ public class RestField implements Serializable {
         } else {
             if (defaultValue != null) {
                 result = defaultValue;
+            }else{
+                result = fieldValue;
             }
         }
         return result;
@@ -307,17 +319,23 @@ public class RestField implements Serializable {
     /**
      * Parse um objeto String, Double ou Float em um valor Double.
      *
-     * @param fieldValue    	valor String, Double ou Float.
-     * @param allowValidate		indica se permite validar durante o parser
+     * @param fieldValue valor String, Double ou Float.
+     * @param allowValidate	indica se permite validar durante o parser
      * @return Double ou null
      * @author Everton de Vargas Agilar (revisão)
      */
-    public Object parseValueAsDouble(final Object fieldValue, boolean allowValidate) {
-        Object result = fieldValue;
+    public Object parseValueAsDouble(Object fieldValue, boolean allowValidate) {
+        Object result;
+
+        if (fieldValue != null && fieldValue instanceof String) {
+             String s = (String) fieldValue;
+             fieldValue = s.isEmpty() ? null : s;
+        }
+
         if (fieldValue != null) {
             try {
                 if (fieldValue instanceof Double) {
-                    // ok
+                    result = fieldValue;
                 } else if (fieldValue instanceof String) {
                     result = Double.parseDouble((String) fieldValue);
                 } else if (fieldValue instanceof Long) {
@@ -371,17 +389,25 @@ public class RestField implements Serializable {
         } else {
             if (defaultValue != null) {
                 result = defaultValue;
+            }else{
+                result = fieldValue;
             }
         }
         return result;
     }
 
-    public Object parseValueAsLong(final Object fieldValue, boolean allowValidate) {
-        Object result = fieldValue;
+    public Object parseValueAsLong(Object fieldValue, boolean allowValidate) {
+        Object result;
+
+        if (fieldValue != null && fieldValue instanceof String) {
+             String s = (String) fieldValue;
+             fieldValue = s.isEmpty() ? null : s;
+        }
+
         if (fieldValue != null) {
             try {
                 if (fieldValue instanceof Long) {
-                    // ok
+                    result = fieldValue;
                 } else if (fieldValue instanceof String) {
                     result = Long.parseLong((String) fieldValue);
                 } else if (fieldValue instanceof Integer) {
@@ -435,16 +461,24 @@ public class RestField implements Serializable {
         } else {
             if (defaultValue != null) {
                 result = defaultValue;
+            }else{
+                result = fieldValue;
             }
         }
         return result;
     }
 
     public Object parseAsString(Object fieldValue, boolean allowValidate) {
-        Object result = fieldValue;
+        Object result;
+
+        if (fieldValue != null && fieldValue instanceof String) {
+             String s = (String) fieldValue;
+             fieldValue = s.isEmpty() ? null : s;
+        }
+
         if (fieldValue != null) {
             if (fieldValue instanceof String) {
-                // ok
+                result = fieldValue;
             } else if (fieldValue instanceof StringEnum) {
                 result = ((StringEnum) fieldValue).getValue();
             } else if (fieldValue instanceof java.sql.Date) {
@@ -479,6 +513,8 @@ public class RestField implements Serializable {
         } else {
             if (defaultValue != null) {
                 result = defaultValue;
+            }else{
+                result = fieldValue;
             }
         }
         return result;
@@ -491,8 +527,14 @@ public class RestField implements Serializable {
      * @return boolean
      * @author Everton de Vargas Agilar (revisão)
      */
-    public Object parseValueAsBoolean(final Object fieldValue) {
+    public Object parseValueAsBoolean(Object fieldValue) {
         Object result = false;
+
+        if (fieldValue != null && fieldValue instanceof String) {
+             String s = (String) fieldValue;
+             fieldValue = s.isEmpty() ? null : s;
+        }
+
         if (fieldValue != null) {
             if (fieldValue instanceof Boolean) {
                 result = fieldValue;
@@ -527,13 +569,22 @@ public class RestField implements Serializable {
         } else {
             if (defaultValue != null) {
                 result = defaultValue;
+            }else{
+                result = fieldValue;
             }
         }
         return result;
     }
 
-    public Object parseValueAsDate(final Object fieldValue, boolean allowValidate) {
-        Object result = fieldValue;
+    public Object parseValueAsDate(Object fieldValue, boolean allowValidate) {
+        Object result;
+
+        if (fieldValue != null && fieldValue instanceof String) {
+             String s = (String) fieldValue;
+             fieldValue = s.isEmpty() ? null : s;
+        }
+
+
         if (fieldValue != null) {
             String dateFormatSelected = dateFormat;
 
@@ -573,6 +624,8 @@ public class RestField implements Serializable {
         } else {
             if (defaultValue != null) {
                 result = defaultValue;
+            }else{
+                result = fieldValue;
             }
         }
         return result;
@@ -626,7 +679,5 @@ public class RestField implements Serializable {
         this.joinType = joinType;
         return this;
     }
-
-
 
 }

@@ -1464,7 +1464,7 @@ public final class EmsUtil {
 
     /**
      * Permite enviar um e-mail em formato HTML
-     * @param mailServerHost
+     * @param mailServerHost mailServerHost
      * @param mailServerPort mailServerPort
      * @param username username
      * @param password password
@@ -1481,21 +1481,21 @@ public final class EmsUtil {
     								String password,
     								String fromAddress,
     								String to,
-    								String subject, 
+    								String subject,
     								String content,
     								String[] attachment,
     								boolean isTTLS) {
-    	
+
     	properties.smtp = mailServerHost;
     	properties.smtpPort = mailServerPort;
     	properties.smtpFrom = username;
     	properties.smtpPasswd = password;
     	properties.isTTLS = isTTLS;
-    	
+
     	sendHtmlMail(to, subject, content, attachment);
-    	
+
     }
-    
+
     /**
      * Algoritmo SHA-1
      *
