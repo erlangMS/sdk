@@ -39,10 +39,10 @@ public final class RestApiRequest implements IRestApiRequest {
         setFilter(null);
         setFields(null);
         setSort(null);
-        setMaxLimit(REST_API_MAX_LIMIT_VALUE); // deve vir antes de setLimit
-        setLimit(REST_API_DEFAULT_LIMIT_VALUE);
-        setOffset(REST_API_DEFAULT_OFFSET_VALUE);
-        setMaxId(REST_API_MAX_ID_VALUE);
+        setMaxLimit(null); // deve vir antes de setLimit
+        setLimit(null);
+        setOffset(null);
+        setMaxId(null);
         setId(null);
         setDataFormat(REST_API_DEFAULT_DATA_FORMAT);
     }

@@ -14,7 +14,7 @@ import java.util.Optional;
 /**
  * Classe de implementação da IRestApiRequestInternal
  *
- * @author Everton de Vargas Agilar 
+ * @author Everton de Vargas Agilar
  * @version 1.0.0
  * @since 21/03/2019
  *

@@ -535,7 +535,7 @@ public final class RestUtils {
      * Seta os valores no objeto a partir de um map.
      *
      * @param obj Instância de um objeto
-     * @param values Map com chave/valor dos dados que seráo aplicados no objeto
+     * @param values Map com chave/valor dos dados que serão aplicados no objeto
      * @param jsonModelAdapter permite mapear atributos objetos
      * @return Object objeto mapeado
      * @throws java.lang.Exception exception
@@ -547,7 +547,7 @@ public final class RestUtils {
             Class<? extends Object> class_obj = obj.getClass();
             for (String field_name : values.keySet()) {
                 try {
-                    Field field = null;
+                    Field field;
                     try {
                         field = class_obj.getDeclaredField(field_name);
                     } catch (NoSuchFieldException e) {
@@ -561,6 +561,12 @@ public final class RestUtils {
                                     field = class_obj.getSuperclass().getDeclaredField(field_name.toLowerCase());
                                 } catch (NoSuchFieldException e4) {
                                     // Ignora o campo quando ele Não existe
+                                    String msgWarning = "Campo " + field_name + " não encontrado na classe " + class_obj.getSimpleName() +
+                                           " durante a chamada do método RestUtils.setValuesFromMap."+
+                                            "\nEstrutura de dados: " + values.toString()
+                                            + "\nObjeto criado:" + obj.toString();
+
+                                    logger.log(Level.WARNING, msgWarning);
                                     continue;
                                 }
                             }
@@ -585,7 +591,7 @@ public final class RestUtils {
                         if (new_value instanceof String) {
                             field.set(obj, Double.parseDouble((String) new_value));
                         } else if (new_value instanceof Double) {
-                            field.set(obj, ((Double) new_value).doubleValue());
+                            field.set(obj, ((Double) new_value));
                         } else {
                             field.set(obj, ((Float) new_value));
                         }
@@ -857,20 +863,19 @@ public final class RestUtils {
                                     field.set(obj, null);
                                 }
                             } else {
-                                Class<?> jsonClass = field.getType();
-
-                                Object objItem = null;
-
-                                try {
-                                    objItem = jsonClass.getConstructor().newInstance();
-                                } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                                    throw new RestApiException("Não consegue instanciar a classe " + jsonClass.getSimpleName() + ".");
+                                if (new_value instanceof Map) {
+                                    Class<?> jsonClass = field.getType();
+                                    Object objItem = null;
+                                    try {
+                                        objItem = jsonClass.getConstructor().newInstance();
+                                    } catch (Exception e) {
+                                        throw new RestApiException("Não consegue instanciar a classe " + jsonClass.getSimpleName() + " para armazenar os dados da estrutura " + new_value.toString());
+                                    }
+                                    setValuesFromMap(objItem, (Map<String, Object>) new_value);
+                                    field.set(obj, objItem);
+                                } else {
+                                    field.set(obj, new_value);
                                 }
-
-                                Map objMap = (Map) new_value;
-                                setValuesFromMap(objItem, objMap);
-                                field.set(obj, objItem);
-
                             }
                         } catch (IllegalArgumentException | IllegalAccessException e) {
                             throw new RestApiException(field_name + " inválido.");
@@ -878,9 +883,13 @@ public final class RestUtils {
                     } else {
                         throw new RestApiException("Não suporta o tipo de dado do campo " + field_name + ".");
                     }
-                } catch (IllegalAccessException | RestApiException | InstantiationException e) {
-                    logger.log(Level.SEVERE, e.getMessage());
-                    throw new RestApiException("Campo " + field_name + " inválido. Motivo: " + e.getMessage());
+                } catch (Exception e2) {
+                    String erro = "Erro ao invocar RestUtils.setValuesFromMap durante o parse do campo "
+                            + field_name + ".\nEstrutura de dados: " + values.toString()
+                            + "\nObjeto criado:" + obj.toString()
+                            + "\nErro interno: " + e2.getMessage();
+                    logger.log(Level.SEVERE, erro);
+                    throw new RestApiException("Campo " + field_name + " inválido. Motivo: " + e2.getMessage());
                 }
             }
         }
@@ -1029,9 +1038,9 @@ public final class RestUtils {
                     }
                 }
                 return classOfObj.getConstructor().newInstance();
-            } catch (JsonSyntaxException e) {
-                throw new RestApiException("Sintáxe do JSON inválida.");
-            } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+            } catch (JsonSyntaxException e2) {
+                throw new RestApiException("Sintáxe do JSON inválida: " + jsonString);
+            } catch (Exception e) {
                 throw new RestApiException("Não suporta Instânciar objeto para a classe " + classOfObj.getSimpleName());
             }
         } else {

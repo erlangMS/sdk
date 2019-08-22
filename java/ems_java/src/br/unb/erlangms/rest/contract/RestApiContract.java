@@ -18,7 +18,7 @@ import java.util.List;
  * Classe de implementação para IRestApiContract responsável
  * por definir o contrato do provider do serviço.
  *
- * @author Everton de Vargas Agilar 
+ * @author Everton de Vargas Agilar
  * @version 1.0.0
  * @since 05/04/2019
  *
@@ -111,6 +111,10 @@ public class RestApiContract implements IRestApiContract {
         this.supportDataFormat = (List<RestApiDataFormat>) supportDataFormatDefault.clone();
         this.supportApiVerbs = (List<RestApiVerb>) supportApiVerbsDefault.clone();
         this.requestDefault = new RestApiRequest();
+        this.requestDefault.setMaxLimit(RestApiRequest.REST_API_MAX_LIMIT_VALUE);
+        this.requestDefault.setLimit(RestApiRequest.REST_API_DEFAULT_LIMIT_VALUE);
+        this.requestDefault.setOffset(RestApiRequest.REST_API_DEFAULT_OFFSET_VALUE);
+        this.requestDefault.setMaxId(RestApiRequest.REST_API_MAX_ID_VALUE);
         this.requiredApiOperators = new ArrayList<>();
         this.supportNamedQuery = true;
         this.cachePolicyConfig = new RestApiCachePolicyConfig();
