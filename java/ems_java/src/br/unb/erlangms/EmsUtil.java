@@ -490,7 +490,7 @@ public final class EmsUtil {
         OtpErlangObject reply = null;
         if (ret != null) {
             try {
-                String m_json = null;
+                String m_json;
                 if (ret instanceof OtpErlangBinary) {
                     reply = (OtpErlangBinary) ret;
                 } else if (ret instanceof OtpErlangAtom) {
@@ -532,27 +532,27 @@ public final class EmsUtil {
     }
 
     public static boolean isDateValid(final Date field) {
-        return (field != null ? true : false);
+        return (field != null);
     }
 
     public static boolean isDateFinalAfterOrEqualDateInitial(final Date dataIni, final Date dataFinal) {
-        return (dataFinal != null && dataIni != null && (dataFinal.equals(dataIni) || dataFinal.after(dataIni)) ? true : false);
+        return (dataFinal != null && dataIni != null && (dataFinal.equals(dataIni) || dataFinal.after(dataIni)));
     }
 
     public static boolean isDateFinalAfterDateInitial(final Date dataIni, final Date dataFinal) {
-        return (dataFinal != null && dataIni != null && dataFinal.after(dataIni) ? true : false);
+        return (dataFinal != null && dataIni != null && dataFinal.after(dataIni));
     }
 
     public static boolean isFieldStrValid(final String field) {
-        return (field != null && !field.isEmpty() ? true : false);
+        return (field != null && !field.isEmpty());
     }
 
     public static boolean isFieldStrValid(final String field, int maxLength) {
-        return (field != null && !field.isEmpty() && field.length() <= maxLength ? true : false);
+        return (field != null && !field.isEmpty() && field.length() <= maxLength);
     }
 
     public static boolean isFieldObjectValid(final Object obj) {
-        return (obj != null ? true : false);
+        return (obj != null);
     }
 
     public static Object mergeObjects(final Object obj1, final Object obj2) throws Exception {
@@ -647,19 +647,11 @@ public final class EmsUtil {
                 return true;
             } else if (((String) value_field).equalsIgnoreCase("1.0")) {
                 return true;
-            } else if (((String) value_field).equalsIgnoreCase("yes")) {
-                return true;
-            } else {
-                return false;
-            }
+            } else return ((String) value_field).equalsIgnoreCase("yes");
         } else if (value_field instanceof Double) {
-            if (value_field.toString().equals("1.0")) {
-                return true;
-            } else {
-                return false;
-            }
+            return value_field.toString().equals("1.0");
         } else if (value_field instanceof Boolean) {
-            return ((Boolean) value_field).booleanValue();
+            return ((Boolean) value_field);
         } else {
             return false;
         }
@@ -677,7 +669,7 @@ public final class EmsUtil {
             if (value_field instanceof String) {
                 return Double.parseDouble((String) value_field);
             } else if (value_field instanceof Double) {
-                return ((Double) value_field).doubleValue();
+                return ((Double) value_field);
             } else {
                 return ((Float) value_field).doubleValue();
             }
@@ -730,7 +722,7 @@ public final class EmsUtil {
                         if (datasource instanceof List) {
                             objectList = (List<Object>) datasource;
                         } else {
-                            objectList = new ArrayList<Object>();
+                            objectList = new ArrayList<>();
                             objectList.add(datasource);
                         }
                     }
@@ -744,7 +736,6 @@ public final class EmsUtil {
             } catch (net.sf.jasperreports.engine.util.JRFontNotFoundException e) {
                 throw new EmsValidationException("Não foi possível gerar o pdf pois as fontes utilizadas não foram encontradas no servidor. Erro interno: " + e.getLocalizedMessage());
             } catch (Exception e) {
-                e.printStackTrace();
                 throw new EmsValidationException("Não foi possível gerar o pdf pois um erro interno ocorreu: " + e.getLocalizedMessage());
             }
         } else {
@@ -780,8 +771,7 @@ public final class EmsUtil {
         if (classOfModel != null) {
             Field[] fields = classOfModel.getDeclaredFields();
             List<Field> result = new ArrayList<>();
-            for (int i = 0; i < fields.length; i++) {
-                Field field = fields[i];
+            for (Field field : fields) {
                 if (field.isAnnotationPresent(Column.class) && field.getAnnotation(Column.class).unique() && !field.isAnnotationPresent(Id.class)) {
                     result.add(field);
                 }
@@ -804,8 +794,7 @@ public final class EmsUtil {
         if (classOfModel != null) {
             Field[] fields = classOfModel.getDeclaredFields();
             List<Field> result = new ArrayList<>();
-            for (int i = 0; i < fields.length; i++) {
-                Field field = fields[i];
+            for (Field field : fields) {
                 if (field.isAnnotationPresent(Column.class)) {
                     result.add(field);
                 }
@@ -836,7 +825,7 @@ public final class EmsUtil {
      */
     public static Object ldapSearch(final String login) {
         if (login != null) {
-            Hashtable<String, String> env = new Hashtable<String, String>(11);
+            Hashtable<String, String> env = new Hashtable<>(11);
             env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
             env.put(Context.PROVIDER_URL, properties.ldapUrl);
             env.put(Context.SECURITY_AUTHENTICATION, "simple");
@@ -886,7 +875,7 @@ public final class EmsUtil {
             } else {
                 throw new EmsValidationException("Parâmetro fields não é do tipo correto para EmsUtil.ListObjectToListMap.");
             }
-            List<Map<String, Object>> result = new ArrayList<Map<String, Object>>(listObj.size());
+            List<Map<String, Object>> result = new ArrayList<>(listObj.size());
             int colSize = fieldNames.length;
             for (Object obj : listObj) {
                 int index = 0;
@@ -942,9 +931,9 @@ public final class EmsUtil {
         public boolean debug;
         public int msg_timeout = 60000;
         public String environment = "desenv";
-        public boolean isWindows = System.getProperty("os.name").toLowerCase().indexOf("win") >= 0;
-        public boolean isLinux = System.getProperty("os.name").toLowerCase().indexOf("nux") >= 0;
-        public boolean isMac = System.getProperty("os.name").toLowerCase().indexOf("mac") >= 0;
+        public boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+        public boolean isLinux = System.getProperty("os.name").toLowerCase().contains("nux");
+        public boolean isMac = System.getProperty("os.name").toLowerCase().contains("mac");
         public int pidfileWatchdogTimer = 30000;
         public String pidfile;
         public String logfile;
@@ -1000,10 +989,10 @@ public final class EmsUtil {
                 prop.daemon_params = EmsUtil.fromJson(tmp_daemon_params, HashMap.class);
             } catch (Exception e) {
                 System.out.println("Não foi possível fazer o parse do parâmetro ems_daemon_params. Erro interno: " + e.getMessage());
-                prop.daemon_params = new HashMap<String, Object>();
+                prop.daemon_params = new HashMap<>();
             }
         } else {
-            prop.daemon_params = new HashMap<String, Object>();
+            prop.daemon_params = new HashMap<>();
         }
 
         String tmp_thread_pool = getProperty("ems_thread_pool");
@@ -1036,11 +1025,7 @@ public final class EmsUtil {
             }
         }
 
-        if (getProperty("ems_debug", "false").equalsIgnoreCase("true")) {
-            prop.debug = true;
-        } else {
-            prop.debug = false;
-        }
+        prop.debug = getProperty("ems_debug", "false").equalsIgnoreCase("true");
 
         prop.service_scan = getProperty("ems_service_scan", "br.unb");
 
@@ -1060,7 +1045,7 @@ public final class EmsUtil {
 
         String tmp_ESB_URL = getProperty("ems_bus_url");
         if (tmp_ESB_URL != null) {
-            if (tmp_ESB_URL.indexOf(":") == -1) {
+            if (!tmp_ESB_URL.contains(":")) {
                 tmp_ESB_URL = tmp_ESB_URL + ":2301";
             }
             prop.ESB_URL = tmp_ESB_URL;
@@ -1122,7 +1107,7 @@ public final class EmsUtil {
         // LDAP properties
         String tmp_ldap_url = getProperty("ems_ldap_url");
         if (tmp_ldap_url != null) {
-            if (tmp_ldap_url.indexOf(":") == -1) {
+            if (!tmp_ldap_url.contains(":")) {
                 tmp_ldap_url = tmp_ldap_url + ":2389";
             }
             if (!tmp_ldap_url.startsWith("ldap://")) {
@@ -1191,6 +1176,7 @@ public final class EmsUtil {
             this.password = password;
         }
 
+        @Override
         protected PasswordAuthentication getPasswordAuthentication() {
             return new PasswordAuthentication(userName, password);
         }
@@ -1365,11 +1351,11 @@ public final class EmsUtil {
             mailMessage.setText(mailContent);
             Multipart multipart = new MimeMultipart();
             if (mailInfo.isWithAttachment()) {
-                for (int i = 0; i < mailInfo.getAttachFileNames().length; i++) {
-                    DataSource source = new FileDataSource(mailInfo.getAttachFileNames()[i]);
+                for (String attachFileName : mailInfo.getAttachFileNames()) {
+                    DataSource source = new FileDataSource(attachFileName);
                     BodyPart bodyPart = new MimeBodyPart();
                     bodyPart.setDataHandler(new DataHandler(source));
-                    String[] ss = mailInfo.getAttachFileNames()[i].split("/");
+                    String[] ss = attachFileName.split("/");
                     bodyPart.setFileName(ss[ss.length - 1]);
                     multipart.addBodyPart(bodyPart);
                 }

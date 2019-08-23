@@ -111,6 +111,7 @@ public final class RestUtils {
                 out.endObject();
             }
 
+            @Override
             public T read(JsonReader in) throws IOException {
                 // Properly deserialize the input (if you use deserialization)
                 return null;
@@ -263,11 +264,7 @@ public final class RestUtils {
                             return true;
                         } else if (value.equalsIgnoreCase("1.0")) {
                             return true;
-                        } else if (value.equalsIgnoreCase("yes")) {
-                            return true;
-                        } else {
-                            return false;
-                        }
+                        } else return value.equalsIgnoreCase("yes");
                     }
                 })
                 .create();
@@ -391,6 +388,7 @@ public final class RestUtils {
                     }
                 })
                 .registerTypeAdapter(Boolean.class, new JsonDeserializer<Boolean>() {
+                    @Override
                     public Boolean deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
                         String value = json.getAsString();
                         if (value.equalsIgnoreCase("true")) {
@@ -436,7 +434,7 @@ public final class RestUtils {
     }
 
     public static String getClassAnnotationValue(@SuppressWarnings("rawtypes") Class classType,
-            @SuppressWarnings("rawtypes") Class annotationType, String attributeName) {
+        @SuppressWarnings("rawtypes") Class annotationType, String attributeName) {
         String value = null;
         @SuppressWarnings("unchecked")
         Annotation annotation = classType.getAnnotation(annotationType);
@@ -444,6 +442,7 @@ public final class RestUtils {
             try {
                 value = (String) annotation.annotationType().getMethod(attributeName).invoke(annotation);
             } catch (Exception ex) {
+                // se ocorrer erro vamos retornar null
             }
         }
         return value;
@@ -815,8 +814,8 @@ public final class RestUtils {
                         }
                     } else if (tipo_field.isEnum()) {
                         try {
-                            Integer idValue = null;
-                            Enum<?> value = null;
+                            Integer idValue;
+                            Enum<?> value;
                             if (new_value instanceof String) {
                                 try {
                                     idValue = Integer.parseInt((String) new_value);
@@ -838,19 +837,17 @@ public final class RestUtils {
                         tab.setItem(intValue);
                         field.set(obj, tab);
                     } else if (tipo_field == byte[].class) {
-                        byte[] value = null;
-
+                        byte[] value;
                         if (new_value instanceof ArrayList) {
                             value = toByteArray((ArrayList) new_value);
                         } else {
                             value = toByteArray(new ArrayList(((ArrayMap<Integer, Double>) new_value).values()));
                         }
-
                         field.set(obj, value);
                     } else if (tipo_field instanceof Object) {
                         try {
                             if (jsonModelAdapter != null) {
-                                Integer idValue = null;
+                                Integer idValue;
                                 if (new_value instanceof String) {
                                     idValue = Integer.parseInt((String) new_value);
                                 } else {
@@ -1183,7 +1180,7 @@ public final class RestUtils {
                     } else if (paramType == Double.class || paramType == double.class) {
                         if (value_field instanceof ArrayList<?>) {
                             //Used in the IN clause, accepts only homogeneous arrays of strings or doubles.
-                            List<Double> value_field_parameter = new ArrayList<Double>();
+                            List<Double> value_field_parameter = new ArrayList<>();
                             if (((ArrayList) value_field).size() > 0) {
                                 //Tests the type of the array using the first position
                                 if (((ArrayList) value_field).get(0) instanceof String) {
@@ -1204,7 +1201,7 @@ public final class RestUtils {
                     } else if (paramType == Long.class || paramType == long.class) {
                         if (value_field instanceof ArrayList<?>) {
                             //Used in the IN clause, accepts only homogeneous arrays of strings or doubles.
-                            List<Double> value_field_parameter = new ArrayList<Double>();
+                            List<Double> value_field_parameter = new ArrayList<>();
                             if (((ArrayList) value_field).size() > 0) {
                                 //Tests the type of the array using the first position
                                 if (((ArrayList) value_field).get(0) instanceof String) {
@@ -1478,13 +1475,9 @@ public final class RestUtils {
                 return false;
             }
         } else if (fieldValue instanceof Double) {
-            if (fieldValue.toString().equals("1.0")) {
-                return true;
-            } else {
-                return false;
-            }
+            return fieldValue.toString().equals("1.0");
         } else if (fieldValue instanceof Boolean) {
-            return ((Boolean) fieldValue).booleanValue();
+            return ((Boolean) fieldValue);
         } else {
             return false;
         }
@@ -1502,7 +1495,7 @@ public final class RestUtils {
             if (value_field instanceof String) {
                 return Double.parseDouble((String) value_field);
             } else if (value_field instanceof Double) {
-                return ((Double) value_field).doubleValue();
+                return ((Double) value_field);
             } else {
                 return ((Float) value_field).doubleValue();
             }
@@ -1645,7 +1638,7 @@ public final class RestUtils {
             } else {
                 throw new RestApiException("Parâmetro fields não é do tipo correto para ListObjectToListMap.");
             }
-            List<Map<String, Object>> result = new ArrayList<Map<String, Object>>(listObj.size());
+            List<Map<String, Object>> result = new ArrayList<>(listObj.size());
             int colSize = fieldNames.length;
             for (Object obj : listObj) {
                 int index = 0;
