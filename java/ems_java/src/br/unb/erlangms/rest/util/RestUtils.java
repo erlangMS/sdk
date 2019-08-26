@@ -1781,7 +1781,7 @@ public final class RestUtils {
         Date date = new Date(((Double) value).longValue());
         try {
             GregorianCalendar cal = new GregorianCalendar();
-            cal.setGregorianChange(date);
+            cal.setTime(date);
             XMLGregorianCalendar xmlGregorianCalendar = DatatypeFactory.newInstance().newXMLGregorianCalendar(cal);
             return xmlGregorianCalendar;
         } catch (DatatypeConfigurationException ex) {
@@ -1793,7 +1793,7 @@ public final class RestUtils {
         if (value != null) {
             try {
                 GregorianCalendar cal = new GregorianCalendar();
-                cal.setGregorianChange(value);
+                cal.setTime(value);
                 XMLGregorianCalendar xmlGregorianCalendar = DatatypeFactory.newInstance().newXMLGregorianCalendar(cal);
                 return xmlGregorianCalendar;
             } catch (DatatypeConfigurationException ex) {
