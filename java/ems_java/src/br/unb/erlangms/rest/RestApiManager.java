@@ -196,6 +196,7 @@ public abstract class RestApiManager implements IRestApiManager {
                             || (result instanceof String && ((String) result).isEmpty())) {
                         throw new RestApiNotFoundException();
                     }
+                    result = ((List)result).get(0);
                 }
                 return result;
             } else {
@@ -218,13 +219,18 @@ public abstract class RestApiManager implements IRestApiManager {
                         Object obj = findById(request, apiProviderClass);
                         RestUtils.setValuesFromMap(obj, request.getPayloadAsMap(), null, apiProvider);
                         request.setObject(obj);
+                        Object objectInserted = null;
                         if (persistCallback != null) {
-                            persistCallback.execute();
+                            objectInserted = persistCallback.execute();
                         }
                         request.setDataFormat(RestApiDataFormat.VO);
                         RestApiCacheProvider cacheProvider = RestApiCacheManager.get(apiProvider);
                         cacheProvider.clear();
-                        return findById(request, apiProviderClass);
+                        if (request.getId() != null && request.getId() > 0) {
+                            return findById(request, apiProviderClass);
+                        } else {
+                            return true;
+                        }
                     } else {
                         throw new RestApiException(RestApiException.ACCESS_DENIED);
                     }
@@ -253,12 +259,17 @@ public abstract class RestApiManager implements IRestApiManager {
                     RestUtils.setValuesFromMap(obj, request.getPayloadAsMap(), null, apiProvider);
                     request.setObject(obj);
                     if (persistCallback != null) {
-                        persistCallback.execute();
+                        Long idGenerated = persistCallback.execute();
+                        request.setId(idGenerated);
                     }
                     request.setDataFormat(RestApiDataFormat.VO);
                     RestApiCacheProvider cacheProvider = RestApiCacheManager.get(apiProvider);
                     cacheProvider.clear();
-                    return findById(request, apiProviderClass);
+                    if (request.getId() != null && request.getId() > 0) {
+                        return findById(request, apiProviderClass);
+                    } else {
+                        return true;
+                    }
                 } else {
                     throw new RestApiException(RestApiException.ACCESS_DENIED);
                 }

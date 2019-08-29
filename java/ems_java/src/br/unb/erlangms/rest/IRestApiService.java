@@ -39,7 +39,7 @@ public interface IRestApiService extends Serializable {
     /**
      * Permite cadastrar um objeto.
      *
-     * @param request	objeto da requisição 
+     * @param request	objeto da requisição
      * @return objeto ou lista de atributos do objeto cadastrado.
      * @author Everton de Vargas Agilar
      */
@@ -50,8 +50,9 @@ public interface IRestApiService extends Serializable {
      *
      * @param request	objeto da requisição
      * @author Everton de Vargas Agilar
+     * @return id do objeto gerado
      */
-    public void persist(IRestApiRequest request);
+    public Long persist(IRestApiRequest request);
 
     /**
      * Retorna a classe do provedor do serviço.

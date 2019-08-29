@@ -548,7 +548,6 @@ public final class RestUtils {
     public static Object setValuesFromMap(final Object obj,
             final Map<String, Object> values,
             final EmsJsonModelAdapter jsonModelAdapter) throws Exception {
-
         return setValuesFromMap(obj, values, jsonModelAdapter, null);
     }
 
