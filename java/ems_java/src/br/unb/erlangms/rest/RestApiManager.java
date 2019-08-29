@@ -35,6 +35,7 @@ import javax.persistence.Query;
  *
  */
 public abstract class RestApiManager implements IRestApiManager {
+
     private static final long serialVersionUID = 4975518654944032325L;
     private static final Logger LOGGER = Logger.getLogger(RestApiManager.class.getName());
 
@@ -130,10 +131,10 @@ public abstract class RestApiManager implements IRestApiManager {
                         // Cachear o resultado é uma opção que ajuda muito a performance mas
                         // só pode ser usado se o serializador tem uma estimativa do tamanho do resultado
                         if (!flags.isNoCache()
-                            && !flags.isNoResultCache()
-                            && cachePolicyConfig.isAllowResultCache()
-                            && estimatedSize != null
-                            && estimatedSize <= cachePolicyConfig.getEntrySizeBytes()) {
+                                && !flags.isNoResultCache()
+                                && cachePolicyConfig.isAllowResultCache()
+                                && estimatedSize != null
+                                && estimatedSize <= cachePolicyConfig.getEntrySizeBytes()) {
                             cacheEntry.saveData(result);
                         }
 
@@ -145,18 +146,18 @@ public abstract class RestApiManager implements IRestApiManager {
 
                     if (flags.isLogRequest()) {
                         String statisticsLog = ", RestApiRequestStatistics{"
-                                               + "rid=" + requestInternal.getRID()
-                                               + ", startTime=" + cacheEntry.getStartTime()
-                                               + ", stopTime=" + cacheEntry.getStopTime()
-                                               + ", elapsedTime=" + cacheEntry.getElapsedTime()
-                                               + ", expireDate=" + cacheEntry.getExpireDate()
-                                               + ", estimatedSize=" + cacheEntry.getEstimatedSize()
-                                               + ", requestCacheHit=" + cacheEntry.getRequestCacheHit()
-                                               + ", resultCacheHit=" + cacheEntry.getResultCacheHit()
-                                               + ", entryWatermark=" + cacheEntry.getWatermark()
-                                               + ", bufferWatermark=" + cacheProvider.getWatermark()
-                                               + ", circularIndex=" + cacheProvider.getCircularIndex()
-                                               + '}';
+                                + "rid=" + requestInternal.getRID()
+                                + ", startTime=" + cacheEntry.getStartTime()
+                                + ", stopTime=" + cacheEntry.getStopTime()
+                                + ", elapsedTime=" + cacheEntry.getElapsedTime()
+                                + ", expireDate=" + cacheEntry.getExpireDate()
+                                + ", estimatedSize=" + cacheEntry.getEstimatedSize()
+                                + ", requestCacheHit=" + cacheEntry.getRequestCacheHit()
+                                + ", resultCacheHit=" + cacheEntry.getResultCacheHit()
+                                + ", entryWatermark=" + cacheEntry.getWatermark()
+                                + ", bufferWatermark=" + cacheProvider.getWatermark()
+                                + ", circularIndex=" + cacheProvider.getCircularIndex()
+                                + '}';
                         LOGGER.log(Level.INFO, "{0}", requestInternal.toString() + statisticsLog);
                     }
 
@@ -191,8 +192,8 @@ public abstract class RestApiManager implements IRestApiManager {
                     request.setLimit(1);
                     result = find(request, apiProviderClass);
                     if (result == null
-                        || (result instanceof List && ((List) result).isEmpty())
-                        || (result instanceof String && ((String) result).isEmpty())) {
+                            || (result instanceof List && ((List) result).isEmpty())
+                            || (result instanceof String && ((String) result).isEmpty())) {
                         throw new RestApiNotFoundException();
                     }
                 }
@@ -215,7 +216,7 @@ public abstract class RestApiManager implements IRestApiManager {
                     apiProvider.getContract().checkSupportApiVerb(RestApiVerb.PUT);
                     if (canExecute(request, apiProvider)) {
                         Object obj = findById(request, apiProviderClass);
-                        RestUtils.setValuesFromMap(obj, request.getPayloadAsMap());
+                        RestUtils.setValuesFromMap(obj, request.getPayloadAsMap(), null, apiProvider);
                         request.setObject(obj);
                         if (persistCallback != null) {
                             persistCallback.execute();
@@ -249,6 +250,7 @@ public abstract class RestApiManager implements IRestApiManager {
                 apiProvider.getContract().checkSupportApiVerb(RestApiVerb.POST);
                 if (canExecute(request, apiProvider)) {
                     Object obj = apiProvider.getEntityClass().newInstance();
+                    RestUtils.setValuesFromMap(obj, request.getPayloadAsMap(), null, apiProvider);
                     request.setObject(obj);
                     if (persistCallback != null) {
                         persistCallback.execute();
@@ -262,7 +264,7 @@ public abstract class RestApiManager implements IRestApiManager {
                 }
             } catch (RestApiException ex) {
                 throw ex;
-            } catch (InstantiationException | IllegalAccessException ex) {
+            } catch (Exception ex) {
                 LOGGER.log(Level.SEVERE, ex.getMessage());
                 throw new RestApiException(RestApiException.ERRO_POST_SERVICE);
             }

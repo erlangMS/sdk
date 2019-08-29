@@ -2,6 +2,7 @@ package br.unb.erlangms.rest.util;
 
 import br.unb.erlangms.EmsJsonModelAdapter;
 import br.unb.erlangms.rest.exception.RestApiException;
+import br.unb.erlangms.rest.provider.IRestApiProvider;
 import br.unb.erlangms.rest.schema.RestField;
 import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
@@ -40,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.persistence.Column;
@@ -264,7 +266,9 @@ public final class RestUtils {
                             return true;
                         } else if (value.equalsIgnoreCase("1.0")) {
                             return true;
-                        } else return value.equalsIgnoreCase("yes");
+                        } else {
+                            return value.equalsIgnoreCase("yes");
+                        }
                     }
                 })
                 .create();
@@ -434,7 +438,7 @@ public final class RestUtils {
     }
 
     public static String getClassAnnotationValue(@SuppressWarnings("rawtypes") Class classType,
-        @SuppressWarnings("rawtypes") Class annotationType, String attributeName) {
+            @SuppressWarnings("rawtypes") Class annotationType, String attributeName) {
         String value = null;
         @SuppressWarnings("unchecked")
         Annotation annotation = classType.getAnnotation(annotationType);
@@ -527,7 +531,7 @@ public final class RestUtils {
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
     public static Object setValuesFromMap(final Object obj, final Map<String, Object> values) throws Exception {
-        return setValuesFromMap(obj, values, null);
+        return setValuesFromMap(obj, values, null, null);
     }
 
     /**
@@ -541,32 +545,72 @@ public final class RestUtils {
      * @author Everton de Vargas Agilar
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public static Object setValuesFromMap(final Object obj, final Map<String, Object> values, final EmsJsonModelAdapter jsonModelAdapter) throws Exception {
+    public static Object setValuesFromMap(final Object obj,
+            final Map<String, Object> values,
+            final EmsJsonModelAdapter jsonModelAdapter) throws Exception {
+
+        return setValuesFromMap(obj, values, jsonModelAdapter, null);
+    }
+
+    /**
+     * Seta os valores no objeto a partir de um map.
+     *
+     * @param obj Instância de um objeto
+     * @param values Map com chave/valor dos dados que serão aplicados no objeto
+     * @param jsonModelAdapter permite mapear atributos objetos
+     * @param apiProvider provider da fonte de dados
+     * @return Object objeto mapeado
+     * @throws java.lang.Exception exception
+     * @author Everton de Vargas Agilar
+     */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public static Object setValuesFromMap(final Object obj,
+            final Map<String, Object> values,
+            final EmsJsonModelAdapter jsonModelAdapter,
+            final IRestApiProvider apiProvider) throws Exception {
         if (obj != null && values != null && values.size() > 0) {
             Class<? extends Object> class_obj = obj.getClass();
             for (String field_name : values.keySet()) {
                 try {
-                    Field field;
-                    try {
-                        field = class_obj.getDeclaredField(field_name);
-                    } catch (NoSuchFieldException e) {
-                        try {
-                            field = class_obj.getDeclaredField(field_name.toLowerCase());
-                        } catch (NoSuchFieldException e2) {
-                            try {
-                                field = class_obj.getSuperclass().getDeclaredField(field_name);
-                            } catch (NoSuchFieldException e3) {
-                                try {
-                                    field = class_obj.getSuperclass().getDeclaredField(field_name.toLowerCase());
-                                } catch (NoSuchFieldException e4) {
-                                    // Ignora o campo quando ele Não existe
-                                    String msgWarning = "Campo " + field_name + " não encontrado na classe " + class_obj.getSimpleName() +
-                                           " durante a chamada do método RestUtils.setValuesFromMap."+
-                                            "\nEstrutura de dados: " + values.toString()
-                                            + "\nObjeto criado:" + obj.toString();
+                    Field field = null;
 
-                                    logger.log(Level.WARNING, msgWarning);
-                                    continue;
+                    // Se for informado o apiProvider, traduz o nome do atributo
+                    // no VO para sua contrapartida na entidade
+                    if (apiProvider != null) {
+                        Optional<RestField> realFieldName = apiProvider.getContract()
+                                .getSchema()
+                                .getFieldByVoName(field_name);
+                        if (realFieldName.isPresent()) {
+                            try {
+                                field = class_obj.getDeclaredField(realFieldName.get().getFieldName());
+                            } catch (NoSuchFieldException e) {
+                                // ok
+                            }
+                        }
+                    }
+
+                    if (field == null) {
+                        try {
+                            field = class_obj.getDeclaredField(field_name);
+                        } catch (NoSuchFieldException e) {
+                            try {
+                                field = class_obj.getDeclaredField(field_name.toLowerCase());
+                            } catch (NoSuchFieldException e2) {
+                                try {
+                                    field = class_obj.getSuperclass().getDeclaredField(field_name);
+                                } catch (NoSuchFieldException e3) {
+                                    try {
+                                        field = class_obj.getSuperclass().getDeclaredField(field_name.toLowerCase());
+                                    } catch (NoSuchFieldException e4) {
+                                        // Ignora o campo quando ele Não existe
+                                        String msgWarning = "Campo " + field_name + " não encontrado na classe " + class_obj.getSimpleName()
+                                                + " durante a chamada do método RestUtils.setValuesFromMap."
+                                                + "\nEstrutura de dados: " + values.toString()
+                                                + "\nObjeto criado:" + obj.toString();
+
+                                        logger.log(Level.WARNING, msgWarning);
+                                        continue;
+                                    }
                                 }
                             }
                         }
@@ -1774,7 +1818,7 @@ public final class RestUtils {
         Date date = new Date(((Double) value).longValue());
         try {
             GregorianCalendar cal = new GregorianCalendar();
-            cal.setGregorianChange(date);
+            cal.setTime(date);
             XMLGregorianCalendar xmlGregorianCalendar = DatatypeFactory.newInstance().newXMLGregorianCalendar(cal);
             return xmlGregorianCalendar;
         } catch (DatatypeConfigurationException ex) {
@@ -1786,7 +1830,7 @@ public final class RestUtils {
         if (value != null) {
             try {
                 GregorianCalendar cal = new GregorianCalendar();
-                cal.setGregorianChange(value);
+                cal.setTime(value);
                 XMLGregorianCalendar xmlGregorianCalendar = DatatypeFactory.newInstance().newXMLGregorianCalendar(cal);
                 return xmlGregorianCalendar;
             } catch (DatatypeConfigurationException ex) {
