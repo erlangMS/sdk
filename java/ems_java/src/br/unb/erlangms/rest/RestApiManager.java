@@ -20,6 +20,8 @@ import br.unb.erlangms.rest.serializer.IRestApiSerializerStrategy;
 import br.unb.erlangms.rest.serializer.RestApiSerializerFactory;
 import br.unb.erlangms.rest.util.RestUtils;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.persistence.EntityManager;
@@ -38,6 +40,7 @@ public abstract class RestApiManager implements IRestApiManager {
 
     private static final long serialVersionUID = 4975518654944032325L;
     private static final Logger LOGGER = Logger.getLogger(RestApiManager.class.getName());
+    private final Map<Integer, Query> namedQueryCached = new ConcurrentHashMap<>();
 
     private Query createQuery(final IRestApiRequestInternal request, final IRestApiProvider apiProvider) throws RestApiException {
         Query query;
@@ -46,14 +49,16 @@ public abstract class RestApiManager implements IRestApiManager {
         EntityManager entityManager = getEntityManager();
 
         if (apiProvider.getContract().isSupportNamedQuery() && !(flags.isNoNamedQuery() || flags.isNoCache())) {
-            String queryName = "RestApiQ" + String.valueOf(request.hashCode());
-            try {
+            int hashCodeRequest = request.hashCode();
+            String queryName = "RestApiQ" + String.valueOf(hashCodeRequest);
+            if (namedQueryCached.containsKey(hashCodeRequest)) {
                 query = entityManager.createNamedQuery(queryName);
-            } catch (Exception ex) {
+            } else {
                 // Se não estiver no pool de named query, cria a query e depois adiciona
                 apiProvider.setApiManager(this);
                 query = queryGenerator.createQuery(request);
                 entityManager.getEntityManagerFactory().addNamedQuery(queryName, query);
+                namedQueryCached.put(hashCodeRequest, query);
             }
         } else {
             apiProvider.setApiManager(this);
@@ -154,9 +159,6 @@ public abstract class RestApiManager implements IRestApiManager {
                                 + ", estimatedSize=" + cacheEntry.getEstimatedSize()
                                 + ", requestCacheHit=" + cacheEntry.getRequestCacheHit()
                                 + ", resultCacheHit=" + cacheEntry.getResultCacheHit()
-                                + ", entryWatermark=" + cacheEntry.getWatermark()
-                                + ", bufferWatermark=" + cacheProvider.getWatermark()
-                                + ", circularIndex=" + cacheProvider.getCircularIndex()
                                 + '}';
                         LOGGER.log(Level.INFO, "{0}", requestInternal.toString() + statisticsLog);
                     }
@@ -196,7 +198,7 @@ public abstract class RestApiManager implements IRestApiManager {
                             || (result instanceof String && ((String) result).isEmpty())) {
                         throw new RestApiNotFoundException();
                     }
-                    result = ((List)result).get(0);
+                    result = ((List) result).get(0);
                 }
                 return result;
             } else {
@@ -208,7 +210,7 @@ public abstract class RestApiManager implements IRestApiManager {
     }
 
     @Override
-    public Object put(final IRestApiRequest request, final Class apiProviderClass, final RestApiPersistCallback persistCallback) {
+    public Object put(final IRestApiRequest request, final Class apiProviderClass, final IRestApiPersistCallback persistCallback) {
         if (request != null && apiProviderClass != null) {
             if (request.getId() != null) {
                 request.setDataFormat(RestApiDataFormat.ENTITY);
@@ -219,9 +221,8 @@ public abstract class RestApiManager implements IRestApiManager {
                         Object obj = findById(request, apiProviderClass);
                         RestUtils.setValuesFromMap(obj, request.getPayloadAsMap(), null, apiProvider);
                         request.setObject(obj);
-                        Object objectInserted = null;
                         if (persistCallback != null) {
-                            objectInserted = persistCallback.execute();
+                            persistCallback.execute();
                         }
                         request.setDataFormat(RestApiDataFormat.VO);
                         RestApiCacheProvider cacheProvider = RestApiCacheManager.get(apiProvider);
@@ -249,8 +250,8 @@ public abstract class RestApiManager implements IRestApiManager {
     }
 
     @Override
-    public Object post(final IRestApiRequest request, final Class apiProviderClass, final RestApiPersistCallback persistCallback) {
-        if (request != null && apiProviderClass != null) {
+    public Object post(final IRestApiRequest request, final Class apiProviderClass, final IRestApiPersistCallback persistCallback) {
+        if (request != null && apiProviderClass != null && persistCallback != null) {
             try {
                 IRestApiProvider apiProvider = RestApiProviderFactory.createInstance(apiProviderClass);
                 apiProvider.getContract().checkSupportApiVerb(RestApiVerb.POST);
@@ -258,18 +259,12 @@ public abstract class RestApiManager implements IRestApiManager {
                     Object obj = apiProvider.getEntityClass().newInstance();
                     RestUtils.setValuesFromMap(obj, request.getPayloadAsMap(), null, apiProvider);
                     request.setObject(obj);
-                    if (persistCallback != null) {
-                        Long idGenerated = persistCallback.execute();
-                        request.setId(idGenerated);
-                    }
+                    Long idGenerated = persistCallback.execute();
+                    request.setId(idGenerated);
                     request.setDataFormat(RestApiDataFormat.VO);
                     RestApiCacheProvider cacheProvider = RestApiCacheManager.get(apiProvider);
                     cacheProvider.clear();
-                    if (request.getId() != null && request.getId() > 0) {
-                        return findById(request, apiProviderClass);
-                    } else {
-                        return true;
-                    }
+                    return findById(request, apiProviderClass);
                 } else {
                     throw new RestApiException(RestApiException.ACCESS_DENIED);
                 }
@@ -286,11 +281,12 @@ public abstract class RestApiManager implements IRestApiManager {
 
     @Override
     public EntityManager getEntityManager() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        throw new RestApiException(RestApiException.GET_ENTITYMANAGER_OBRIGATORIO);
     }
 
     @Override
     public boolean canExecute(final IRestApiRequest request, final IRestApiProvider apiProvider) {
+        // Este método deve ser sobrescrito para verificar se o web service pode ser consumido
         return true;
     }
 

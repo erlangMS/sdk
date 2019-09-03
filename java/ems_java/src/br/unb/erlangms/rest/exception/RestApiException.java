@@ -70,6 +70,7 @@ public class RestApiException extends RuntimeException {
     public final static String ERRO_PERSISTIR_DADOS = "Não foi possível persistir os dados.";
     public final static String WS_NAO_SUPORTA_VERBO = "Verbo não suportado neste web service.";
     public final static String ACCESS_DENIED = "Acesso negado.";
+    public final static String GET_ENTITYMANAGER_OBRIGATORIO = "A classe RestApiManager precisa que seja implementada o método getEntityManager().";
 
     public RestApiException(final String message) {
         super(message);

@@ -1,16 +1,25 @@
 package br.unb.erlangms.rest;
 
-import java.io.Serializable;
+import br.unb.erlangms.rest.request.IRestApiRequest;
 
 /**
- * Callback definido para as operações de persistência dos verbos put e post.
  *
- * @author Everton de Vargas Agilar
- * @version 1.0.0
- * @since 21/05/2019
- *
+ * @author evertonagilar
  */
-@FunctionalInterface
-public interface RestApiPersistCallback extends Serializable {
+public abstract class RestApiPersistCallback implements IRestApiPersistCallback {
+
+    private final IRestApiRequest request;
+
+    public RestApiPersistCallback(IRestApiRequest request) {
+        this.request = request;
+    }
+
+    public IRestApiRequest getRequest(){
+        return request;
+    }
+
+    @Override
     public abstract Long execute();
+
+
 }

@@ -2,9 +2,14 @@ package br.unb.erlangms.rest.request;
 
 import br.unb.erlangms.rest.contract.RestApiDataFormat;
 import br.unb.erlangms.rest.exception.RestApiException;
+import br.unb.erlangms.rest.provider.IRestApiProvider;
+import br.unb.erlangms.rest.provider.RestApiProviderFactory;
+import br.unb.erlangms.rest.util.RestUtils;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -225,7 +230,7 @@ public final class RestApiRequest implements IRestApiRequest {
     }
 
     @Override
-    public HashMap<String, Object> getParamters() {
+    public HashMap<String, Object> getParameters() {
         return paramters;
     }
 
@@ -246,6 +251,19 @@ public final class RestApiRequest implements IRestApiRequest {
     @Override
     public void setPayload(final Object payload) {
         this.payload = payload;
+    }
+
+    @Override
+    public Object getObject(final Class objectClass, final Class apiProviderClass) {
+        try {
+            Object result = objectClass.newInstance();
+            IRestApiProvider apiProvider = RestApiProviderFactory.createInstance(apiProviderClass);
+            result = RestUtils.setValuesFromMap(result, getPayloadAsMap(), null, apiProvider);
+            return result;
+        } catch (Exception ex) {
+            Logger.getLogger(RestApiRequest.class.getName()).log(Level.SEVERE, null, ex);
+            throw new RestApiException(RestApiException.INVALID_PAYLOAD_JSON);
+        }
     }
 
     @Override

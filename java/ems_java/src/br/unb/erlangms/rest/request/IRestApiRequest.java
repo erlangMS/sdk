@@ -39,7 +39,7 @@ public interface IRestApiRequest extends Serializable {
     public void setFlagsAsString(String flags);
 
     // O operador filter pode ser parametrizado e os parâmetros são setados com esses métodos
-    public HashMap<String, Object> getParamters();
+    public HashMap<String, Object> getParameters();
     public void setParameter(String parameterName, Object value);
 
     // Utilizado em requisições PUT
@@ -47,6 +47,7 @@ public interface IRestApiRequest extends Serializable {
     public void setPayload(final Object payload);
 
     public Object getObject();
+    public Object getObject(final Class objectClass, final Class apiProviderClass);
     public void setObject(Object obj);
 
     // Permite setar o token OAuth2

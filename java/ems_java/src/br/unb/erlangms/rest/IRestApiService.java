@@ -52,7 +52,7 @@ public interface IRestApiService extends Serializable {
      * @author Everton de Vargas Agilar
      * @return id do objeto gerado
      */
-    public Long persist(IRestApiRequest request);
+    public Object persist(IRestApiRequest request);
 
     /**
      * Retorna a classe do provedor do serviço.

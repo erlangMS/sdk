@@ -32,10 +32,10 @@ public class RestField implements Serializable {
     private final RestFieldType fieldType;
     private RestFieldSubType fieldSubType = null;
     private boolean primaryKey = false;
-    private boolean autoTrim = true;            // s� para strings
-    private RestFieldCharCase charCase = null;  // s� para strings
-    private Integer fieldLength = null;         // s� para strings
-    private Integer minLength = null;           // s� para strings
+    private boolean autoTrim = true;            // para strings
+    private RestFieldCharCase charCase = null;  // para strings
+    private Integer fieldLength = null;         // para strings
+    private Integer minLength = null;           // para strings
     private boolean filterRequired = false;
     private RestFieldSortType sortType = RestFieldSortType.ASC;
     private Field attrBase = null;
@@ -44,7 +44,7 @@ public class RestField implements Serializable {
     private Object defaultValue = null;
     private Object maxValue = null;
     private Object minValue = null;
-    private String dateFormat = null;           // s� para date
+    private String dateFormat = null;           // para date
     private final IRestApiSchema schema;
     private final IRestApiProvider apiProvider;
     private Object valueExpression = null;
