@@ -124,6 +124,7 @@ public final class RestUtils {
     static {
 
         gson = new GsonBuilder()
+                .disableHtmlEscaping()
                 .setExclusionStrategies(new SerializeStrategy())
                 .setDateFormat(dateFormatDDMMYYYY)
                 //.registerTypeAdapterFactory(new EnumAdapterFactory())
@@ -626,6 +627,8 @@ public final class RestUtils {
                             field.set(obj, Integer.parseInt((String) new_value));
                         } else if (new_value instanceof Double) {
                             field.set(obj, ((Double) new_value).intValue());
+                        } else if (new_value instanceof String) {
+                            field.set(obj, stringToXmlGregorianCalendar(((String) new_value)));
                         } else {
                             field.set(obj, (int) new_value);
                         }
@@ -1839,5 +1842,18 @@ public final class RestUtils {
             throw new RestApiException("Informe uma data válida.");
         }
     }
+    
+    public static XMLGregorianCalendar stringToXmlGregorianCalendar(final String value) {
+        if (value != null) {
+            try {
+                XMLGregorianCalendar xmlGregorianCalendar = DatatypeFactory.newInstance().newXMLGregorianCalendar(value);
+                return xmlGregorianCalendar;
+            } catch (DatatypeConfigurationException ex) {
+                throw new RestApiException("O valor %s não é uma data válida. Erro interno: %s.", value.toString(), ex.getMessage());
+            }
+        } else {
+            throw new RestApiException("Informe uma data válida.");
+        }
+    }     
 
 }
