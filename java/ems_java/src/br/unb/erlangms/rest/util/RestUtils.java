@@ -275,6 +275,7 @@ public final class RestUtils {
                 .create();
 
         gson2 = new GsonBuilder()
+                .disableHtmlEscaping()
                 .setExclusionStrategies(new SerializeStrategy())
                 .setDateFormat(dateFormatDDMMYYYY)
                 //.serializeNulls() <-- uncomment to serialize NULL fields as well
