@@ -628,8 +628,6 @@ public final class RestUtils {
                             field.set(obj, Integer.parseInt((String) new_value));
                         } else if (new_value instanceof Double) {
                             field.set(obj, ((Double) new_value).intValue());
-                        } else if (new_value instanceof String) {
-                            field.set(obj, stringToXmlGregorianCalendar(((String) new_value)));
                         } else {
                             field.set(obj, (int) new_value);
                         }
@@ -677,6 +675,8 @@ public final class RestUtils {
                             field.set(obj, doubleToXmlGregorianCalendar(((Double) new_value)));
                         } else if (new_value instanceof Long) {
                             field.set(obj, doubleToXmlGregorianCalendar(((Long) new_value)));
+                        } else if (new_value instanceof String) {
+                            field.set(obj, stringToXmlGregorianCalendar(((String) new_value)));
                         } else {
                             final String m_erro = field_name + " não é um XMLGregorianCalendar válido.";
                             throw new RestApiException(m_erro);
@@ -1843,7 +1843,7 @@ public final class RestUtils {
             throw new RestApiException("Informe uma data válida.");
         }
     }
-    
+
     public static XMLGregorianCalendar stringToXmlGregorianCalendar(final String value) {
         if (value != null) {
             try {
@@ -1855,6 +1855,6 @@ public final class RestUtils {
         } else {
             throw new RestApiException("Informe uma data válida.");
         }
-    }     
+    }
 
 }
