@@ -18,11 +18,7 @@ import java.util.Map;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
-import com.ericsson.otp.erlang.OtpErlangLong;
-import com.ericsson.otp.erlang.OtpErlangMap;
 import com.ericsson.otp.erlang.OtpErlangObject;
-import com.ericsson.otp.erlang.OtpErlangRangeException;
-import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
 public class EmsRequest implements IEmsRequest {
@@ -41,46 +37,23 @@ public class EmsRequest implements IEmsRequest {
 	private String contentType = null;
 	private String modulo = null;
 	private String function = null;
-	private String payload = null;
+	private Object payload = null;
 	private int paramCount = 0;
 	private String access_token;
 	private String scope;
-
+	private final HashMap<String, String> params = new HashMap<>();
+	private final Map<String, String> queries = new HashMap<>();
+	
 	public EmsRequest(final OtpErlangTuple otp_request){
 		setOtpRequest(otp_request);
 	}
 
 	public EmsRequest(){
+		queries.put("limit", "100");
+		queries.put("offset", "0");
 	}
 	
 	public void setOtpRequest(final OtpErlangTuple otp_request) {
-		this.otp_request = otp_request;
-		this.properties = null;
-		this.queryCount = -1;
-		this.rid = ((OtpErlangLong)otp_request.elementAt(0)).longValue();
-		this.timeout = ((OtpErlangLong)otp_request.elementAt(14)).longValue(); 
-		this.t1 = ((OtpErlangLong)otp_request.elementAt(13)).longValue();
-		this.method = ((OtpErlangString)otp_request.elementAt(2)).stringValue();
-		this.url = ((OtpErlangString)otp_request.elementAt(1)).stringValue();
-		this.isPostOrUpdateRequestFlag = method.equals("POST") || method.equals("PUT");
-		this.contentType = new String(((OtpErlangBinary)otp_request.elementAt(6)).binaryValue());
-		this.modulo = ((OtpErlangString)otp_request.elementAt(7)).stringValue();
-		this.function = ((OtpErlangString)otp_request.elementAt(8)).stringValue();
-		this.payload = new String(((OtpErlangBinary)otp_request.elementAt(5)).binaryValue());
-		this.paramCount = ((OtpErlangMap)otp_request.elementAt(3)).arity();
-		this.userJson = null;
-		this.clientJson = null;
-		OtpErlangObject OAuth2FieldObj = otp_request.elementAt(12);
-		if (OAuth2FieldObj != null && OAuth2FieldObj instanceof OtpErlangTuple) {
-			OtpErlangTuple OAuth2Field = (OtpErlangTuple) OAuth2FieldObj;
-			if (OAuth2Field != null) {
-				this.scope = new String(((OtpErlangBinary)OAuth2Field.elementAt(1)).binaryValue());
-				this.access_token = new String(((OtpErlangBinary)OAuth2Field.elementAt(1)).binaryValue());
-			}
-		}else {
-			this.scope = "";
-			this.access_token = "";
-		}
 	}
 	
 	/**
@@ -131,27 +104,14 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public String getParam(final String nome) {
-		if (nome == null){
-			throw new EmsValidationException("Propriedade nome não pode ser null para EmsRequest.getParam.");
-		}
-		try{
-			if (getParamsCount() > 0){
-				OtpErlangMap params = ((OtpErlangMap) otp_request.elementAt(3));
-				OtpErlangBinary OtpNomeParam = new OtpErlangBinary(nome.getBytes());
-				OtpErlangLong otp_result = (OtpErlangLong) params.get(OtpNomeParam);
-				if (otp_result != null){
-					String result = Integer.toString(otp_result.intValue());
-					return result;
-				}else{
-					return null;
-				}
-			}else{
-				return null;
-			}
-		}catch (Exception e){
-			throw new EmsValidationException("Não foi possível obter o parâmetro "+ nome + " do request.");
-		}
+		return (String) params.get(nome);
 	}
+	
+	@Override
+	public void setParam(String nome, String value) {
+		params.put(nome, value);
+	}
+	
 
 	/**
 	 * Retorna um parâmetro do request pelo nome.
@@ -161,12 +121,9 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public int getParamAsInt(final String nome) {
-		OtpErlangMap params = ((OtpErlangMap) otp_request.elementAt(3));
-		OtpErlangBinary OtpNomeParam = new OtpErlangBinary(nome.getBytes());
-		OtpErlangLong otp_result = (OtpErlangLong) params.get(OtpNomeParam);
 		try {
-			return otp_result.intValue();
-		} catch (OtpErlangRangeException e) {
+			return Integer.parseInt(params.get(nome));
+		} catch (Exception e) {
 			throw new EmsValidationException("Parâmetro "+ nome + " não é inteiro.");				
 		}
 	}
@@ -208,21 +165,16 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public int getQueryCount(){
-		if (queryCount  != -1){
-			return queryCount;
-		}
-		try{
-			OtpErlangObject Querystring = otp_request.elementAt(4);
-			if (!Querystring.equals(undefined)){
-				queryCount = ((OtpErlangMap) Querystring).arity(); 
-			}else{
-				queryCount = 0;
-			}
-			return queryCount;
-		}catch (Exception e){
-			throw new EmsValidationException("Não foi possível obter a quantidade de queries do request.");
-		}
+		return queries.size();
 	}
+	
+	@Override
+    public void setQuery(String nome, String value) {
+        if (nome.equals("limit") && value.equals("0")) {
+        	value = "100";
+        }
+		queries.put(nome, value);
+    }
 
 	/**
 	 * Retorna uma querystring pelo nome.
@@ -236,19 +188,7 @@ public class EmsRequest implements IEmsRequest {
 			throw new EmsValidationException("Propriedade nome não pode ser null para EmsRequest.getQuery.");
 		}
 		if (getQueryCount() > 0){
-			try{
-				OtpErlangMap Queries = ((OtpErlangMap) otp_request.elementAt(4));
-				OtpErlangBinary OtpNome = new OtpErlangBinary(nome.getBytes());
-				OtpErlangBinary otp_result = (OtpErlangBinary) Queries.get(OtpNome);
-				if (otp_result != null){
-					String result = new String(otp_result.binaryValue());
-					return result;
-				}else{
-					return null;
-				}
-			}catch (Exception e){
-				throw new EmsValidationException("Não foi possível obter a query "+ nome + " do request.");
-			}
+			return queries.get(nome);
 		}else{
 			throw new EmsValidationException("Não existe a query " + nome + " do request.");
 		}
@@ -267,11 +207,8 @@ public class EmsRequest implements IEmsRequest {
 		}
 		if (getQueryCount() > 0){
 			try{
-				OtpErlangMap Queries = ((OtpErlangMap) otp_request.elementAt(4));
-				OtpErlangBinary OtpNome = new OtpErlangBinary(nome.getBytes());
-				OtpErlangBinary otp_result = (OtpErlangBinary) Queries.get(OtpNome);
-				if (otp_result != null){
-					String result = new String(otp_result.binaryValue(),"ISO-8859-1");
+				String result = getQuery(nome);
+				if (result != null){
 					return result;
 				}else{
 					return defaultValue;
@@ -357,35 +294,10 @@ public class EmsRequest implements IEmsRequest {
 		}
 	}
 
-	/**
-	 * Retorna o payload do request como texto. Geralmente será a string JSON.
-	 * @return String do payload
-	 * @author Everton de Vargas Agilar
-	 */
-	@Override
-	public String getPayload(){
-		return payload;
-	}
 
-	/**
-	 * Retorna o payload do request serializado como objeto. Um erro será gerado se não for possível ler o objeto JSON.
-	 * Útil para converter o objeto JSON do request no objeto que será trabalhado na camada de negócio
-	 * @param classOfObj classe do objeto que será serializado. Exemplo: Municipio.class
-	 * @param <T> classe do objeto que será serializado. Exemplo: Municipio.class
-	 * @return Object
-	 * @author Everton de Vargas Agilar
-	 */
-	public <T> T getObject(final Class<T> classOfObj){
-		return getObject(classOfObj, null);
-	}
-	
 	@Override
 	public <T> T getObject(final Class<T> classOfObj, final EmsJsonModelAdapter jsonModelAdapter) {
-		try{
-			return EmsUtil.fromJson(getPayload(), classOfObj, jsonModelAdapter);
-		}catch (Exception e){
-			throw new EmsValidationException(e.getMessage());
-		}
+		return (T) payload;
 	}
 	
 	@Override
@@ -456,20 +368,12 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@SuppressWarnings("unchecked")
 	public Map<String, Object> getPayloadAsMap(){
-		try{
-			return (Map<String, Object>) EmsUtil.fromJson(getPayload(), HashMap.class);
-		}catch (Exception e){
-			throw new EmsValidationException("Não foi possível converter o payload do request em um objeto da interface java.util.Map. Erro interno: "+ e.getMessage());
-		}
+		return (Map<String, Object>) payload;
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<Map<String, Object>> getPayloadAsList(){
-		try{
-			return (List<Map<String, Object>>) EmsUtil.fromJson(getPayload(), List.class);
-		}catch (Exception e){
-			throw new EmsValidationException("Não foi possível converter o payload do request em um objeto da interface java.util.List. Erro interno: "+ e.getMessage());
-		}
+		return (List<Map<String, Object>>) payload;
 	}
 	
 	/**
@@ -480,12 +384,7 @@ public class EmsRequest implements IEmsRequest {
 	 */
 	@Override
 	public <T> T getPayloadAsArray(Class<T> classOfArray) {
-		try{
-			String payload = getPayload();
-			return EmsUtil.gson.fromJson(payload, classOfArray);
-		}catch (Exception e){
-			throw new EmsValidationException("Não foi possível converter o payload do request em uma lista de objetos. Erro interno: "+ e.getMessage());
-		}
+		return (T) payload; 
 	}
 	
 	/**
@@ -596,16 +495,17 @@ public class EmsRequest implements IEmsRequest {
 	 * @return map com atributo/valor 
 	 * @author Everton de Vargas Agilar
 	 */
-	@SuppressWarnings("unchecked")
 	@Override
 	public Map<String, Object> getUser() {
 		if (userJson == null) {
-			try{
-				String userJsonString = new String(((OtpErlangBinary)otp_request.elementAt(10)).binaryValue());
-				userJson = (Map<String, Object>) EmsUtil.fromJson(userJsonString, HashMap.class);
-			}catch (Exception e){
-				throw new EmsValidationException("Não foi possível obter o user do request. Erro interno: "+ e.getMessage());
-			}
+			UserHolder userHolder = UserHolderContext.getUser();
+			userJson = new HashMap<String, Object>();
+			userJson.put("id", userHolder.getId());
+			userJson.put("codigo", userHolder.getCodigo());
+			userJson.put("login", userHolder.getLogin());
+			userJson.put("remap_user_id", null);
+			userJson.put("lista_permission", null);
+			userJson.put("lista_perfil", null);
 		}
 		return userJson;
 	}
@@ -676,5 +576,19 @@ public class EmsRequest implements IEmsRequest {
 		return isPostOrUpdateRequestFlag;
 	}
 
+    @Override
+    public void setObject(Object object) {
+        this.payload = object;
+    }
+
+	@Override
+	public String getPayload() {
+		return (String) payload;
+	}
+
+	@Override
+	public <T> T getObject(Class<T> classOfObj) {
+		return (T) payload;
+	}
 
 }

@@ -65,43 +65,41 @@ public abstract class EmsRepository<Model> implements Serializable {
 
 	}
 	
+	@SuppressWarnings("unchecked")
 	@PostConstruct
 	private void postConstruct(){
 		classOfModel = getClassOfModel();
-		if (classOfModel != null){
-			prefixFindNamedQuery = classOfModel.getSimpleName() + "_";
-			entityManager = getEntityManager();
-			if (entityManager != null){
-				entityManagerFactory = entityManager.getEntityManagerFactory();
-				// idField é obrigatório para que os recursos desta classe funcionem corretamente
-				idField = EmsUtil.findFieldByAnnotation(classOfModel, Id.class);
-				if (idField != null){
-					idFieldName = idField.getName(); 
-					tableAnnotation = classOfModel.getAnnotation(Table.class); // não é obrigatório o seu seu uso em VO
-					idFieldColumn = idField.getAnnotation(Column.class); // não é obrigatório o seu seu uso em VO
-					if (tableAnnotation != null){
-						tableContrains = tableAnnotation.uniqueConstraints();
-					}
-					fieldsConstraints = EmsUtil.getFieldsWithUniqueConstraint(classOfModel);
-					fields = EmsUtil.getFieldsFromModel(classOfModel);
-					fieldNames = new String[fields.size()];
-					for (int i = 0; i < fields.size(); i++){ 
-						Field f = fields.get(i); // importante para conseguir acessar o valor do campo
-						f.setAccessible(true);
-						fieldNames[i] = f.getName();
-					}  
-					// doCreateCachedNamedQueries é invocado somente para models que possuem a anotação @Table. 
-					if (tableAnnotation != null){
-						doCreateCachedNamedQueries();
-					}
-				}else{
-					throw new EmsValidationException("O modelo "+ classOfModel.getSimpleName() + " não possui nenhum campo com a anotação @Id.");
+		if (classOfModel  == null) {
+			classOfModel = (Class<Model>) Object.class;	
+		}
+		prefixFindNamedQuery = classOfModel.getSimpleName() + "_";
+		entityManager = getEntityManager();
+		if (entityManager != null){
+			entityManagerFactory = entityManager.getEntityManagerFactory();
+			// idField é obrigatório para que os recursos desta classe funcionem corretamente
+			idField = EmsUtil.findFieldByAnnotation(classOfModel, Id.class);
+			if (idField != null){
+				idFieldName = idField.getName(); 
+				tableAnnotation = classOfModel.getAnnotation(Table.class); // não é obrigatório o seu seu uso em VO
+				idFieldColumn = idField.getAnnotation(Column.class); // não é obrigatório o seu seu uso em VO
+				if (tableAnnotation != null){
+					tableContrains = tableAnnotation.uniqueConstraints();
 				}
-			}else{
-				throw new EmsValidationException("Não foi implementado getEntityManager() para a classe "+ getClass().getSimpleName());
+				fieldsConstraints = EmsUtil.getFieldsWithUniqueConstraint(classOfModel);
+				fields = EmsUtil.getFieldsFromModel(classOfModel);
+				fieldNames = new String[fields.size()];
+				for (int i = 0; i < fields.size(); i++){ 
+					Field f = fields.get(i); // importante para conseguir acessar o valor do campo
+					f.setAccessible(true);
+					fieldNames[i] = f.getName();
+				}  
+				// doCreateCachedNamedQueries é invocado somente para models que possuem a anotação @Table. 
+				if (tableAnnotation != null){
+					doCreateCachedNamedQueries();
+				}
 			}
 		}else{
-			throw new EmsValidationException("Não foi implementado getClassOfModel() para a classe "+ getClass().getSimpleName());
+			throw new EmsValidationException("Não foi implementado getEntityManager() para a classe "+ getClass().getSimpleName());
 		}
 	}
 
@@ -951,7 +949,7 @@ public abstract class EmsRepository<Model> implements Serializable {
 	 * @author Everton de Vargas Agilar
 	 */
 	@SuppressWarnings("unchecked")
-	public Query parseQuery(final String filter, 
+	public Query parseQuery(String filter, 
 							 final String fields, 
 							 int limit, 
 							 int offset, 
@@ -976,7 +974,11 @@ public abstract class EmsRepository<Model> implements Serializable {
 		// tem filtro?
 		if (filter != null && filter.length() > 5){
 			try{
-				boolean useAnd = false; 
+				boolean useAnd = false;
+				// Hack inserido por causa de um ws do questionario que incluiu dois "" na querystring filter 
+				if (filter.startsWith("\"")){
+					filter = filter.substring(1, filter.length()-1);
+				}
 				filtro_obj = (Map<String, Object>) EmsUtil.fromJson(filter, HashMap.class);
 				where = new StringBuilder("where ");
 				int p = 1;

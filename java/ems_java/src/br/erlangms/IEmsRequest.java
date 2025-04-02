@@ -21,9 +21,11 @@ public interface IEmsRequest {
 	public String getMetodo();
 	public int getParamsCount();
 	public String getParam(final String NomeParam);
+	public void setParam(final String NomeParam, String value);
 	public int getParamAsInt(final String NomeParam);
 	public double getParamAsDouble(final String NomeParam);
 	public int getQueryCount();
+	public void setQuery(String nome, String value);
 	public String getQuery(final String Nome);
 	public String getQuery(final String nome, final String defaultValue);
 	public int getQueryAsInt(final String Nome);
@@ -35,6 +37,7 @@ public interface IEmsRequest {
 	public OtpErlangObject getOtpRequest();
 	public Date getParamAsDate(final String NomeParam) throws ParseException;
 	public String getPayload();
+	public void setObject(Object object);
 	public <T> T getObject(Class<T> classOfObj, EmsJsonModelAdapter jsonModelAdapter);	
 	public <T> T getObject(Class<T> classOfObj);
 	public Map<String, Object> getObject();
@@ -56,4 +59,5 @@ public interface IEmsRequest {
 	public long getT1();
 	public long getTimeout();
 	public boolean isPostOrUpdateRequest();
+	
 }

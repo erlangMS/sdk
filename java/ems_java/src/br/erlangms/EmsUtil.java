@@ -1525,6 +1525,7 @@ public final class EmsUtil {
 
 					JRDataSource datasourceList = new JRBeanCollectionDataSource(objectList);			
 					JasperPrint jasperPrint = JasperFillManager.fillReport(jr, paramsMap, datasourceList);
+					jasperPrint.setProperty("net.sf.jasperreports.default.font.name", "DejaVu Sans");
 					return JasperExportManager.exportReportToPdf(jasperPrint);
 				}else{
 					throw new EmsValidationException("Não foi possível encontrar o templateJasper "+ templateJasper);	
