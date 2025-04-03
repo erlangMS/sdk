@@ -16,8 +16,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -35,9 +33,7 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -740,27 +736,32 @@ public final class EmsUtil {
 						}
 					}else if (paramType == String.class){
 						String valueString;
-						if (value_field instanceof Double){
-							// Parece um inteiro? (termina com .0)
-							if (value_field.toString().endsWith(".0")){
-								valueString = Integer.toString(((Double)value_field).intValue());
+						if (EpochValidator.isEpochTimestamp(value_field.toString())) {
+							Date valueDate = EpochValidator.StrToEpochTimestamp(value_field.toString());
+							query.setParameter(p++, valueDate);	
+						}else {
+							if (value_field instanceof Double){
+								// Parece um inteiro? (termina com .0)
+								if (value_field.toString().endsWith(".0")){
+									valueString = Integer.toString(((Double)value_field).intValue());
+								}else{
+									valueString = value_field.toString();
+								}
 							}else{
 								valueString = value_field.toString();
 							}
-						}else{
-							valueString = value_field.toString();
+							if (field_op.equals("contains")){
+								valueString = "%"+ valueString + "%";
+							}else if (field_op.equals("icontains")){
+								valueString = "%"+ valueString.toLowerCase() + "%";
+							}else if (field_op.equals("like")){
+								valueString = valueString.toLowerCase() + "%";
+							}else if (field_op.equals("ilike")){
+								valueString = valueString.toLowerCase() + "%";
+							}
+	
+							query.setParameter(p++, valueString);
 						}
-						if (field_op.equals("contains")){
-							valueString = "%"+ valueString + "%";
-						}else if (field_op.equals("icontains")){
-							valueString = "%"+ valueString.toLowerCase() + "%";
-						}else if (field_op.equals("like")){
-							valueString = valueString.toLowerCase() + "%";
-						}else if (field_op.equals("ilike")){
-							valueString = valueString.toLowerCase() + "%";
-						}
-
-						query.setParameter(p++, valueString);	
 					}else if (paramType == Boolean.class){
 						boolean value_boolean = parseAsBoolean(value_field);
 						query.setParameter(p++, value_boolean);
@@ -3137,6 +3138,9 @@ public final class EmsUtil {
 		new UpdatePidFileThead(fileNamePid, watchdogTimer).start();
 	}
 	
-}
+
+}	
+	
+
 	 
 	 
