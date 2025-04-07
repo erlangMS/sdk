@@ -864,252 +864,260 @@ public final class EmsUtil {
 					}
 					field.setAccessible(true);
 					Object new_value = values.get(field_name);
-					Class<?> tipo_field = field.getType(); 
-					if (tipo_field == Integer.class || tipo_field == int.class){
-						if (new_value instanceof String){
-							field.set(obj, Integer.parseInt((String) new_value));
-						}else if (new_value instanceof Double){
-							field.set(obj, ((Double)new_value).intValue());
-						}else{
-							field.set(obj,  (int) new_value);
-						}
-					}else if (tipo_field == Double.class || tipo_field == double.class){
-						if (new_value instanceof String){
-							field.set(obj, Double.parseDouble((String) new_value));
-						}else if (new_value instanceof Double){
-							field.set(obj, ((Double) new_value).doubleValue());
-						}else{
-							field.set(obj, ((Float) new_value));
-						}
-					}else if (tipo_field == Float.class || tipo_field == float.class){
-						if (new_value instanceof String){
-							field.set(obj, Float.parseFloat((String) new_value));
-						}else if (new_value instanceof Double){
-							field.set(obj, ((Double) new_value).floatValue());
-						}else{
-							field.set(obj, ((Float) new_value));
-						}
-					}else if (tipo_field == Long.class || tipo_field == long.class){
-						if (new_value instanceof String){
-							field.set(obj, Double.parseDouble((String) new_value));
-						}else{
-							field.set(obj, ((Double) new_value).longValue());
-						}
-					}else if (tipo_field == BigDecimal.class){
-						if (new_value instanceof String){
-							field.set(obj, BigDecimal.valueOf(Double.parseDouble((String) new_value)));
-						}else{
-							field.set(obj,  BigDecimal.valueOf((double) new_value));
-						}
-					}else if (tipo_field == String.class){
-						if (new_value instanceof String){
-							field.set(obj, new_value);
-						}else if (new_value instanceof Double){
-							// Parece um inteiro? (termina com .0)
-							if (new_value.toString().endsWith(".0")){
-								field.set(obj, Integer.toString(((Double)new_value).intValue()));
-							}else{
-								field.set(obj, new_value.toString());	
-							}
-						}else{
-							field.set(obj, new_value.toString());
-						}
-					}else if (tipo_field == Boolean.class || tipo_field == boolean.class){
-						if (new_value instanceof String){
-							if (((String) new_value).equalsIgnoreCase("true")){
-								field.set(obj, true);	
-							}else if  (((String) new_value).equalsIgnoreCase("false")){
-								field.set(obj, false);
-							}else if  (((String) new_value).equalsIgnoreCase("1")){
-								field.set(obj, true);
-							}else if  (((String) new_value).equalsIgnoreCase("0")){
-								field.set(obj, false);
-							}else if  (((String) new_value).equalsIgnoreCase("sim")){
-								field.set(obj, true);
-							}else if  (((String) new_value).equalsIgnoreCase("1.0")){
-								field.set(obj, true);
-							}else if  (((String) new_value).equalsIgnoreCase("yes")){
-								field.set(obj, true);
-							}else{
-								field.set(obj, false);
-							}
-						}else if (new_value instanceof Double){
-							if (new_value.toString().equals("1.0")){
-								field.set(obj, true);
-							}else{
-								field.set(obj, false);
-							}
-						}else if (new_value instanceof Boolean){
-							field.set(obj, (boolean) new_value);
-						}else{
-							field.set(obj, false);
-						}
-					}else if (tipo_field == java.util.Date.class){
-						final String m_erro = field_name + " não é uma data válida.";
-						if (new_value instanceof String){
-							int len_value = ((String) new_value).length();
-							try {
-								if (len_value == 0){
-									field.set(obj, null);
-								}
-								else if (len_value >= 6 && len_value <= 10){
-	                        		field.set(obj, dateFormatDDMMYYYY.parse((String) new_value));
-	    						}else if (len_value == 16){
-	                        		field.set(obj, dateFormatDDMMYYYY_HHmm.parse((String) new_value));
-	    						}else if (len_value == 19){
-	    							field.set(obj, dateFormatDDMMYYYY_HHmmss.parse((String) new_value));
-	    						}else{
-	    							throw new EmsValidationException(m_erro);
-	    						}
-							} catch (ParseException e) {
-								try {
-									if (len_value == 0){
-										field.set(obj, null);
-									}
-									else if (len_value >= 6 && len_value <= 10){
-		                        		field.set(obj, dateFormatYYYYMMDD.parse((String) new_value));
-		    						}else if (len_value == 16){
-		                        		field.set(obj, dateFormatYYYYMMDD_HHmm.parse((String) new_value));
-		    						}else if (len_value == 19){
-		    							field.set(obj, dateFormatYYYYMMDD_HHmmss.parse((String) new_value));
-		    						}else{
-		    							throw new EmsValidationException(m_erro);
-		    						}
-								} catch (ParseException em) {
-									throw new EmsValidationException(m_erro);
-								}
-							}
-						}else{
-							throw new EmsValidationException(m_erro);
-						}
-					}else if (tipo_field == java.sql.Date.class){
-						final String m_erro = field_name + " não é uma data válida.";
-						if (new_value instanceof String){
-							int len_value = ((String) new_value).length();
-							try {
-								if (len_value == 0){
-									field.set(obj, null);
-								}
-								else if (len_value >= 6 && len_value <= 10){
-	                        		field.set(obj, new java.sql.Date(dateFormatDDMMYYYY.parse((String) new_value).getTime()));
-	    						}else if (len_value == 16){
-	                        		field.set(obj, new java.sql.Date(dateFormatDDMMYYYY_HHmm.parse((String) new_value).getTime()));
-	    						}else if (len_value == 19){
-	    							field.set(obj, new java.sql.Date(dateFormatDDMMYYYY_HHmmss.parse((String) new_value).getTime()));
-	    						}else{
-	    							throw new EmsValidationException(m_erro);
-	    						}
-							} catch (ParseException e) {
-								try {
-									if (len_value == 0){
-										field.set(obj, null);
-									}
-									else if (len_value >= 6 && len_value <= 10){
-		                        		field.set(obj, new java.sql.Date(dateFormatYYYYMMDD.parse((String) new_value).getTime()));
-		    						}else if (len_value == 16){
-		                        		field.set(obj, new java.sql.Date(dateFormatYYYYMMDD_HHmm.parse((String) new_value).getTime()));
-		    						}else if (len_value == 19){
-		    							field.set(obj, new java.sql.Date(dateFormatYYYYMMDD_HHmmss.parse((String) new_value).getTime()));
-		    						}else{
-		    							throw new EmsValidationException(m_erro);
-		    						}
-								}catch (ParseException em) {
-									throw new EmsValidationException(m_erro);
-								}
-							}
-						}else{
-							throw new EmsValidationException(m_erro);
-						}
-					}else if (tipo_field == java.sql.Timestamp.class){
-						final String m_erro = field_name + " não é uma data válida.";
-						java.sql.Timestamp new_time = null;
-						if (new_value instanceof String){
-							int len_value = ((String) new_value).length();
-							try {
-								if (len_value == 0){
-									new_time = null;
-								}
-								else if (len_value >= 6 && len_value <= 10){
-	    							new_time = new java.sql.Timestamp(dateFormatDDMMYYYY.parse((String) new_value).getTime());
-	    						}else if (len_value == 16){
-	    							new_time = new java.sql.Timestamp(dateFormatDDMMYYYY_HHmm.parse((String) new_value).getTime());
-	    						}else if (len_value == 19){
-	    							new_time = new java.sql.Timestamp(dateFormatDDMMYYYY_HHmmss.parse((String) new_value).getTime());
-	    						}else{
-	    							throw new EmsValidationException(m_erro);
-	    						}
-							} catch (ParseException e) {
-								try {
-									if (len_value == 0){
-										field.set(obj, null);
-									}
-									else if (len_value >= 6 && len_value <= 10){
-		                        		field.set(obj, new java.sql.Date(dateFormatYYYYMMDD.parse((String) new_value).getTime()));
-		    						}else if (len_value == 16){
-		                        		field.set(obj, new java.sql.Date(dateFormatYYYYMMDD_HHmm.parse((String) new_value).getTime()));
-		    						}else if (len_value == 19){
-		    							field.set(obj, new java.sql.Date(dateFormatYYYYMMDD_HHmmss.parse((String) new_value).getTime()));
-		    						}else{
-		    							throw new EmsValidationException(m_erro);
-		    						}
-								}catch (ParseException em) {
-									throw new EmsValidationException(m_erro);
-								}
-							}
-							field.set(obj, new_time);
-						}else{
-							throw new EmsValidationException(m_erro);
-						}
-					}else if (tipo_field.isEnum()){
-						try{
-							Integer idValue = null;
-							Enum<?> value = null;
+					if (new_value == null) {
+						field.set(obj, null);
+					}else {
+						Class<?> tipo_field = field.getType(); 
+						if (tipo_field == Integer.class || tipo_field == int.class){
 							if (new_value instanceof String){
-								try{
-									idValue = Integer.parseInt((String) new_value);	
+								field.set(obj, Integer.parseInt((String) new_value));
+							}else if (new_value instanceof Double){
+								field.set(obj, ((Double)new_value).intValue());
+							}else{
+								field.set(obj,  (int) new_value);
+							}
+						}else if (tipo_field == Double.class || tipo_field == double.class){
+							if (new_value instanceof String){
+								field.set(obj, Double.parseDouble((String) new_value));
+							}else if (new_value instanceof Double){
+								field.set(obj, ((Double) new_value).doubleValue());
+							}else{
+								field.set(obj, ((Float) new_value));
+							}
+						}else if (tipo_field == Float.class || tipo_field == float.class){
+							if (new_value instanceof String){
+								field.set(obj, Float.parseFloat((String) new_value));
+							}else if (new_value instanceof Double){
+								field.set(obj, ((Double) new_value).floatValue());
+							}else if (new_value instanceof Integer){
+								field.set(obj, ((Integer) new_value).floatValue());
+							}else{
+								field.set(obj, ((Float) new_value));
+							}
+						}else if (tipo_field == Long.class || tipo_field == long.class){
+							if (new_value instanceof String){
+								field.set(obj, Double.parseDouble((String) new_value));
+							}else{
+								field.set(obj, ((Double) new_value).longValue());
+							}
+						}else if (tipo_field == BigDecimal.class){
+							if (new_value instanceof String){
+								field.set(obj, BigDecimal.valueOf(Double.parseDouble((String) new_value)));
+							}else{
+								field.set(obj,  BigDecimal.valueOf((double) new_value));
+							}
+						}else if (tipo_field == String.class){
+							if (new_value instanceof String){
+								field.set(obj, new_value);
+							}else if (new_value instanceof Double){
+								// Parece um inteiro? (termina com .0)
+								if (new_value.toString().endsWith(".0")){
+									field.set(obj, Integer.toString(((Double)new_value).intValue()));
+								}else{
+									field.set(obj, new_value.toString());	
+								}
+							}else{
+								field.set(obj, new_value.toString());
+							}
+						}else if (tipo_field == Boolean.class || tipo_field == boolean.class){
+							if (new_value instanceof String){
+								if (((String) new_value).equalsIgnoreCase("true")){
+									field.set(obj, true);	
+								}else if  (((String) new_value).equalsIgnoreCase("false")){
+									field.set(obj, false);
+								}else if  (((String) new_value).equalsIgnoreCase("1")){
+									field.set(obj, true);
+								}else if  (((String) new_value).equalsIgnoreCase("0")){
+									field.set(obj, false);
+								}else if  (((String) new_value).equalsIgnoreCase("sim")){
+									field.set(obj, true);
+								}else if  (((String) new_value).equalsIgnoreCase("1.0")){
+									field.set(obj, true);
+								}else if  (((String) new_value).equalsIgnoreCase("yes")){
+									field.set(obj, true);
+								}else{
+									field.set(obj, false);
+								}
+							}else if (new_value instanceof Double){
+								if (new_value.toString().equals("1.0")){
+									field.set(obj, true);
+								}else{
+									field.set(obj, false);
+								}
+							}else if (new_value instanceof Boolean){
+								field.set(obj, (boolean) new_value);
+							}else{
+								field.set(obj, false);
+							}
+						}else if (tipo_field == java.util.Date.class){
+							final String m_erro = field_name + " não é uma data válida.";
+							if (new_value instanceof String){
+								int len_value = ((String) new_value).length();
+								try {
+									if (len_value == 0){
+										field.set(obj, null);
+									}
+									else if (len_value >= 6 && len_value <= 10){
+		                        		field.set(obj, dateFormatDDMMYYYY.parse((String) new_value));
+		    						}else if (len_value == 16){
+		                        		field.set(obj, dateFormatDDMMYYYY_HHmm.parse((String) new_value));
+		    						}else if (len_value == 19){
+		    							field.set(obj, dateFormatDDMMYYYY_HHmmss.parse((String) new_value));
+		    						}else{
+		    							throw new EmsValidationException(m_erro);
+		    						}
+								} catch (ParseException e) {
+									try {
+										if (len_value == 0){
+											field.set(obj, null);
+										}
+										else if (len_value >= 6 && len_value <= 10){
+			                        		field.set(obj, dateFormatYYYYMMDD.parse((String) new_value));
+			    						}else if (len_value == 16){
+			                        		field.set(obj, dateFormatYYYYMMDD_HHmm.parse((String) new_value));
+			    						}else if (len_value == 19){
+			    							field.set(obj, dateFormatYYYYMMDD_HHmmss.parse((String) new_value));
+			    						}else{
+			    							throw new EmsValidationException(m_erro);
+			    						}
+									} catch (ParseException em) {
+										throw new EmsValidationException(m_erro);
+									}
+								}
+							}else if (new_value instanceof Long && EpochValidator.isEpochTimestamp((Long) new_value)) {
+								field.set(obj, EpochValidator.LongToEpochTimestamp((Long) new_value));
+							}else{
+								throw new EmsValidationException(m_erro);
+							}
+						}else if (tipo_field == java.sql.Date.class){
+							final String m_erro = field_name + " não é uma data válida.";
+							if (new_value instanceof String){
+								int len_value = ((String) new_value).length();
+								try {
+									if (len_value == 0){
+										field.set(obj, null);
+									}
+									else if (len_value >= 6 && len_value <= 10){
+		                        		field.set(obj, new java.sql.Date(dateFormatDDMMYYYY.parse((String) new_value).getTime()));
+		    						}else if (len_value == 16){
+		                        		field.set(obj, new java.sql.Date(dateFormatDDMMYYYY_HHmm.parse((String) new_value).getTime()));
+		    						}else if (len_value == 19){
+		    							field.set(obj, new java.sql.Date(dateFormatDDMMYYYY_HHmmss.parse((String) new_value).getTime()));
+		    						}else{
+		    							throw new EmsValidationException(m_erro);
+		    						}
+								} catch (ParseException e) {
+									try {
+										if (len_value == 0){
+											field.set(obj, null);
+										}
+										else if (len_value >= 6 && len_value <= 10){
+			                        		field.set(obj, new java.sql.Date(dateFormatYYYYMMDD.parse((String) new_value).getTime()));
+			    						}else if (len_value == 16){
+			                        		field.set(obj, new java.sql.Date(dateFormatYYYYMMDD_HHmm.parse((String) new_value).getTime()));
+			    						}else if (len_value == 19){
+			    							field.set(obj, new java.sql.Date(dateFormatYYYYMMDD_HHmmss.parse((String) new_value).getTime()));
+			    						}else{
+			    							throw new EmsValidationException(m_erro);
+			    						}
+									}catch (ParseException em) {
+										throw new EmsValidationException(m_erro);
+									}
+								}
+							}else{
+								throw new EmsValidationException(m_erro);
+							}
+						}else if (tipo_field == java.sql.Timestamp.class){
+							final String m_erro = field_name + " não é uma data válida.";
+							java.sql.Timestamp new_time = null;
+							if (new_value instanceof String){
+								int len_value = ((String) new_value).length();
+								try {
+									if (len_value == 0){
+										new_time = null;
+									}
+									else if (len_value >= 6 && len_value <= 10){
+		    							new_time = new java.sql.Timestamp(dateFormatDDMMYYYY.parse((String) new_value).getTime());
+		    						}else if (len_value == 16){
+		    							new_time = new java.sql.Timestamp(dateFormatDDMMYYYY_HHmm.parse((String) new_value).getTime());
+		    						}else if (len_value == 19){
+		    							new_time = new java.sql.Timestamp(dateFormatDDMMYYYY_HHmmss.parse((String) new_value).getTime());
+		    						}else{
+		    							throw new EmsValidationException(m_erro);
+		    						}
+								} catch (ParseException e) {
+									try {
+										if (len_value == 0){
+											field.set(obj, null);
+										}
+										else if (len_value >= 6 && len_value <= 10){
+			                        		field.set(obj, new java.sql.Date(dateFormatYYYYMMDD.parse((String) new_value).getTime()));
+			    						}else if (len_value == 16){
+			                        		field.set(obj, new java.sql.Date(dateFormatYYYYMMDD_HHmm.parse((String) new_value).getTime()));
+			    						}else if (len_value == 19){
+			    							field.set(obj, new java.sql.Date(dateFormatYYYYMMDD_HHmmss.parse((String) new_value).getTime()));
+			    						}else{
+			    							throw new EmsValidationException(m_erro);
+			    						}
+									}catch (ParseException em) {
+										throw new EmsValidationException(m_erro);
+									}
+								}
+								field.set(obj, new_time);
+							}else{
+								throw new EmsValidationException(m_erro);
+							}
+						}else if (tipo_field.isEnum()){
+							try{
+								Integer idValue = null;
+								Enum<?> value = null;
+								if (new_value instanceof String){
+									try{
+										idValue = Integer.parseInt((String) new_value);	
+										value = intToEnum(idValue, (Class<Enum>) tipo_field);
+									}catch (NumberFormatException e){
+										value = StrToEnum((String) new_value, (Class<Enum>) tipo_field);
+									}
+								}else{
+									idValue = ((Double) new_value).intValue();
 									value = intToEnum(idValue, (Class<Enum>) tipo_field);
-								}catch (NumberFormatException e){
-									value = StrToEnum((String) new_value, (Class<Enum>) tipo_field);
 								}
-							}else{
-								idValue = ((Double) new_value).intValue();
-								value = intToEnum(idValue, (Class<Enum>) tipo_field);
+								field.set(obj, value);
+							}catch (Exception e){
+								throw new EmsValidationException(field_name + " não é válido.");
 							}
+						}else if (tipo_field == byte[].class){
+							byte[] value = null;
+							
+							if(new_value instanceof ArrayList) {
+								value = toByteArray((ArrayList)new_value);
+							} else {
+								value = toByteArray(new ArrayList(((LinkedTreeMap<Integer, Double>)new_value).values()));
+							}
+							
 							field.set(obj, value);
-						}catch (Exception e){
-							throw new EmsValidationException(field_name + " não é válido.");
-						}
-					}else if (tipo_field == byte[].class){
-						byte[] value = null;
-						
-						if(new_value instanceof ArrayList) {
-							value = toByteArray((ArrayList)new_value);
-						} else {
-							value = toByteArray(new ArrayList(((LinkedTreeMap<Integer, Double>)new_value).values()));
-						}
-						
-						field.set(obj, value);
-					}else if (tipo_field instanceof Object && 
-							  findFieldByAnnotation(tipo_field, Id.class) != null){
-						try{
-							Integer idValue = null;
-							if (new_value instanceof String){
-								idValue = Integer.parseInt((String)new_value);	
-							}else{
-								idValue = ((Double)new_value).intValue();
+						}else if (tipo_field instanceof Object && 
+								  findFieldByAnnotation(tipo_field, Id.class) != null){
+							try{
+								Integer idValue = null;
+								if (new_value instanceof String){
+									idValue = Integer.parseInt((String)new_value);	
+								}else{
+									idValue = ((Double)new_value).intValue();
+								}
+								if (idValue > 0){
+									Object model = jsonModelAdapter.findById(tipo_field, idValue);
+									field.set(obj, model);
+								}
 							}
-							if (idValue > 0){
-								Object model = jsonModelAdapter.findById(tipo_field, idValue);
-								field.set(obj, model);
+							catch (EmsNotFoundException e){
+								throw new EmsValidationException(field_name + " não existe.");
+							}catch (Exception e){
+								throw new EmsValidationException(field_name + " inválido.");
 							}
+						}else{
+							throw new EmsValidationException("Não suporta o tipo de dado do campo "+ field_name + ".");
 						}
-						catch (EmsNotFoundException e){
-							throw new EmsValidationException(field_name + " não existe.");
-						}catch (Exception e){
-							throw new EmsValidationException(field_name + " inválido.");
-						}
-					}else{
-						throw new EmsValidationException("Não suporta o tipo de dado do campo "+ field_name + ".");
 					}
 				}catch (EmsValidationException e){
 					throw e;
