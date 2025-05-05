@@ -109,7 +109,9 @@ public class EmsRequest implements IEmsRequest {
 	
 	@Override
 	public void setParam(String nome, String value) {
-		params.put(nome, value);
+		if (nome != null) {
+			params.put(nome, value);
+		}
 	}
 	
 
@@ -170,10 +172,17 @@ public class EmsRequest implements IEmsRequest {
 	
 	@Override
     public void setQuery(String nome, String value) {
-        if (nome.equals("limit") && value.equals("0")) {
-        	value = "100";
-        }
-		queries.put(nome, value);
+		if (nome != null) {
+			// Hack inserido por causa que o sipic envia duas "" seguidas na query filter em alguns ws
+			if (nome.equals("filter") && value != null && value.startsWith("\"")) {
+				value = value.substring(1, value.length() - 1);
+			}
+
+			if (nome.equals("limit") && value != null && value.equals("0")) {
+				value = "100";
+			}
+			queries.put(nome, value);
+		}
     }
 
 	/**
