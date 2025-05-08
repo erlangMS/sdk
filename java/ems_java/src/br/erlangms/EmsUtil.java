@@ -84,6 +84,7 @@ import javax.persistence.UniqueConstraint;
 import javax.swing.text.MaskFormatter;
 import javax.ws.rs.client.ClientBuilder;
 
+import org.apache.commons.lang3.time.DateUtils;
 import org.hibernate.Hibernate;
 import org.hibernate.proxy.HibernateProxy;
 
@@ -645,7 +646,48 @@ public final class EmsUtil {
 			throw new EmsValidationException("Parâmetro classOfObj do método EmsUtil.fromListJson não deve ser null.");
 		}
 	}
-	
+
+	public static boolean isStrValidDate(String value){
+		if (value == null){
+			return false;
+		}
+		int len_value = value.length();
+		try {
+			if (len_value >= 6 && len_value <= 10){
+				dateFormatDDMMYYYY.parse(value);
+			}else if (len_value == 16){
+				dateFormatDDMMYYYY_HHmm.parse(value);
+			}else if (len_value == 19){
+				dateFormatDDMMYYYY_HHmmss.parse(value);
+			}else{
+				return false;
+			}
+		} catch (ParseException e) {
+			return false;
+		}
+		return true;
+	}
+
+	public static Date StrToDateTime(String value){
+		if (value == null){
+			throw new EmsValidationException("Data nula");
+		}
+		int len_value = ((String) value).length();
+		try {
+			if (len_value >= 6 && len_value <= 10){
+				return dateFormatDDMMYYYY.parse(value);
+			}else if (len_value == 16){
+				return dateFormatDDMMYYYY_HHmm.parse((String) value);
+			}else if (len_value == 19){
+				return dateFormatDDMMYYYY_HHmmss.parse((String) value);
+			}else{
+				throw new EmsValidationException("Data inválida: "+ value);
+			}
+		} catch (ParseException e) {
+			throw new EmsValidationException("Data inválida: "+ value);
+		}
+	}
+
 	/**
 	 * Seta os valores nos parâmetros de um query a partir de um map
 	 * @param query Instância da query com parâmetros a setar
@@ -736,7 +778,10 @@ public final class EmsUtil {
 						}
 					}else if (paramType == String.class){
 						String valueString;
-						if (EpochValidator.isEpochTimestamp(value_field.toString())) {
+						if (isStrValidDate(value_field.toString())){
+							Date valueDate = StrToDateTime(value_field.toString());
+							query.setParameter(p++, valueDate);
+						}else if (EpochValidator.isEpochTimestamp(value_field.toString())) {
 							Date valueDate = EpochValidator.StrToEpochTimestamp(value_field.toString());
 							query.setParameter(p++, valueDate);	
 						}else {
@@ -768,20 +813,8 @@ public final class EmsUtil {
 					}else if (paramType == java.util.Date.class){
 						final String m_erro = field_name + " não é uma data válida.";
 						if (value_field instanceof String){
-							int len_value = ((String) value_field).length();
-							try {
-								if (len_value >= 6 && len_value <= 10){
-	                        		query.setParameter(p++, dateFormatDDMMYYYY.parse((String) value_field));
-	    						}else if (len_value == 16){
-	    							query.setParameter(p++, dateFormatDDMMYYYY_HHmm.parse((String) value_field));
-	    						}else if (len_value == 19){
-	    							query.setParameter(p++, dateFormatDDMMYYYY_HHmmss.parse((String) value_field));	    							
-	    						}else{
-	    							throw new EmsValidationException(m_erro);
-	    						}
-							} catch (ParseException e) {
-								throw new EmsValidationException(m_erro);
-							}
+							Date valueDate = StrToDateTime(value_field.toString());
+  							query.setParameter(p++, valueDate);
 						}else{
 							throw new EmsValidationException(m_erro);
 						}
