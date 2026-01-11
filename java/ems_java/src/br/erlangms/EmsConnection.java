@@ -24,7 +24,7 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.ericsson.otp.erlang.OtpMbox;
 import com.ericsson.otp.erlang.OtpNode;
 
-public class EmsConnection implements Runnable {
+public final class EmsConnection implements Runnable {
 
     private static final Logger logger = EmsUtil.logger;
     private static final int THREAD_WAIT_TO_RESTART = 5000;
@@ -42,16 +42,9 @@ public class EmsConnection implements Runnable {
         this.service = service;
         this.classOfservice = service.getClass();
         this.nameService = this.classOfservice.getName();
-
-        // Hardcode host to 127.0.0.1 to avoid "illegal hostname" errors in Erlang with
-        // long names
-        String nodeSuffix = "";
-        String host = "127.0.0.1";
-
-        this.otpNodeName = otpNodeName.replace(".", "_") + nodeSuffix + "@" + host;
-
+        final String host = "127.0.0.1";
+        this.otpNodeName = otpNodeName.replace(".", "_") + "@" + host;
         logger.info("Initializing EmsConnection. Target Node Name: " + this.otpNodeName);
-
         getMethodNamesTable();
     }
 
@@ -135,7 +128,7 @@ public class EmsConnection implements Runnable {
                     try {
                         logger.info("Aguardando mensagem do barramento...");
                         myObject = myMbox.receive();
-                        logger.info("📥 Message Received! " + myObject.toString());
+                        logger.info("Message Received! " + myObject.toString());
 
                         if (myObject instanceof OtpErlangTuple) {
                             myMsg = (OtpErlangTuple) myObject;
@@ -148,10 +141,10 @@ public class EmsConnection implements Runnable {
                                 request = new EmsRequest(otp_request);
                                 pool.submit(new Task(dispatcherPid, request, this));
                             } else {
-                                logger.warning("⚠️ Received tuple with unexpected arity: " + myMsg.toString());
+                                logger.warning("Received tuple with unexpected arity: " + myMsg.toString());
                             }
                         } else {
-                            logger.warning("⚠️ Received unknown object type: " + myObject.getClass().getName());
+                            logger.warning("Received unknown object type: " + myObject.getClass().getName());
                         }
 
                     } catch (Exception e) {
