@@ -18,6 +18,7 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPid;
@@ -111,7 +112,7 @@ public class EmsConnection implements Runnable {
     }
 
     public synchronized void sendResult(final OtpErlangPid from, final OtpErlangTuple response) {
-        logger.info("📤 Sending response to: " + from);
+        logger.info("Sending response to: " + from);
         myMbox.send(from, response);
     }
 
@@ -145,6 +146,7 @@ public class EmsConnection implements Runnable {
                                 dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
 
                                 logger.info("⚙️ Processing request from PID: " + dispatcherPid);
+                                myMbox.send(dispatcherPid, new OtpErlangAtom("ok"));
                                 request = new EmsRequest(otp_request);
                                 pool.submit(new Task(dispatcherPid, request, this));
                             } else {
