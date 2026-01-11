@@ -1852,7 +1852,7 @@ public final class EmsUtil {
 	   if (tmp_nodeName != null){
 		   prop.nodeName = tmp_nodeName;
 	   }else{
-		   prop.nodeName = "node01";
+		   prop.nodeName = "localhost";
 	   }
 	   
 	   String tmp_environment = getProperty("ems_environment");
