@@ -18,6 +18,7 @@ import java.util.Map;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBinary;
+import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangMap;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -54,40 +55,63 @@ public class EmsRequest implements IEmsRequest {
 	}
 
 	public void setOtpRequest(final OtpErlangTuple otp_request) {
+		EmsUtil.logger.info("========== EmsRequest recebido do barramento ==========");
+
+		// Log dos tipos recebidos para debug
+		EmsUtil.logger.info("Estrutura da mensagem (" + otp_request.arity() + " elementos):");
+		for (int i = 0; i < otp_request.arity(); i++) {
+			OtpErlangObject elem = otp_request.elementAt(i);
+			String typeName = elem != null ? elem.getClass().getSimpleName() : "null";
+			EmsUtil.logger.info(String.format("  [%d]: %s", i, typeName));
+		}
+
 		this.otp_request = otp_request;
 		this.properties = null;
 		this.queryCount = -1;
 
-		// Extrai e loga os dados do request
-		this.rid = ((OtpErlangLong) otp_request.elementAt(0)).longValue();
-		this.timeout = ((OtpErlangLong) otp_request.elementAt(14)).longValue();
-		this.t1 = ((OtpErlangLong) otp_request.elementAt(13)).longValue();
-		this.method = ((OtpErlangString) otp_request.elementAt(2)).stringValue();
-		this.url = ((OtpErlangString) otp_request.elementAt(1)).stringValue();
+		// Extrai valores long
+		this.rid = extractLongValue(otp_request.elementAt(0), "rid");
+		this.timeout = extractLongValue(otp_request.elementAt(14), "timeout");
+		this.t1 = extractLongValue(otp_request.elementAt(13), "t1");
+
+		// Extrai campos com suporte a múltiplos tipos (binary, string, list)
+		this.method = extractStringValue(otp_request.elementAt(2), "method");
+		this.url = extractStringValue(otp_request.elementAt(1), "url");
 		this.isPostOrUpdateRequestFlag = method.equals("POST") || method.equals("PUT");
-		this.contentType = new String(((OtpErlangBinary) otp_request.elementAt(6)).binaryValue());
-		this.modulo = ((OtpErlangString) otp_request.elementAt(7)).stringValue();
-		this.function = ((OtpErlangString) otp_request.elementAt(8)).stringValue();
-		this.payload = new String(((OtpErlangBinary) otp_request.elementAt(5)).binaryValue());
-		this.paramCount = ((OtpErlangMap) otp_request.elementAt(3)).arity();
+
+		// Extrai campos binários como string UTF-8
+		this.contentType = extractBinaryAsString(otp_request.elementAt(6), "contentType");
+
+		// Payload requer tratamento especial com logging detalhado em caso de erro
+		try {
+			this.payload = extractBinaryAsString(otp_request.elementAt(5), "payload");
+		} catch (EmsValidationException e) {
+			// Loga a estrutura completa do payload para debug
+			EmsUtil.logger.severe("Erro ao extrair payload. Estrutura recebida:");
+			logOtpStructure(otp_request.elementAt(5), "payload", 0);
+			throw e;
+		}
+
+		this.modulo = extractStringValue(otp_request.elementAt(7), "modulo");
+		this.function = extractStringValue(otp_request.elementAt(8), "function");
+
+		// Extrai mapa de parâmetros
+		OtpErlangMap paramsMap = extractMapValue(otp_request.elementAt(3), "params");
+		this.paramCount = paramsMap.arity();
 		this.userJson = null;
 		this.clientJson = null;
 
 		// Processa OAuth2
-		OtpErlangObject OAuth2FieldObj = otp_request.elementAt(12);
-		if (OAuth2FieldObj != null && OAuth2FieldObj instanceof OtpErlangTuple) {
-			OtpErlangTuple OAuth2Field = (OtpErlangTuple) OAuth2FieldObj;
-			if (OAuth2Field != null) {
-				this.scope = new String(((OtpErlangBinary) OAuth2Field.elementAt(1)).binaryValue());
-				this.access_token = new String(((OtpErlangBinary) OAuth2Field.elementAt(1)).binaryValue());
-			}
+		OtpErlangTuple OAuth2Field = extractTupleValue(otp_request.elementAt(12), "oauth2");
+		if (OAuth2Field != null) {
+			this.scope = extractBinaryAsString(OAuth2Field.elementAt(0), "oauth2.scope");
+			this.access_token = extractBinaryAsString(OAuth2Field.elementAt(1), "oauth2.access_token");
 		} else {
 			this.scope = "";
 			this.access_token = "";
 		}
 
 		// Logging detalhado para debug
-		EmsUtil.logger.info("========== EmsRequest recebido do barramento ==========");
 		EmsUtil.logger.info("RID: " + this.rid);
 		EmsUtil.logger.info("URL: " + this.url);
 		EmsUtil.logger.info("Método: " + this.method);
@@ -123,9 +147,9 @@ public class EmsRequest implements IEmsRequest {
 				int queryCount = queries.arity();
 				EmsUtil.logger.info("Querystrings (" + queryCount + "):");
 				for (OtpErlangObject key : queries.keys()) {
-					String keyStr = new String(((OtpErlangBinary) key).binaryValue());
+					String keyStr = extractBinaryAsString(key, "querystring.key");
 					OtpErlangObject value = queries.get(key);
-					String valueStr = new String(((OtpErlangBinary) value).binaryValue());
+					String valueStr = extractBinaryAsString(value, "querystring.value");
 					EmsUtil.logger.info("  " + keyStr + " = " + valueStr);
 				}
 			} else {
@@ -135,12 +159,13 @@ public class EmsRequest implements IEmsRequest {
 			EmsUtil.logger.warning("Erro ao logar querystrings: " + e.getMessage());
 		}
 
-		// Loga payload (limitado a 500 caracteres para não poluir o log)
+		// Loga payload
 		if (this.payload != null && !this.payload.isEmpty()) {
+			// Loga o payload bruto truncado
 			String payloadLog = this.payload.length() > 500
 					? this.payload.substring(0, 500) + "... (truncado, total: " + this.payload.length() + " chars)"
 					: this.payload;
-			EmsUtil.logger.info("Payload: " + payloadLog);
+			EmsUtil.logger.info("Payload (" + this.payload.length() + " chars): " + payloadLog);
 		} else {
 			EmsUtil.logger.info("Payload: vazio");
 		}
@@ -154,6 +179,293 @@ public class EmsRequest implements IEmsRequest {
 		}
 
 		EmsUtil.logger.info("======================================================");
+	}
+
+	/**
+	 * Extrai um valor string de um OtpErlangObject que pode ser OtpErlangBinary,
+	 * OtpErlangString ou OtpErlangList (lista de inteiros representando
+	 * caracteres).
+	 * Este método garante compatibilidade com diferentes versões do barramento.
+	 * 
+	 * @param obj       Objeto Erlang a ser convertido
+	 * @param fieldName Nome do campo (para mensagens de erro)
+	 * @return String extraída do objeto
+	 * @throws EmsValidationException se o tipo não for suportado
+	 */
+	private String extractStringValue(OtpErlangObject obj, String fieldName) {
+		if (obj == null) {
+			throw new EmsValidationException("Campo " + fieldName + " não pode ser null.");
+		}
+
+		try {
+			// Tenta como OtpErlangString (tipo esperado originalmente)
+			if (obj instanceof OtpErlangString) {
+				return ((OtpErlangString) obj).stringValue();
+			}
+
+			// Tenta como OtpErlangBinary (tipo enviado pelo barramento para alguns campos)
+			if (obj instanceof OtpErlangBinary) {
+				return new String(((OtpErlangBinary) obj).binaryValue());
+			}
+
+			// Tenta como OtpErlangList (tipo enviado quando usa binary_to_list no Erlang)
+			if (obj instanceof OtpErlangList) {
+				return otpListToString((OtpErlangList) obj);
+			}
+
+			// Tipo não suportado
+			throw new EmsValidationException(
+					"Campo " + fieldName + " possui tipo não suportado: " + obj.getClass().getName() +
+							". Tipos suportados: OtpErlangString, OtpErlangBinary, OtpErlangList.");
+
+		} catch (Exception e) {
+			if (e instanceof EmsValidationException) {
+				throw e;
+			}
+			throw new EmsValidationException(
+					"Erro ao extrair valor string do campo " + fieldName + ": " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Converte uma OtpErlangList (lista de inteiros representando códigos ASCII)
+	 * em uma String Java. Este método é necessário porque o Erlang binary_to_list/1
+	 * converte binários em listas de inteiros.
+	 * 
+	 * @param list Lista Erlang contendo códigos de caracteres
+	 * @return String construída a partir dos códigos de caracteres
+	 */
+	private String otpListToString(OtpErlangList list) {
+		if (list == null || list.arity() == 0) {
+			return "";
+		}
+
+		try {
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < list.arity(); i++) {
+				OtpErlangObject element = list.elementAt(i);
+				if (element instanceof OtpErlangLong) {
+					int charCode = ((OtpErlangLong) element).intValue();
+					sb.append((char) charCode);
+				} else {
+					throw new EmsValidationException(
+							"Elemento da lista não é um inteiro: " + element.getClass().getName());
+				}
+			}
+			return sb.toString();
+		} catch (OtpErlangRangeException e) {
+			throw new EmsValidationException(
+					"Erro ao converter lista Erlang para string: valor fora do range de int. " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Extrai um valor binário de um OtpErlangBinary e converte para String UTF-8.
+	 * Este método garante que a conversão seja feita com o charset correto para
+	 * suportar caracteres especiais, acentos e emojis.
+	 * Também aceita OtpErlangList para compatibilidade com payloads vazios.
+	 * 
+	 * @param obj       Objeto Erlang a ser convertido (deve ser OtpErlangBinary ou
+	 *                  OtpErlangList)
+	 * @param fieldName Nome do campo (para mensagens de erro)
+	 * @return String extraída do binário com charset UTF-8
+	 * @throws EmsValidationException se o objeto não for OtpErlangBinary/List ou
+	 *                                houver
+	 *                                erro na conversão
+	 */
+	private String extractBinaryAsString(OtpErlangObject obj, String fieldName) {
+		if (obj == null) {
+			throw new EmsValidationException("Campo " + fieldName + " não pode ser null.");
+		}
+
+		// Aceita OtpErlangBinary (caso mais comum)
+		if (obj instanceof OtpErlangBinary) {
+			try {
+				// Converte binary para string usando UTF-8
+				return new String(((OtpErlangBinary) obj).binaryValue(), "UTF-8");
+			} catch (java.io.UnsupportedEncodingException e) {
+				// UTF-8 sempre está disponível na JVM, mas tratamos por segurança
+				// Fallback para charset padrão
+				return new String(((OtpErlangBinary) obj).binaryValue());
+			} catch (Exception e) {
+				throw new EmsValidationException(
+						"Erro ao extrair valor binário do campo " + fieldName + ": " + e.getMessage());
+			}
+		}
+
+		// Aceita OtpErlangList (para payloads vazios ou quando o barramento envia como
+		// lista)
+		if (obj instanceof OtpErlangList) {
+			OtpErlangList list = (OtpErlangList) obj;
+
+			// Lista vazia
+			if (list.arity() == 0) {
+				return "";
+			}
+
+			// Verifica o tipo do primeiro elemento
+			OtpErlangObject firstElem = list.elementAt(0);
+			String firstElemType = firstElem.getClass().getSimpleName();
+
+			// Se for lista de inteiros (códigos ASCII), converte
+			if (firstElem instanceof OtpErlangLong) {
+				return otpListToString(list);
+			}
+
+			// Se não for lista de inteiros, é uma estrutura complexa não suportada
+			throw new EmsValidationException(
+					"Campo " + fieldName + " é uma lista com " + list.arity() + " elementos, mas contém " +
+							"elementos do tipo " + firstElemType + " em vez de inteiros (códigos ASCII). " +
+							"Isso indica que o barramento está enviando uma estrutura complexa não suportada. " +
+							"Verifique o dispatcher Erlang.");
+		}
+
+		// Aceita OtpErlangAtom (para undefined ou outros atoms)
+		if (obj instanceof OtpErlangAtom) {
+			OtpErlangAtom atom = (OtpErlangAtom) obj;
+			// Se for undefined, retorna string vazia
+			if (atom.atomValue().equals("undefined")) {
+				return "";
+			}
+			// Para outros atoms, retorna o valor como string
+			return atom.atomValue();
+		}
+
+		// Tipo não suportado
+		String actualType = obj.getClass().getSimpleName();
+		throw new EmsValidationException(
+				"Campo " + fieldName + " possui tipo não suportado: " + actualType + ". " +
+						"Tipos esperados: OtpErlangBinary, OtpErlangList (de inteiros) ou OtpErlangAtom.");
+	}
+
+	/**
+	 * Loga a estrutura de um objeto Erlang para debug.
+	 * Útil para entender estruturas complexas recebidas do barramento.
+	 * 
+	 * @param obj       Objeto Erlang a ser inspecionado
+	 * @param fieldName Nome do campo
+	 * @param depth     Profundidade atual (para indentação)
+	 */
+	private void logOtpStructure(OtpErlangObject obj, String fieldName, int depth) {
+		if (depth > 3) {
+			return; // Limite de profundidade para evitar loops infinitos
+		}
+
+		// Cria indentação manualmente (Java 8 não tem String.repeat)
+		StringBuilder indentBuilder = new StringBuilder();
+		for (int i = 0; i < depth; i++) {
+			indentBuilder.append("  ");
+		}
+		String indent = indentBuilder.toString();
+		String type = obj != null ? obj.getClass().getSimpleName() : "null";
+
+		EmsUtil.logger.severe(indent + fieldName + ": " + type);
+
+		if (obj instanceof OtpErlangTuple) {
+			OtpErlangTuple tuple = (OtpErlangTuple) obj;
+			EmsUtil.logger.severe(indent + "  (tupla com " + tuple.arity() + " elementos)");
+			for (int i = 0; i < tuple.arity(); i++) {
+				logOtpStructure(tuple.elementAt(i), "elem[" + i + "]", depth + 1);
+			}
+		} else if (obj instanceof OtpErlangList) {
+			OtpErlangList list = (OtpErlangList) obj;
+			EmsUtil.logger.severe(indent + "  (lista com " + list.arity() + " elementos)");
+			int max = Math.min(list.arity(), 5); // Mostra apenas os 5 primeiros
+			for (int i = 0; i < max; i++) {
+				logOtpStructure(list.elementAt(i), "item[" + i + "]", depth + 1);
+			}
+			if (list.arity() > 5) {
+				EmsUtil.logger.severe(indent + "  ... (mais " + (list.arity() - 5) + " itens)");
+			}
+		} else if (obj instanceof OtpErlangBinary) {
+			OtpErlangBinary bin = (OtpErlangBinary) obj;
+			int size = bin.binaryValue().length;
+			String preview = size > 50 ? " (primeiros 50 bytes)" : "";
+			EmsUtil.logger.severe(indent + "  (binary com " + size + " bytes" + preview + ")");
+		} else if (obj instanceof OtpErlangLong) {
+			try {
+				EmsUtil.logger.severe(indent + "  (valor: " + ((OtpErlangLong) obj).longValue() + ")");
+			} catch (Exception e) {
+				EmsUtil.logger.severe(indent + "  (erro ao ler valor)");
+			}
+		} else if (obj instanceof OtpErlangAtom) {
+			EmsUtil.logger.severe(indent + "  (atom: " + obj.toString() + ")");
+		}
+	}
+
+	/**
+	 * Extrai um valor long de um OtpErlangLong.
+	 * 
+	 * @param obj       Objeto Erlang a ser convertido (deve ser OtpErlangLong)
+	 * @param fieldName Nome do campo (para mensagens de erro)
+	 * @return Valor long extraído
+	 * @throws EmsValidationException se o objeto não for OtpErlangLong ou houver
+	 *                                erro na conversão
+	 */
+	private long extractLongValue(OtpErlangObject obj, String fieldName) {
+		if (obj == null) {
+			throw new EmsValidationException("Campo " + fieldName + " não pode ser null.");
+		}
+
+		if (!(obj instanceof OtpErlangLong)) {
+			throw new EmsValidationException(
+					"Campo " + fieldName + " deve ser OtpErlangLong, mas é: " + obj.getClass().getName());
+		}
+
+		try {
+			return ((OtpErlangLong) obj).longValue();
+		} catch (Exception e) {
+			throw new EmsValidationException(
+					"Erro ao extrair valor long do campo " + fieldName + ": " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Extrai um OtpErlangMap.
+	 * 
+	 * @param obj       Objeto Erlang a ser convertido (deve ser OtpErlangMap)
+	 * @param fieldName Nome do campo (para mensagens de erro)
+	 * @return OtpErlangMap extraído
+	 * @throws EmsValidationException se o objeto não for OtpErlangMap
+	 */
+	private OtpErlangMap extractMapValue(OtpErlangObject obj, String fieldName) {
+		if (obj == null) {
+			throw new EmsValidationException("Campo " + fieldName + " não pode ser null.");
+		}
+
+		if (!(obj instanceof OtpErlangMap)) {
+			throw new EmsValidationException(
+					"Campo " + fieldName + " deve ser OtpErlangMap, mas é: " + obj.getClass().getName());
+		}
+
+		return (OtpErlangMap) obj;
+	}
+
+	/**
+	 * Extrai um OtpErlangTuple.
+	 * 
+	 * @param obj       Objeto Erlang a ser convertido (deve ser OtpErlangTuple)
+	 * @param fieldName Nome do campo (para mensagens de erro)
+	 * @return OtpErlangTuple extraído, ou null se o objeto for undefined
+	 * @throws EmsValidationException se o objeto não for OtpErlangTuple ou
+	 *                                undefined
+	 */
+	private OtpErlangTuple extractTupleValue(OtpErlangObject obj, String fieldName) {
+		if (obj == null) {
+			return null;
+		}
+
+		// Permite undefined (retorna null)
+		if (obj instanceof OtpErlangAtom && obj.equals(undefined)) {
+			return null;
+		}
+
+		if (!(obj instanceof OtpErlangTuple)) {
+			throw new EmsValidationException(
+					"Campo " + fieldName + " deve ser OtpErlangTuple ou undefined, mas é: " + obj.getClass().getName());
+		}
+
+		return (OtpErlangTuple) obj;
 	}
 
 	/**

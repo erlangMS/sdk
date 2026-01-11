@@ -10,7 +10,6 @@ package br.erlangms;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -19,7 +18,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
-import com.ericsson.otp.erlang.OtpErlangBinary;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPid;
 import com.ericsson.otp.erlang.OtpErlangTuple;
@@ -145,7 +143,7 @@ public class EmsConnection implements Runnable {
                                 otp_request = (OtpErlangTuple) myMsg.elementAt(0);
                                 dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
 
-                                logger.info("⚙️ Processing request from PID: " + dispatcherPid);
+                                logger.info("Processing request from PID: " + dispatcherPid);
                                 myMbox.send(dispatcherPid, new OtpErlangAtom("ok"));
                                 request = new EmsRequest(otp_request);
                                 pool.submit(new Task(dispatcherPid, request, this));
@@ -234,10 +232,10 @@ public class EmsConnection implements Runnable {
         public Boolean call() {
             try {
                 Object ret = chamaMetodo(request.getModulo(), request.getFunction(), request);
-                logger.info("Result: " + ret);
+                // logger.info("Result: " + ret);
                 if (request.getRID() > 0) {
                     OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
-                    logger.info("✅ Task completed. Sending result to " + from);
+                    logger.info("Task completed. Sending result to " + from);
                     connection.sendResult(from, response);
                 }
             } catch (Exception e) {
