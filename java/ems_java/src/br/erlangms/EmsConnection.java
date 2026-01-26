@@ -17,7 +17,6 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPid;
 import com.ericsson.otp.erlang.OtpErlangTuple;
@@ -44,7 +43,6 @@ public final class EmsConnection implements Runnable {
         this.nameService = this.classOfservice.getName();
         final String host = "127.0.0.1";
         this.otpNodeName = otpNodeName.replace(".", "_") + "@" + host;
-        logger.info("Initializing EmsConnection. Target Node Name: " + this.otpNodeName);
         getMethodNamesTable();
     }
 
@@ -74,6 +72,7 @@ public final class EmsConnection implements Runnable {
                 myNode.close();
             }
         } catch (Exception e) {
+            logger.warning("Failed to close myMbox");
         }
     }
 
@@ -83,7 +82,6 @@ public final class EmsConnection implements Runnable {
             try {
                 // Constructor with single argument parses it as name@host
                 myNode = new OtpNode(otpNodeName);
-
                 String cookie = "erlangms";
                 myNode.setCookie(cookie);
                 logger.info("✅ OtpNode created successfully: " + otpNodeName + ". Cookie: " + cookie);
@@ -103,7 +101,6 @@ public final class EmsConnection implements Runnable {
     }
 
     public synchronized void sendResult(final OtpErlangPid from, final OtpErlangTuple response) {
-        logger.info("Sending response to: " + from);
         myMbox.send(from, response);
     }
 
@@ -126,18 +123,13 @@ public final class EmsConnection implements Runnable {
                 // Message Loop
                 while (true) {
                     try {
-                        logger.info("Aguardando mensagem do barramento...");
                         myObject = myMbox.receive();
-                        logger.info("Message Received! " + myObject.toString());
-
                         if (myObject instanceof OtpErlangTuple) {
+                            logger.info("Message Received! " + myObject.toString());
                             myMsg = (OtpErlangTuple) myObject;
                             if (myMsg.arity() >= 2) {
                                 otp_request = (OtpErlangTuple) myMsg.elementAt(0);
                                 dispatcherPid = (OtpErlangPid) myMsg.elementAt(1);
-
-                                logger.info("Processing request from PID: " + dispatcherPid);
-                                myMbox.send(dispatcherPid, new OtpErlangAtom("ok"));
                                 request = new EmsRequest(otp_request);
                                 pool.submit(new Task(dispatcherPid, request, this));
                             } else {
@@ -225,10 +217,9 @@ public final class EmsConnection implements Runnable {
         public Boolean call() {
             try {
                 Object ret = chamaMetodo(request.getModulo(), request.getFunction(), request);
-                // logger.info("Result: " + ret);
                 if (request.getRID() > 0) {
                     OtpErlangTuple response = EmsUtil.serializeObjectToErlangResponse(ret, request);
-                    logger.info("Task completed. Sending result to " + from);
+                    logger.info("Task completed, sending result");
                     connection.sendResult(from, response);
                 }
             } catch (Exception e) {

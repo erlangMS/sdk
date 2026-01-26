@@ -3,7 +3,7 @@ package br.erlangms;
 import java.util.Date;
 import java.util.regex.Pattern;
 
-public class EpochValidator {
+public final class EpochValidator {
 
     public static boolean isEpochTimestamp(final String timestampStr) {
         // Verifica se começa com um número e contém apenas dígitos e vírgulas
@@ -28,8 +28,7 @@ public class EpochValidator {
             return false;
         }
     }
-    
-   
+
     public static boolean isEpochTimestamp(long timestamp) {
         // A Epoch começa em 1 de janeiro de 1970, então o timestamp deve ser positivo.
         // Um valor razoável seria entre 1970 e um limite futuro, como 2100.
@@ -46,7 +45,7 @@ public class EpochValidator {
         try {
             // Remove vírgulas e converte para long
             long timestamp = Long.parseLong(timestampStr.replace(",", ""));
-            
+
             // Verifica se o timestamp é válido
             if (!isEpochTimestamp(timestamp)) {
                 throw new IllegalArgumentException("O número fornecido não parece ser um timestamp válido.");
@@ -58,7 +57,7 @@ public class EpochValidator {
             throw new IllegalArgumentException("Entrada inválida: " + timestampStr, e);
         }
     }
-    
+
     public static Date LongToEpochTimestamp(Long timestamp) {
         try {
             if (!isEpochTimestamp(timestamp)) {
@@ -70,7 +69,6 @@ public class EpochValidator {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Data inválida", e);
         }
-    }    
-    
+    }
 
 }
