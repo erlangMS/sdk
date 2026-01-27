@@ -58,12 +58,13 @@ public class EmsRequest implements IEmsRequest {
 		EmsUtil.logger.info("========== EmsRequest recebido do barramento ==========");
 
 		// Log dos tipos recebidos para debug
-		EmsUtil.logger.info("Estrutura da mensagem (" + otp_request.arity() + " elementos):");
-		for (int i = 0; i < otp_request.arity(); i++) {
-			OtpErlangObject elem = otp_request.elementAt(i);
-			String typeName = elem != null ? elem.getClass().getSimpleName() : "null";
-			EmsUtil.logger.info(String.format("  [%d]: %s", i, typeName));
-		}
+		// EmsUtil.logger.info("Estrutura da mensagem (" + otp_request.arity() + "
+		// elementos):");
+		// for (int i = 0; i < otp_request.arity(); i++) {
+		// OtpErlangObject elem = otp_request.elementAt(i);
+		// String typeName = elem != null ? elem.getClass().getSimpleName() : "null";
+		// EmsUtil.logger.info(String.format(" [%d]: %s", i, typeName));
+		// }
 
 		this.otp_request = otp_request;
 		this.properties = null;
@@ -172,7 +173,7 @@ public class EmsRequest implements IEmsRequest {
 
 		// Loga informações de autenticação
 		if (!this.scope.isEmpty() || !this.access_token.isEmpty()) {
-			EmsUtil.logger.info("OAuth2 Scope: " + this.scope);
+			// EmsUtil.logger.info("OAuth2 Scope: " + this.scope);
 			EmsUtil.logger.info("OAuth2 Access Token: " + (this.access_token.isEmpty() ? "vazio" : "***presente***"));
 		} else {
 			EmsUtil.logger.info("OAuth2: não autenticado");
