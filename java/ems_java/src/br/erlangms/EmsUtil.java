@@ -133,31 +133,43 @@ public final class EmsUtil {
 	public static final OtpErlangBinary result_list_empty = new OtpErlangBinary("[]".getBytes());
 	public static final OtpErlangBinary result_ok = new OtpErlangBinary("{\"ok\":\"ok\"}".getBytes());
 	public static final Logger logger = Logger.getLogger("erlangms");
-	private static NumberFormat doubleFormatter = null;
+	private static final ThreadLocal<NumberFormat> doubleFormatter = ThreadLocal.withInitial(() -> {
+		NumberFormat nf = NumberFormat.getInstance(Locale.US);
+		nf.setMaximumFractionDigits(2);
+		nf.setMinimumFractionDigits(2);
+		return nf;
+	});
 	public static Gson gson = null;
 	private static Gson gson2 = null;
 	public static EmsProperties properties = null;
-	private static final SimpleDateFormat dateFormatDDMMYYYY = new SimpleDateFormat("dd/MM/yyyy");
-	private static final SimpleDateFormat dateFormatDDMMYYYY_HHmm = new SimpleDateFormat("dd/MM/yyyy HH:mm");
-	private static final SimpleDateFormat dateFormatDDMMYYYY_HHmmss = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-	private static final SimpleDateFormat dateFormatYYYYMMDD = new SimpleDateFormat("yyyy-MM-dd");
-	private static final SimpleDateFormat dateFormatYYYYMMDD_HHmm = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-	private static final SimpleDateFormat dateFormatYYYYMMDD_HHmmss = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-	private static MessageDigest messageDigestSHA1 = null;
+
+	private static final ThreadLocal<SimpleDateFormat> dateFormatDDMMYYYY = ThreadLocal
+			.withInitial(() -> new SimpleDateFormat("dd/MM/yyyy"));
+	private static final ThreadLocal<SimpleDateFormat> dateFormatDDMMYYYY_HHmm = ThreadLocal
+			.withInitial(() -> new SimpleDateFormat("dd/MM/yyyy HH:mm"));
+	private static final ThreadLocal<SimpleDateFormat> dateFormatDDMMYYYY_HHmmss = ThreadLocal
+			.withInitial(() -> new SimpleDateFormat("dd/MM/yyyy HH:mm:ss"));
+	private static final ThreadLocal<SimpleDateFormat> dateFormatYYYYMMDD = ThreadLocal
+			.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd"));
+	private static final ThreadLocal<SimpleDateFormat> dateFormatYYYYMMDD_HHmm = ThreadLocal
+			.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm"));
+	private static final ThreadLocal<SimpleDateFormat> dateFormatYYYYMMDD_HHmmss = ThreadLocal
+			.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
+
+	private static final ThreadLocal<MessageDigest> messageDigestSHA1 = ThreadLocal.withInitial(() -> {
+		try {
+			return MessageDigest.getInstance("SHA-1");
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException("SHA-1 algorithm not found", e);
+		}
+	});
+
 	private static java.util.Base64.Encoder base64Encoder = null;
 	private final static String HEX = "0123456789ABCDEF";
 	private final static String seed = "LDAPCorp_pwdupdate";
 	private static String[] args = null;
 
 	static {
-		doubleFormatter = NumberFormat.getInstance(Locale.US);
-		doubleFormatter.setMaximumFractionDigits(2);
-		doubleFormatter.setMinimumFractionDigits(2);
-		try {
-			messageDigestSHA1 = MessageDigest.getInstance("SHA-1");
-		} catch (NoSuchAlgorithmException e1) {
-			e1.printStackTrace();
-		}
 		base64Encoder = java.util.Base64.getEncoder();
 		gson = new GsonBuilder()
 				.setExclusionStrategies(new SerializeStrategy())
@@ -168,7 +180,7 @@ public final class EmsUtil {
 					public JsonElement serialize(BigDecimal value, Type arg1,
 							com.google.gson.JsonSerializationContext arg2) {
 						String result;
-						result = EmsUtil.doubleFormatter.format(value);
+						result = EmsUtil.doubleFormatter.get().format(value);
 						return new JsonPrimitive(result);
 					}
 				})
@@ -204,12 +216,12 @@ public final class EmsUtil {
 					public JsonElement serialize(java.util.Date value, Type typeOfSrc,
 							JsonSerializationContext context) {
 						if (value.getHours() == 0 && value.getMinutes() == 0) {
-							return new JsonPrimitive(dateFormatDDMMYYYY.format(value));
+							return new JsonPrimitive(dateFormatDDMMYYYY.get().format(value));
 						} else {
 							if (value.getSeconds() == 0) {
-								return new JsonPrimitive(dateFormatDDMMYYYY_HHmm.format(value));
+								return new JsonPrimitive(dateFormatDDMMYYYY_HHmm.get().format(value));
 							} else {
-								return new JsonPrimitive(dateFormatDDMMYYYY_HHmmss.format(value));
+								return new JsonPrimitive(dateFormatDDMMYYYY_HHmmss.get().format(value));
 							}
 						}
 					}
@@ -220,12 +232,12 @@ public final class EmsUtil {
 					public JsonElement serialize(java.sql.Timestamp value, Type typeOfSrc,
 							JsonSerializationContext context) {
 						if (value.getHours() == 0 && value.getMinutes() == 0) {
-							return new JsonPrimitive(dateFormatDDMMYYYY.format(value));
+							return new JsonPrimitive(dateFormatDDMMYYYY.get().format(value));
 						} else {
 							if (value.getSeconds() == 0) {
-								return new JsonPrimitive(dateFormatDDMMYYYY_HHmm.format(value));
+								return new JsonPrimitive(dateFormatDDMMYYYY_HHmm.get().format(value));
 							} else {
-								return new JsonPrimitive(dateFormatDDMMYYYY_HHmmss.format(value));
+								return new JsonPrimitive(dateFormatDDMMYYYY_HHmmss.get().format(value));
 							}
 						}
 					}
@@ -238,11 +250,11 @@ public final class EmsUtil {
 						try {
 							int len_value = value.length();
 							if (len_value >= 6 && len_value <= 10) {
-								return dateFormatDDMMYYYY.parse(value);
+								return dateFormatDDMMYYYY.get().parse(value);
 							} else if (len_value == 16) {
-								return dateFormatDDMMYYYY_HHmm.parse(value);
+								return dateFormatDDMMYYYY_HHmm.get().parse(value);
 							} else if (len_value == 19) {
-								return dateFormatDDMMYYYY_HHmmss.parse(value);
+								return dateFormatDDMMYYYY_HHmmss.get().parse(value);
 							} else {
 								throw new EmsValidationException(m_erro);
 							}
@@ -259,11 +271,11 @@ public final class EmsUtil {
 						try {
 							int len_value = value.length();
 							if (len_value >= 6 && len_value <= 10) {
-								return new java.sql.Timestamp(dateFormatDDMMYYYY.parse(value).getTime());
+								return new java.sql.Timestamp(dateFormatDDMMYYYY.get().parse(value).getTime());
 							} else if (len_value == 16) {
-								return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmm.parse(value).getTime());
+								return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmm.get().parse(value).getTime());
 							} else if (len_value == 19) {
-								return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmmss.parse(value).getTime());
+								return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmmss.get().parse(value).getTime());
 							} else {
 								throw new EmsValidationException(m_erro);
 							}
@@ -307,7 +319,7 @@ public final class EmsUtil {
 					public JsonElement serialize(BigDecimal value, Type arg1,
 							com.google.gson.JsonSerializationContext arg2) {
 						String result;
-						result = EmsUtil.doubleFormatter.format(value);
+						result = EmsUtil.doubleFormatter.get().format(value);
 						return new JsonPrimitive(result);
 					}
 				})
@@ -343,12 +355,12 @@ public final class EmsUtil {
 					public JsonElement serialize(java.util.Date value, Type typeOfSrc,
 							JsonSerializationContext context) {
 						if (value.getHours() == 0 && value.getMinutes() == 0) {
-							return new JsonPrimitive(dateFormatDDMMYYYY.format(value));
+							return new JsonPrimitive(dateFormatDDMMYYYY.get().format(value));
 						} else {
 							if (value.getSeconds() == 0) {
-								return new JsonPrimitive(dateFormatDDMMYYYY_HHmm.format(value));
+								return new JsonPrimitive(dateFormatDDMMYYYY_HHmm.get().format(value));
 							} else {
-								return new JsonPrimitive(dateFormatDDMMYYYY_HHmmss.format(value));
+								return new JsonPrimitive(dateFormatDDMMYYYY_HHmmss.get().format(value));
 							}
 						}
 					}
@@ -359,12 +371,12 @@ public final class EmsUtil {
 					public JsonElement serialize(java.sql.Timestamp value, Type typeOfSrc,
 							JsonSerializationContext context) {
 						if (value.getHours() == 0 && value.getMinutes() == 0) {
-							return new JsonPrimitive(dateFormatDDMMYYYY.format(value));
+							return new JsonPrimitive(dateFormatDDMMYYYY.get().format(value));
 						} else {
 							if (value.getSeconds() == 0) {
-								return new JsonPrimitive(dateFormatDDMMYYYY_HHmm.format(value));
+								return new JsonPrimitive(dateFormatDDMMYYYY_HHmm.get().format(value));
 							} else {
-								return new JsonPrimitive(dateFormatDDMMYYYY_HHmmss.format(value));
+								return new JsonPrimitive(dateFormatDDMMYYYY_HHmmss.get().format(value));
 							}
 						}
 					}
@@ -377,11 +389,11 @@ public final class EmsUtil {
 						try {
 							int len_value = value.length();
 							if (len_value >= 6 && len_value <= 10) {
-								return dateFormatDDMMYYYY.parse(value);
+								return dateFormatDDMMYYYY.get().parse(value);
 							} else if (len_value == 16) {
-								return dateFormatDDMMYYYY_HHmm.parse(value);
+								return dateFormatDDMMYYYY_HHmm.get().parse(value);
 							} else if (len_value == 19) {
-								return dateFormatDDMMYYYY_HHmmss.parse(value);
+								return dateFormatDDMMYYYY_HHmmss.get().parse(value);
 							} else {
 								throw new EmsValidationException(m_erro);
 							}
@@ -398,11 +410,11 @@ public final class EmsUtil {
 						try {
 							int len_value = value.length();
 							if (len_value >= 6 && len_value <= 10) {
-								return new java.sql.Timestamp(dateFormatDDMMYYYY.parse(value).getTime());
+								return new java.sql.Timestamp(dateFormatDDMMYYYY.get().parse(value).getTime());
 							} else if (len_value == 16) {
-								return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmm.parse(value).getTime());
+								return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmm.get().parse(value).getTime());
 							} else if (len_value == 19) {
-								return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmmss.parse(value).getTime());
+								return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmmss.get().parse(value).getTime());
 							} else {
 								throw new EmsValidationException(m_erro);
 							}
@@ -812,11 +824,12 @@ public final class EmsUtil {
 							int len_value = ((String) value_field).length();
 							try {
 								if (len_value >= 6 && len_value <= 10) {
-									query.setParameter(p++, dateFormatDDMMYYYY.parse((String) value_field));
+									query.setParameter(p++, dateFormatDDMMYYYY.get().parse((String) value_field));
 								} else if (len_value == 16) {
-									query.setParameter(p++, dateFormatDDMMYYYY_HHmm.parse((String) value_field));
+									query.setParameter(p++, dateFormatDDMMYYYY_HHmm.get().parse((String) value_field));
 								} else if (len_value == 19) {
-									query.setParameter(p++, dateFormatDDMMYYYY_HHmmss.parse((String) value_field));
+									query.setParameter(p++,
+											dateFormatDDMMYYYY_HHmmss.get().parse((String) value_field));
 								} else {
 									throw new EmsValidationException(m_erro);
 								}
@@ -1002,11 +1015,11 @@ public final class EmsUtil {
 									if (len_value == 0) {
 										field.set(obj, null);
 									} else if (len_value >= 6 && len_value <= 10) {
-										field.set(obj, dateFormatDDMMYYYY.parse((String) new_value));
+										field.set(obj, dateFormatDDMMYYYY.get().parse((String) new_value));
 									} else if (len_value == 16) {
-										field.set(obj, dateFormatDDMMYYYY_HHmm.parse((String) new_value));
+										field.set(obj, dateFormatDDMMYYYY_HHmm.get().parse((String) new_value));
 									} else if (len_value == 19) {
-										field.set(obj, dateFormatDDMMYYYY_HHmmss.parse((String) new_value));
+										field.set(obj, dateFormatDDMMYYYY_HHmmss.get().parse((String) new_value));
 									} else {
 										throw new EmsValidationException(m_erro);
 									}
@@ -1015,11 +1028,11 @@ public final class EmsUtil {
 										if (len_value == 0) {
 											field.set(obj, null);
 										} else if (len_value >= 6 && len_value <= 10) {
-											field.set(obj, dateFormatYYYYMMDD.parse((String) new_value));
+											field.set(obj, dateFormatYYYYMMDD.get().parse((String) new_value));
 										} else if (len_value == 16) {
-											field.set(obj, dateFormatYYYYMMDD_HHmm.parse((String) new_value));
+											field.set(obj, dateFormatYYYYMMDD_HHmm.get().parse((String) new_value));
 										} else if (len_value == 19) {
-											field.set(obj, dateFormatYYYYMMDD_HHmmss.parse((String) new_value));
+											field.set(obj, dateFormatYYYYMMDD_HHmmss.get().parse((String) new_value));
 										} else {
 											throw new EmsValidationException(m_erro);
 										}
@@ -1041,13 +1054,13 @@ public final class EmsUtil {
 										field.set(obj, null);
 									} else if (len_value >= 6 && len_value <= 10) {
 										field.set(obj, new java.sql.Date(
-												dateFormatDDMMYYYY.parse((String) new_value).getTime()));
+												dateFormatDDMMYYYY.get().parse((String) new_value).getTime()));
 									} else if (len_value == 16) {
 										field.set(obj, new java.sql.Date(
-												dateFormatDDMMYYYY_HHmm.parse((String) new_value).getTime()));
+												dateFormatDDMMYYYY_HHmm.get().parse((String) new_value).getTime()));
 									} else if (len_value == 19) {
 										field.set(obj, new java.sql.Date(
-												dateFormatDDMMYYYY_HHmmss.parse((String) new_value).getTime()));
+												dateFormatDDMMYYYY_HHmmss.get().parse((String) new_value).getTime()));
 									} else {
 										throw new EmsValidationException(m_erro);
 									}
@@ -1057,13 +1070,14 @@ public final class EmsUtil {
 											field.set(obj, null);
 										} else if (len_value >= 6 && len_value <= 10) {
 											field.set(obj, new java.sql.Date(
-													dateFormatYYYYMMDD.parse((String) new_value).getTime()));
+													dateFormatYYYYMMDD.get().parse((String) new_value).getTime()));
 										} else if (len_value == 16) {
 											field.set(obj, new java.sql.Date(
-													dateFormatYYYYMMDD_HHmm.parse((String) new_value).getTime()));
+													dateFormatYYYYMMDD_HHmm.get().parse((String) new_value).getTime()));
 										} else if (len_value == 19) {
 											field.set(obj, new java.sql.Date(
-													dateFormatYYYYMMDD_HHmmss.parse((String) new_value).getTime()));
+													dateFormatYYYYMMDD_HHmmss.get().parse((String) new_value)
+															.getTime()));
 										} else {
 											throw new EmsValidationException(m_erro);
 										}
@@ -1084,13 +1098,13 @@ public final class EmsUtil {
 										new_time = null;
 									} else if (len_value >= 6 && len_value <= 10) {
 										new_time = new java.sql.Timestamp(
-												dateFormatDDMMYYYY.parse((String) new_value).getTime());
+												dateFormatDDMMYYYY.get().parse((String) new_value).getTime());
 									} else if (len_value == 16) {
 										new_time = new java.sql.Timestamp(
-												dateFormatDDMMYYYY_HHmm.parse((String) new_value).getTime());
+												dateFormatDDMMYYYY_HHmm.get().parse((String) new_value).getTime());
 									} else if (len_value == 19) {
 										new_time = new java.sql.Timestamp(
-												dateFormatDDMMYYYY_HHmmss.parse((String) new_value).getTime());
+												dateFormatDDMMYYYY_HHmmss.get().parse((String) new_value).getTime());
 									} else {
 										throw new EmsValidationException(m_erro);
 									}
@@ -1100,13 +1114,14 @@ public final class EmsUtil {
 											field.set(obj, null);
 										} else if (len_value >= 6 && len_value <= 10) {
 											field.set(obj, new java.sql.Date(
-													dateFormatYYYYMMDD.parse((String) new_value).getTime()));
+													dateFormatYYYYMMDD.get().parse((String) new_value).getTime()));
 										} else if (len_value == 16) {
 											field.set(obj, new java.sql.Date(
-													dateFormatYYYYMMDD_HHmm.parse((String) new_value).getTime()));
+													dateFormatYYYYMMDD_HHmm.get().parse((String) new_value).getTime()));
 										} else if (len_value == 19) {
 											field.set(obj, new java.sql.Date(
-													dateFormatYYYYMMDD_HHmmss.parse((String) new_value).getTime()));
+													dateFormatYYYYMMDD_HHmmss.get().parse((String) new_value)
+															.getTime()));
 										} else {
 											throw new EmsValidationException(m_erro);
 										}
@@ -2466,7 +2481,7 @@ public final class EmsUtil {
 	 */
 	public static String toSHA1(final String value) {
 		if (value != null) {
-			return new String(messageDigestSHA1.digest(value.getBytes()));
+			return new String(messageDigestSHA1.get().digest(value.getBytes()));
 		} else {
 			return "";
 		}

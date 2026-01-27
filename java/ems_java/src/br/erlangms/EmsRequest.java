@@ -55,16 +55,9 @@ public class EmsRequest implements IEmsRequest {
 	}
 
 	public void setOtpRequest(final OtpErlangTuple otp_request) {
-		EmsUtil.logger.info("========== EmsRequest recebido do barramento ==========");
-
-		// Log dos tipos recebidos para debug
-		// EmsUtil.logger.info("Estrutura da mensagem (" + otp_request.arity() + "
-		// elementos):");
-		// for (int i = 0; i < otp_request.arity(); i++) {
-		// OtpErlangObject elem = otp_request.elementAt(i);
-		// String typeName = elem != null ? elem.getClass().getSimpleName() : "null";
-		// EmsUtil.logger.info(String.format(" [%d]: %s", i, typeName));
-		// }
+		if (EmsUtil.logger.isLoggable(java.util.logging.Level.INFO)) {
+			EmsUtil.logger.info("========== EmsRequest recebido do barramento ==========");
+		}
 
 		this.otp_request = otp_request;
 		this.properties = null;
@@ -112,74 +105,81 @@ public class EmsRequest implements IEmsRequest {
 			this.access_token = "";
 		}
 
-		// Logging detalhado para debug
-		EmsUtil.logger.info("RID: " + this.rid);
-		EmsUtil.logger.info("URL: " + this.url);
-		EmsUtil.logger.info("Método: " + this.method);
-		EmsUtil.logger.info("Módulo: " + this.modulo);
-		EmsUtil.logger.info("Função: " + this.function);
-		EmsUtil.logger.info("ContentType: " + this.contentType);
-		EmsUtil.logger.info("Timeout: " + this.timeout + "ms");
-		EmsUtil.logger.info("T1: " + this.t1);
+		if (EmsUtil.logger.isLoggable(java.util.logging.Level.INFO)) {
+			// Logging detalhado para debug
+			StringBuilder sb = new StringBuilder();
+			sb.append("RID: ").append(this.rid).append("\n");
+			sb.append("URL: ").append(this.url).append("\n");
+			sb.append("Método: ").append(this.method).append("\n");
+			sb.append("Módulo: ").append(this.modulo).append("\n");
+			sb.append("Função: ").append(this.function).append("\n");
+			sb.append("ContentType: ").append(this.contentType).append("\n");
+			sb.append("Timeout: ").append(this.timeout).append("ms\n");
+			sb.append("T1: ").append(this.t1).append("\n");
 
-		// Loga parâmetros
-		if (this.paramCount > 0) {
-			EmsUtil.logger.info("Parâmetros (" + this.paramCount + "):");
-			try {
-				OtpErlangMap params = ((OtpErlangMap) otp_request.elementAt(3));
-				for (OtpErlangObject key : params.keys()) {
-					String keyStr = new String(((OtpErlangBinary) key).binaryValue());
-					OtpErlangObject value = params.get(key);
-					String valueStr = value.toString();
-					EmsUtil.logger.info("  " + keyStr + " = " + valueStr);
-				}
-			} catch (Exception e) {
-				EmsUtil.logger.warning("Erro ao logar parâmetros: " + e.getMessage());
-			}
-		} else {
-			EmsUtil.logger.info("Parâmetros: nenhum");
-		}
-
-		// Loga querystrings
-		try {
-			OtpErlangObject Querystring = otp_request.elementAt(4);
-			if (!Querystring.equals(undefined)) {
-				OtpErlangMap queries = ((OtpErlangMap) Querystring);
-				int queryCount = queries.arity();
-				EmsUtil.logger.info("Querystrings (" + queryCount + "):");
-				for (OtpErlangObject key : queries.keys()) {
-					String keyStr = extractBinaryAsString(key, "querystring.key");
-					OtpErlangObject value = queries.get(key);
-					String valueStr = extractBinaryAsString(value, "querystring.value");
-					EmsUtil.logger.info("  " + keyStr + " = " + valueStr);
+			// Loga parâmetros
+			if (this.paramCount > 0) {
+				sb.append("Parâmetros (").append(this.paramCount).append("):\n");
+				try {
+					OtpErlangMap params = ((OtpErlangMap) otp_request.elementAt(3));
+					for (OtpErlangObject key : params.keys()) {
+						String keyStr = new String(((OtpErlangBinary) key).binaryValue());
+						OtpErlangObject value = params.get(key);
+						String valueStr = value.toString();
+						sb.append("  ").append(keyStr).append(" = ").append(valueStr).append("\n");
+					}
+				} catch (Exception e) {
+					EmsUtil.logger.warning("Erro ao logar parâmetros: " + e.getMessage());
 				}
 			} else {
-				EmsUtil.logger.info("Querystrings: nenhuma");
+				sb.append("Parâmetros: nenhum\n");
 			}
-		} catch (Exception e) {
-			EmsUtil.logger.warning("Erro ao logar querystrings: " + e.getMessage());
-		}
 
-		// Loga payload
-		if (this.payload != null && !this.payload.isEmpty()) {
-			// Loga o payload bruto truncado
-			String payloadLog = this.payload.length() > 500
-					? this.payload.substring(0, 500) + "... (truncado, total: " + this.payload.length() + " chars)"
-					: this.payload;
-			EmsUtil.logger.info("Payload (" + this.payload.length() + " chars): " + payloadLog);
-		} else {
-			EmsUtil.logger.info("Payload: vazio");
-		}
+			// Loga querystrings
+			try {
+				OtpErlangObject Querystring = otp_request.elementAt(4);
+				if (!Querystring.equals(undefined)) {
+					OtpErlangMap queries = ((OtpErlangMap) Querystring);
+					int queryCount = queries.arity();
+					sb.append("Querystrings (").append(queryCount).append("):\n");
+					for (OtpErlangObject key : queries.keys()) {
+						String keyStr = extractBinaryAsString(key, "querystring.key");
+						OtpErlangObject value = queries.get(key);
+						String valueStr = extractBinaryAsString(value, "querystring.value");
+						sb.append("  ").append(keyStr).append(" = ").append(valueStr).append("\n");
+					}
+				} else {
+					sb.append("Querystrings: nenhuma\n");
+				}
+			} catch (Exception e) {
+				EmsUtil.logger.warning("Erro ao logar querystrings: " + e.getMessage());
+			}
 
-		// Loga informações de autenticação
-		if (!this.scope.isEmpty() || !this.access_token.isEmpty()) {
-			// EmsUtil.logger.info("OAuth2 Scope: " + this.scope);
-			EmsUtil.logger.info("OAuth2 Access Token: " + (this.access_token.isEmpty() ? "vazio" : "***presente***"));
-		} else {
-			EmsUtil.logger.info("OAuth2: não autenticado");
-		}
+			// Loga payload
+			if (this.payload != null && !this.payload.isEmpty()) {
+				// Loga o payload bruto truncado
+				String payloadLog = this.payload.length() > 500
+						? this.payload.substring(0, 500) + "... (truncado, total: " + this.payload.length() + " chars)"
+						: this.payload;
+				sb.append("Payload (").append(this.payload.length()).append(" chars): ").append(payloadLog)
+						.append("\n");
+			} else {
+				sb.append("Payload: vazio\n");
+			}
 
-		EmsUtil.logger.info("======================================================");
+			// Loga informações de autenticação
+			if (this.scope != null && !this.scope.isEmpty()
+					|| this.access_token != null && !this.access_token.isEmpty()) {
+				sb.append("OAuth2 Access Token: ")
+						.append(this.access_token == null || this.access_token.isEmpty() ? "vazio" : "***presente***")
+						.append("\n");
+			} else {
+				sb.append("OAuth2: não autenticado\n");
+			}
+
+			sb.append("======================================================");
+			EmsUtil.logger.info(sb.toString());
+		}
 	}
 
 	/**
