@@ -113,7 +113,7 @@ public class ErlangMSApplication implements ServletContainerInitializer {
 
         public static void startService(final Object service) {
                 String classNameOfService = service.getClass().getName();
-                logger.info("EmsServiceScan start " + classNameOfService);
+                // logger.info("EmsServiceScan start " + classNameOfService);
                 // Single instance, isSlave=false (Primary)
                 EmsConnection connection = new EmsConnection(service, classNameOfService, false);
                 connection.start();

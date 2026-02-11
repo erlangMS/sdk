@@ -80,11 +80,11 @@ public final class EmsConnection implements Runnable {
         while (true) {
             Random r = new Random();
             try {
-                // Constructor with single argument parses it as name@host
                 myNode = new OtpNode(otpNodeName);
                 String cookie = "erlangms";
                 myNode.setCookie(cookie);
-                logger.info("✅ OtpNode created successfully: " + otpNodeName + ". Cookie: " + cookie);
+                // logger.info("✅ OtpNode created successfully: " + otpNodeName + ". Cookie: " +
+                // cookie);
                 return;
             } catch (Exception e) {
                 if (Thread.interrupted())
@@ -118,14 +118,14 @@ public final class EmsConnection implements Runnable {
             try {
                 createNode();
                 myMbox = myNode.createMbox(nameService);
-                logger.info("📬 Mailbox registered: " + nameService + " on node " + myNode.node());
+                logger.info("📬 Mailbox: " + nameService + " on node " + myNode.node());
 
                 // Message Loop
                 while (true) {
                     try {
                         myObject = myMbox.receive();
                         if (myObject instanceof OtpErlangTuple) {
-                            logger.info("Message Received! " + myObject.toString());
+                            logger.info("Message Received!");
                             myMsg = (OtpErlangTuple) myObject;
                             if (myMsg.arity() >= 2) {
                                 otp_request = (OtpErlangTuple) myMsg.elementAt(0);
