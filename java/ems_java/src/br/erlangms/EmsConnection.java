@@ -31,7 +31,10 @@ public final class EmsConnection implements Runnable {
     private static final int CORE_POOL_SIZE = 12;
     private static final int MAX_POOL_SIZE = 50;
     private static final long KEEP_ALIVE_TIME_SECONDS = 60L;
-
+    private static final int HTTP_BAD_REQUEST = 400;
+    private static final int HTTP_NOT_FOUND = 404;
+    private static final int HTTP_INTERNAL_ERROR = 500;
+    private static final String ERRO_INTERNO_MSG = "Erro interno, contacte o administrador.";
     private static final ExecutorService pool = new java.util.concurrent.ThreadPoolExecutor(
             CORE_POOL_SIZE, MAX_POOL_SIZE,
             KEEP_ALIVE_TIME_SECONDS, java.util.concurrent.TimeUnit.SECONDS,
@@ -188,8 +191,8 @@ public final class EmsConnection implements Runnable {
         }
 
         String msg_json;
+        String className = service.getClass().getSimpleName();
         if (m != null) {
-            String className = service.getClass().getSimpleName();
             try {
                 logger.info("Invoking method: " + className + "." + metodo);
                 Object ret = m.invoke(service, request);
@@ -197,23 +200,83 @@ public final class EmsConnection implements Runnable {
                 return ret;
             } catch (InvocationTargetException e) {
                 Throwable cause = e.getCause();
-                String erro = "Erro na execucao do metodo " + className + "." + metodo + ": "
-                        + (cause != null ? cause.toString() : e.toString());
-                logger.warning(erro);
-                e.printStackTrace();
-                msg_json = "{\"error\":\"internal_error\", \"message\" : \"" + erro.replace("\"", "\\\"") + "\"}";
-                return new EmsResponse(500, msg_json);
+                while (cause instanceof InvocationTargetException && cause.getCause() != null) {
+                    cause = cause.getCause();
+                }
+                while (cause instanceof Exception && cause.getCause() != null) {
+                    if (cause instanceof EmsValidationException
+                            || cause instanceof EmsNotFoundException
+                            || cause instanceof IllegalArgumentException) {
+                        break;
+                    }
+                    String causeName = cause.getClass().getName();
+                    if (causeName.endsWith("EmsValidationException")
+                            || causeName.endsWith("EmsNotFoundException")
+                            || causeName.endsWith("ParseException")
+                            || causeName.endsWith("JsonSyntaxException")) {
+                        break;
+                    }
+                    cause = cause.getCause();
+                }
+
+                String causeName = cause.getClass().getName();
+                boolean isNotFoundError = cause instanceof EmsNotFoundException
+                        || causeName.endsWith("EmsNotFoundException");
+
+                boolean isValidationOrParserError = cause instanceof EmsValidationException
+                        || cause instanceof IllegalArgumentException
+                        || causeName.endsWith("EmsValidationException")
+                        || causeName.endsWith("ParseException")
+                        || causeName.endsWith("JsonSyntaxException");
+
+                int statusCode = HTTP_INTERNAL_ERROR;
+                String errorType = "internal_error";
+                String message;
+
+                if (isValidationOrParserError || isNotFoundError) {
+                    if (cause instanceof NumberFormatException) {
+                        String causeMsg = cause.getMessage() != null ? cause.getMessage() : "";
+                        causeMsg = causeMsg.replace("For input string: ", "").trim();
+                        message = "Número ou formato numérico inválido: " + causeMsg;
+                    } else if (cause instanceof IllegalArgumentException) {
+                        message = "Argumento inválido: " + (cause.getMessage() != null ? cause.getMessage() : "");
+                    } else if (causeName.endsWith("ParseException")) {
+                        message = "Erro de formatação/conversão: "
+                                + (cause.getMessage() != null ? cause.getMessage() : "");
+                    } else if (causeName.endsWith("JsonSyntaxException")) {
+                        message = "Sintaxe JSON inválida: " + (cause.getMessage() != null ? cause.getMessage() : "");
+                    } else {
+                        message = cause.getMessage() != null ? cause.getMessage() : cause.toString();
+                    }
+                    message = message.trim();
+                    message = message.replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "");
+
+                    if (isNotFoundError) {
+                        statusCode = HTTP_NOT_FOUND;
+                        errorType = "not_found";
+                    } else {
+                        statusCode = HTTP_BAD_REQUEST;
+                        errorType = "validation";
+                    }
+                } else {
+                    message = ERRO_INTERNO_MSG;
+                }
+                String erro = "Erro de validação ao invocar metodo " + className + "." + metodo + ": " + e.toString();
+                logger.log(Level.SEVERE, erro, e);
+                msg_json = "{\"error\":\"" + errorType + "\", \"message\" : \"" + message + "\"}";
+                return new EmsResponse(statusCode, msg_json);
             } catch (Exception e) {
                 String erro = "Erro ao invocar metodo " + className + "." + metodo + ": " + e.toString();
-                logger.warning(erro);
-                msg_json = "{\"error\":\"internal_error\", \"message\" : \"" + erro.replace("\"", "\\\"") + "\"}";
-                return new EmsResponse(500, msg_json);
+                logger.log(Level.SEVERE, erro, e);
+                final String msgInternalError = "{\"error\":\"internal_error\", \"message\" : \"" + ERRO_INTERNO_MSG
+                        + "\"}";
+                return new EmsResponse(HTTP_INTERNAL_ERROR, msgInternalError);
             }
         } else {
-            String erro = "Método não encontrado: " + metodo;
-            msg_json = "{\"error\":\"method_not_found\", \"message\" : \"" + erro + "\"}";
+            String erro = "Método não encontrado: " + className + "." + metodo;
             logger.warning(erro);
-            return new EmsResponse(404, msg_json);
+            final String msgNotFound = "{\"error\":\"method_not_found\", \"message\" : \"Falha ao chamar webservice\"}";
+            return new EmsResponse(HTTP_NOT_FOUND, msgNotFound);
         }
     }
 
