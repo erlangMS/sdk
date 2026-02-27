@@ -1,9 +1,9 @@
 package br.erlangms;
 
-public class UserHolderContext {
-	private static final ThreadLocal<UserHolder> context = new ThreadLocal<>();
+public final class UserHolderContext {
+    private static final ThreadLocal<UserHolder> context = new ThreadLocal<>();
 
-	public static void setUser(UserHolder userHolder) {
+    public static void setUser(UserHolder userHolder) {
         context.set(userHolder);
     }
 
@@ -14,5 +14,5 @@ public class UserHolderContext {
     public static void clear() {
         context.remove();
     }
-    
+
 }

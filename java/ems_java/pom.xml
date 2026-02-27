@@ -119,11 +119,12 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.wildfly.plugins</groupId>
-			<artifactId>wildfly-maven-plugin</artifactId>
-			<version>2.0.0.Final</version>
-			<type>maven-plugin</type>
+			<groupId>org.jboss</groupId>
+			<artifactId>jboss-vfs</artifactId>
+			<version>3.2.15.Final</version>
 		</dependency>
+
+
 
 	</dependencies>
 
@@ -162,6 +163,10 @@
 										<exclude>META-INF/*.SF</exclude>
 										<exclude>META-INF/*.DSA</exclude>
 										<exclude>META-INF/*.RSA</exclude>
+										<exclude>META-INF/LICENSE*</exclude>
+										<exclude>META-INF/NOTICE*</exclude>
+										<exclude>META-INF/MANIFEST.MF</exclude>
+										<exclude>module-info.class</exclude>
 									</excludes>
 								</filter>
 							</filters>

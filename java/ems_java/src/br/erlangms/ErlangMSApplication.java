@@ -25,7 +25,7 @@ import javax.servlet.ServletException;
 import org.jboss.vfs.VFS;
 import org.jboss.vfs.VirtualFile;
 
-public class ErlangMSApplication implements ServletContainerInitializer {
+public final class ErlangMSApplication implements ServletContainerInitializer {
 
         private static List<EmsConnection> listServices = new ArrayList<EmsConnection>();
         private static final Logger logger = EmsUtil.logger;
@@ -50,7 +50,10 @@ public class ErlangMSApplication implements ServletContainerInitializer {
                                                         Class<?> serviceClass;
                                                         serviceClass = Class.forName(classNamePath);
                                                         if (serviceClass.isAnnotationPresent(EmsService.class)) {
-                                                                Object service = serviceClass.newInstance();
+                                                                // Bug corrigido: newInstance() depreciado →
+                                                                // getDeclaredConstructor().newInstance()
+                                                                Object service = serviceClass.getDeclaredConstructor()
+                                                                                .newInstance();
                                                                 startService(service);
                                                         }
                                                 }
@@ -71,7 +74,7 @@ public class ErlangMSApplication implements ServletContainerInitializer {
                         URL url = classLoader.getResource(packagePath);
                         if (url == null)
                                 return;
-                        VirtualFile file = VFS.getChild(url);
+                        VirtualFile file = VFS.getChild(url.toURI());
                         List<VirtualFile> children = file.getChildrenRecursively();
                         List<File> classes = new ArrayList<>();
 
@@ -92,7 +95,10 @@ public class ErlangMSApplication implements ServletContainerInitializer {
                                                         Class<?> serviceClass;
                                                         serviceClass = Class.forName(classNamePath);
                                                         if (serviceClass.isAnnotationPresent(EmsService.class)) {
-                                                                Object service = serviceClass.newInstance();
+                                                                // Bug corrigido: newInstance() depreciado →
+                                                                // getDeclaredConstructor().newInstance()
+                                                                Object service = serviceClass.getDeclaredConstructor()
+                                                                                .newInstance();
                                                                 startService(service);
                                                         }
                                                 }

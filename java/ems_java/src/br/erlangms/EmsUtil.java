@@ -246,20 +246,33 @@ public final class EmsUtil {
 					public java.util.Date deserialize(JsonElement json, Type typeOfT,
 							JsonDeserializationContext context) throws JsonParseException {
 						String value = json.getAsString();
-						final String m_erro = "Não é uma data válida.";
+						// Bug corrigido: adicionado suporte a ISO-8601 (yyyy-MM-dd) e mensagem com
+						// valor recebido
 						try {
 							int len_value = value.length();
 							if (len_value >= 6 && len_value <= 10) {
-								return dateFormatDDMMYYYY.get().parse(value);
+								try {
+									return dateFormatDDMMYYYY.get().parse(value);
+								} catch (ParseException e2) {
+								}
+								return dateFormatYYYYMMDD.get().parse(value);
 							} else if (len_value == 16) {
-								return dateFormatDDMMYYYY_HHmm.get().parse(value);
+								try {
+									return dateFormatDDMMYYYY_HHmm.get().parse(value);
+								} catch (ParseException e2) {
+								}
+								return dateFormatYYYYMMDD_HHmm.get().parse(value);
 							} else if (len_value == 19) {
-								return dateFormatDDMMYYYY_HHmmss.get().parse(value);
+								try {
+									return dateFormatDDMMYYYY_HHmmss.get().parse(value);
+								} catch (ParseException e2) {
+								}
+								return dateFormatYYYYMMDD_HHmmss.get().parse(value);
 							} else {
-								throw new EmsValidationException(m_erro);
+								throw new EmsValidationException("Não é uma data válida: '" + value + "'");
 							}
 						} catch (ParseException e) {
-							throw new EmsValidationException(m_erro);
+							throw new EmsValidationException("Não é uma data válida: '" + value + "'");
 						}
 					}
 				})
@@ -267,20 +280,34 @@ public final class EmsUtil {
 					public java.sql.Timestamp deserialize(JsonElement json, Type typeOfT,
 							JsonDeserializationContext context) throws JsonParseException {
 						String value = json.getAsString();
-						final String m_erro = "Não é uma data válida";
+						// Bug corrigido: adicionado suporte a ISO-8601 (yyyy-MM-dd) e mensagem com
+						// valor recebido
 						try {
 							int len_value = value.length();
 							if (len_value >= 6 && len_value <= 10) {
-								return new java.sql.Timestamp(dateFormatDDMMYYYY.get().parse(value).getTime());
+								try {
+									return new java.sql.Timestamp(dateFormatDDMMYYYY.get().parse(value).getTime());
+								} catch (ParseException e2) {
+								}
+								return new java.sql.Timestamp(dateFormatYYYYMMDD.get().parse(value).getTime());
 							} else if (len_value == 16) {
-								return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmm.get().parse(value).getTime());
+								try {
+									return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmm.get().parse(value).getTime());
+								} catch (ParseException e2) {
+								}
+								return new java.sql.Timestamp(dateFormatYYYYMMDD_HHmm.get().parse(value).getTime());
 							} else if (len_value == 19) {
-								return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmmss.get().parse(value).getTime());
+								try {
+									return new java.sql.Timestamp(
+											dateFormatDDMMYYYY_HHmmss.get().parse(value).getTime());
+								} catch (ParseException e2) {
+								}
+								return new java.sql.Timestamp(dateFormatYYYYMMDD_HHmmss.get().parse(value).getTime());
 							} else {
-								throw new EmsValidationException(m_erro);
+								throw new EmsValidationException("Não é uma data válida: '" + value + "'");
 							}
 						} catch (final ParseException e) {
-							throw new EmsValidationException(m_erro);
+							throw new EmsValidationException("Não é uma data válida: '" + value + "'");
 						}
 					}
 				})
@@ -385,20 +412,33 @@ public final class EmsUtil {
 					public java.util.Date deserialize(JsonElement json, Type typeOfT,
 							JsonDeserializationContext context) throws JsonParseException {
 						String value = json.getAsString();
-						final String m_erro = "Não é uma data válida.";
+						// Bug corrigido: adicionado suporte a ISO-8601 (yyyy-MM-dd) e mensagem com
+						// valor recebido
 						try {
 							int len_value = value.length();
 							if (len_value >= 6 && len_value <= 10) {
-								return dateFormatDDMMYYYY.get().parse(value);
+								try {
+									return dateFormatDDMMYYYY.get().parse(value);
+								} catch (ParseException e2) {
+								}
+								return dateFormatYYYYMMDD.get().parse(value);
 							} else if (len_value == 16) {
-								return dateFormatDDMMYYYY_HHmm.get().parse(value);
+								try {
+									return dateFormatDDMMYYYY_HHmm.get().parse(value);
+								} catch (ParseException e2) {
+								}
+								return dateFormatYYYYMMDD_HHmm.get().parse(value);
 							} else if (len_value == 19) {
-								return dateFormatDDMMYYYY_HHmmss.get().parse(value);
+								try {
+									return dateFormatDDMMYYYY_HHmmss.get().parse(value);
+								} catch (ParseException e2) {
+								}
+								return dateFormatYYYYMMDD_HHmmss.get().parse(value);
 							} else {
-								throw new EmsValidationException(m_erro);
+								throw new EmsValidationException("Não é uma data válida: '" + value + "'");
 							}
 						} catch (final ParseException e) {
-							throw new EmsValidationException(m_erro);
+							throw new EmsValidationException("Não é uma data válida: '" + value + "'");
 						}
 					}
 				})
@@ -406,20 +446,34 @@ public final class EmsUtil {
 					public java.sql.Timestamp deserialize(JsonElement json, Type typeOfT,
 							JsonDeserializationContext context) throws JsonParseException {
 						String value = json.getAsString();
-						final String m_erro = "Não é uma data válida.";
+						// Bug corrigido: adicionado suporte a ISO-8601 (yyyy-MM-dd) e mensagem com
+						// valor recebido
 						try {
 							int len_value = value.length();
 							if (len_value >= 6 && len_value <= 10) {
-								return new java.sql.Timestamp(dateFormatDDMMYYYY.get().parse(value).getTime());
+								try {
+									return new java.sql.Timestamp(dateFormatDDMMYYYY.get().parse(value).getTime());
+								} catch (ParseException e2) {
+								}
+								return new java.sql.Timestamp(dateFormatYYYYMMDD.get().parse(value).getTime());
 							} else if (len_value == 16) {
-								return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmm.get().parse(value).getTime());
+								try {
+									return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmm.get().parse(value).getTime());
+								} catch (ParseException e2) {
+								}
+								return new java.sql.Timestamp(dateFormatYYYYMMDD_HHmm.get().parse(value).getTime());
 							} else if (len_value == 19) {
-								return new java.sql.Timestamp(dateFormatDDMMYYYY_HHmmss.get().parse(value).getTime());
+								try {
+									return new java.sql.Timestamp(
+											dateFormatDDMMYYYY_HHmmss.get().parse(value).getTime());
+								} catch (ParseException e2) {
+								}
+								return new java.sql.Timestamp(dateFormatYYYYMMDD_HHmmss.get().parse(value).getTime());
 							} else {
-								throw new EmsValidationException(m_erro);
+								throw new EmsValidationException("Não é uma data válida: '" + value + "'");
 							}
 						} catch (final ParseException e) {
-							throw new EmsValidationException(m_erro);
+							throw new EmsValidationException("Não é uma data válida: '" + value + "'");
 						}
 					}
 				})

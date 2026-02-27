@@ -26,9 +26,10 @@ import com.ericsson.otp.erlang.OtpErlangRangeException;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
-public class EmsRequest implements IEmsRequest {
+public final class EmsRequest implements IEmsRequest {
 	private OtpErlangTuple otp_request = null;
-	private static OtpErlangAtom undefined = new OtpErlangAtom("undefined");
+	private static final OtpErlangAtom undefined = new OtpErlangAtom("undefined");
+	private static final int MAX_PAYLOAD_LOG_SIZE = 16384;
 	private Map<String, Object> properties = null;
 	private int queryCount = -1;
 	private long rid = 0L;
@@ -55,10 +56,6 @@ public class EmsRequest implements IEmsRequest {
 	}
 
 	public void setOtpRequest(final OtpErlangTuple otp_request) {
-		if (EmsUtil.logger.isLoggable(java.util.logging.Level.INFO)) {
-			EmsUtil.logger.info("========== EmsRequest recebido do barramento ==========");
-		}
-
 		this.otp_request = otp_request;
 		this.properties = null;
 		this.queryCount = -1;
@@ -108,14 +105,13 @@ public class EmsRequest implements IEmsRequest {
 		if (EmsUtil.logger.isLoggable(java.util.logging.Level.INFO)) {
 			// Logging detalhado para debug
 			StringBuilder sb = new StringBuilder();
-			sb.append("RID: ").append(this.rid).append("\n");
+			sb.append("\nRID: ").append(this.rid).append("\n");
 			sb.append("URL: ").append(this.url).append("\n");
 			sb.append("Método: ").append(this.method).append("\n");
 			sb.append("Módulo: ").append(this.modulo).append("\n");
 			sb.append("Função: ").append(this.function).append("\n");
 			sb.append("ContentType: ").append(this.contentType).append("\n");
 			sb.append("Timeout: ").append(this.timeout).append("ms\n");
-			sb.append("T1: ").append(this.t1).append("\n");
 
 			// Loga parâmetros
 			if (this.paramCount > 0) {
@@ -155,14 +151,34 @@ public class EmsRequest implements IEmsRequest {
 				EmsUtil.logger.warning("Erro ao logar querystrings: " + e.getMessage());
 			}
 
-			// Loga payload
-			if (this.payload != null && !this.payload.isEmpty()) {
-				// Loga o payload bruto truncado
-				String payloadLog = this.payload.length() > 500
-						? this.payload.substring(0, 500) + "... (truncado, total: " + this.payload.length() + " chars)"
-						: this.payload;
-				sb.append("Payload (").append(this.payload.length()).append(" chars): ").append(payloadLog)
-						.append("\n");
+			// Loga payload baseado na inspeção do JSON ou Content-Type
+			if (this.payload != null && !this.payload.trim().isEmpty()) {
+				boolean isTexto = false;
+				String trimPayload = this.payload.trim();
+
+				if (trimPayload.startsWith("{") || trimPayload.startsWith("[")) {
+					isTexto = true;
+				} else if (this.contentType != null) {
+					String ctype = this.contentType.toLowerCase();
+					if (ctype.startsWith("text/")
+							|| ctype.startsWith("application/xml")
+							|| ctype.startsWith("application/x-www-form-urlencoded")) {
+						isTexto = true;
+					}
+				}
+
+				if (isTexto) {
+					String payloadLog = this.payload;
+					if (payloadLog.length() > MAX_PAYLOAD_LOG_SIZE) {
+						payloadLog = payloadLog.substring(0, MAX_PAYLOAD_LOG_SIZE)
+								+ " ... (payload truncado, tamanho limite de 16KB atingido)";
+					}
+					sb.append("Payload (").append(this.payload.length()).append(" chars): ").append(payloadLog)
+							.append("\n");
+				} else {
+					sb.append("Payload (").append(this.payload.length())
+							.append(" bytes): omitido (binário/não-texto)\n");
+				}
 			} else {
 				sb.append("Payload: vazio\n");
 			}
@@ -556,6 +572,10 @@ public class EmsRequest implements IEmsRequest {
 		OtpErlangMap params = ((OtpErlangMap) otp_request.elementAt(3));
 		OtpErlangBinary OtpNomeParam = new OtpErlangBinary(nome.getBytes());
 		OtpErlangLong otp_result = (OtpErlangLong) params.get(OtpNomeParam);
+		// Bug corrigido: verificar null antes de chamar intValue() para evitar NPE
+		if (otp_result == null) {
+			throw new EmsValidationException("Parâmetro " + nome + " não existe no request.");
+		}
 		try {
 			return otp_result.intValue();
 		} catch (OtpErlangRangeException e) {
@@ -590,7 +610,8 @@ public class EmsRequest implements IEmsRequest {
 	@Override
 	public Date getParamAsDate(final String nome) throws ParseException {
 		try {
-			return new SimpleDateFormat("dd/mm/yyyy").parse(getParam(nome));
+			// Bug corrigido: "dd/mm/yyyy" usava minutos (mm) em vez de meses (MM)
+			return new SimpleDateFormat("dd/MM/yyyy").parse(getParam(nome));
 		} catch (Exception e) {
 			throw new EmsValidationException(
 					"Não foi possível converter o parâmetro " + nome + " no tipo Date do request.");
@@ -633,14 +654,14 @@ public class EmsRequest implements IEmsRequest {
 		if (nome == null) {
 			throw new EmsValidationException("Propriedade nome não pode ser null para EmsRequest.getQuery.");
 		}
+		// Bug corrigido: retornar null em vez de lançar exceção quando não há queries
 		if (getQueryCount() > 0) {
 			try {
 				OtpErlangMap Queries = ((OtpErlangMap) otp_request.elementAt(4));
 				OtpErlangBinary OtpNome = new OtpErlangBinary(nome.getBytes());
 				OtpErlangBinary otp_result = (OtpErlangBinary) Queries.get(OtpNome);
 				if (otp_result != null) {
-					String result = new String(otp_result.binaryValue());
-					return result;
+					return new String(otp_result.binaryValue(), "UTF-8");
 				} else {
 					return null;
 				}
@@ -648,7 +669,7 @@ public class EmsRequest implements IEmsRequest {
 				throw new EmsValidationException("Não foi possível obter a query " + nome + " do request.");
 			}
 		} else {
-			throw new EmsValidationException("Não existe a query " + nome + " do request.");
+			return null;
 		}
 	}
 
@@ -665,14 +686,17 @@ public class EmsRequest implements IEmsRequest {
 		if (nome == null) {
 			throw new EmsValidationException("Propriedade nome não pode ser null para EmsRequest.getQuery.");
 		}
+		// Bug corrigido: retornar defaultValue em vez de lançar exceção quando não há
+		// queries
+		// Bug corrigido: charset ISO-8859-1 → UTF-8 para consistência com
+		// getQuery(nome)
 		if (getQueryCount() > 0) {
 			try {
 				OtpErlangMap Queries = ((OtpErlangMap) otp_request.elementAt(4));
 				OtpErlangBinary OtpNome = new OtpErlangBinary(nome.getBytes());
 				OtpErlangBinary otp_result = (OtpErlangBinary) Queries.get(OtpNome);
 				if (otp_result != null) {
-					String result = new String(otp_result.binaryValue(), "ISO-8859-1");
-					return result;
+					return new String(otp_result.binaryValue(), "UTF-8");
 				} else {
 					return defaultValue;
 				}
@@ -680,7 +704,7 @@ public class EmsRequest implements IEmsRequest {
 				throw new EmsValidationException("Não foi possível obter a query " + nome + " do request.");
 			}
 		} else {
-			throw new EmsValidationException("Não existe a query " + nome + " do request.");
+			return defaultValue;
 		}
 	}
 
@@ -842,8 +866,10 @@ public class EmsRequest implements IEmsRequest {
 		if (nome == null) {
 			throw new EmsValidationException("Propriedade nome não pode ser null para EmsRequest.getProperty.");
 		}
+		// Bug corrigido: retornar defaultValue em vez de lançar exceção quando
+		// properties == null
 		if (properties == null) {
-			throw new EmsValidationException("Propriedade " + nome + " não existe na requisição.");
+			return defaultValue;
 		}
 		return properties.getOrDefault(nome, defaultValue);
 	};

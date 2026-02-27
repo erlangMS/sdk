@@ -4,19 +4,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class UserHolder {
+public final class UserHolder {
 	Integer id;
 	Double codigo;
 	String login;
 	List<Map<Object, Object>> lista_perfil;
 	List<Map<String, Object>> lista_permission;
 	Map remap_user_id;
-	
+
 	public UserHolder(IOAuth2Token token) {
 		super();
 		IUsuario usuario = token.getUsuario();
 		this.id = usuario.getId();
-		this.codigo = Double.valueOf(usuario.getCodigoPessoa().toString()); 
+		this.codigo = Double.valueOf(usuario.getCodigoPessoa().toString());
 		this.login = usuario.getLogin();
 		this.lista_perfil = new ArrayList<>();
 		this.lista_permission = new ArrayList<>();
@@ -70,7 +70,5 @@ public class UserHolder {
 	public void setRemap_user_id(Map remap_user_id) {
 		this.remap_user_id = remap_user_id;
 	}
-	
-	
-	
+
 }

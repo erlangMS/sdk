@@ -17,63 +17,37 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
-public class EmsServiceStream {
+public final class EmsServiceStream {
 	private String from_url;
 	private Map<String, Object> queries;
 	private String response;
-	
-	static {
-	        TrustManager[] trustAllCerts = new TrustManager[] {new X509TrustManager() {
-		            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-		                return null;
-		            }
-		            public void checkClientTrusted(X509Certificate[] certs, String authType) {
-		            }
-		            public void checkServerTrusted(X509Certificate[] certs, String authType) {
-		            }
-		        }
-		    };
-		
-		    // Install the all-trusting trust manager
-		    SSLContext sc = null;
-			try {
-				sc = SSLContext.getInstance("SSL");
-			} catch (NoSuchAlgorithmException e) {
-				e.printStackTrace();
-			}
-		    try {
-				sc.init(null, trustAllCerts, new java.security.SecureRandom());
-			} catch (KeyManagementException e) {
-				e.printStackTrace();
-			}
-		    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-		
-		    // Create all-trusting host name verifier
-		    HostnameVerifier allHostsValid = new HostnameVerifier() {
-		        public boolean verify(String hostname, SSLSession session) {
-		            return true;
-		        }
-		    };
-		
-		    // Install the all-trusting host verifier
-		    HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
-	}
-	
-	public EmsServiceStream(){
+
+	/*
+	 * Bug corrigido: o bloco static anterior desabilitava a validação SSL de toda a
+	 * JVM
+	 * (setDefaultSSLSocketFactory e setDefaultHostnameVerifier globais), afetando
+	 * todas
+	 * as conexões HTTPS do processo — inclusive de outras bibliotecas.
+	 * Agora o SSLContext permissivo é criado e aplicado apenas por conexão, no
+	 * método request().
+	 */
+
+	public EmsServiceStream() {
 		this.from_url = null;
 		this.queries = new java.util.HashMap<>();
 		this.response = null;
 	}
-	
-	public EmsServiceStream from(final String url){
-		if (url == null || url.isEmpty()) 
-			throw new EmsValidationException("Parâmetro do método EmsServiceStream.from(final String url) não pode ser nulo.");
+
+	public EmsServiceStream from(final String url) {
+		if (url == null || url.isEmpty())
+			throw new EmsValidationException(
+					"Parâmetro do método EmsServiceStream.from(final String url) não pode ser nulo.");
 		this.from_url = url;
 		return this;
 	}
 
 	public EmsServiceStream setParameter(final Integer value) {
-		if (value == null) 
+		if (value == null)
 			throw new EmsValidationException("Parâmetro value do EmsServiceStream.setParameter não pode ser nulo.");
 		from_url = from_url.replaceFirst(":id", value.toString());
 		return this;
@@ -84,32 +58,65 @@ public class EmsServiceStream {
 		return this;
 	}
 
-    
 	public EmsServiceStream request() {
 		String restUrl = EmsUtil.properties.ESB_URL + from_url;
 		URL url = null;
-        try {
+		try {
 			url = new URL(restUrl);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
-			throw new EmsValidationException("EmsServiceStream não conseguiu criar a url "+ restUrl);
+			throw new EmsValidationException("EmsServiceStream não conseguiu criar a url " + restUrl);
 		}
-        URLConnection con = null;
+		URLConnection con = null;
 		try {
 			con = url.openConnection();
-			con.setRequestProperty(EmsUtil.properties.authorizationHeaderName, EmsUtil.properties.authorizationHeaderValue);
+			// Bug corrigido: SSLContext permissivo aplicado apenas nesta conexão
+			// específica,
+			// não mais como default global da JVM.
+			if (con instanceof HttpsURLConnection) {
+				HttpsURLConnection httpsCon = (HttpsURLConnection) con;
+				try {
+					TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+						public X509Certificate[] getAcceptedIssuers() {
+							return new X509Certificate[0];
+						}
+
+						public void checkClientTrusted(X509Certificate[] certs, String authType) {
+						}
+
+						public void checkServerTrusted(X509Certificate[] certs, String authType) {
+						}
+					} };
+					// Bug corrigido: verificar sc != null antes de usar para evitar NPE
+					SSLContext sc = SSLContext.getInstance("SSL");
+					if (sc != null) {
+						sc.init(null, trustAllCerts, new java.security.SecureRandom());
+						httpsCon.setSSLSocketFactory(sc.getSocketFactory());
+					}
+					httpsCon.setHostnameVerifier(new HostnameVerifier() {
+						public boolean verify(String hostname, SSLSession session) {
+							return true;
+						}
+					});
+				} catch (NoSuchAlgorithmException | KeyManagementException e) {
+					e.printStackTrace();
+					// Continua sem SSL customizado — usa o padrão da JVM
+				}
+			}
+			con.setRequestProperty(EmsUtil.properties.authorizationHeaderName,
+					EmsUtil.properties.authorizationHeaderValue);
 			con.setRequestProperty("Content-Type", "application/json; charset=utf-8");
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new EmsValidationException("EmsServiceStream não conseguiu criar a conexão da url "+ restUrl);
+			throw new EmsValidationException("EmsServiceStream não conseguiu criar a conexão da url " + restUrl);
 		}
-        try {
-        	this.response = EmsUtil.readFullyAsString(con.getInputStream(), "UTF-8");
+		try {
+			this.response = EmsUtil.readFullyAsString(con.getInputStream(), "UTF-8");
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new EmsValidationException("EmsServiceStream não conseguiu ler o response da url "+ restUrl);
+			throw new EmsValidationException("EmsServiceStream não conseguiu ler o response da url " + restUrl);
 		}
-	    
+
 		return this;
 	}
 
@@ -129,5 +136,4 @@ public class EmsServiceStream {
 	public Object getObject() {
 		return response;
 	}
-}	
-
+}

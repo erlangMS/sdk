@@ -11,9 +11,10 @@ package br.erlangms;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Random;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,13 +28,31 @@ public final class EmsConnection implements Runnable {
 
     private static final Logger logger = EmsUtil.logger;
     private static final int THREAD_WAIT_TO_RESTART = 5000;
+    private static final int CORE_POOL_SIZE = 12;
+    private static final int MAX_POOL_SIZE = 50;
+    private static final long KEEP_ALIVE_TIME_SECONDS = 60L;
+
+    private static final ExecutorService pool = new java.util.concurrent.ThreadPoolExecutor(
+            CORE_POOL_SIZE, MAX_POOL_SIZE,
+            KEEP_ALIVE_TIME_SECONDS, java.util.concurrent.TimeUnit.SECONDS,
+            new java.util.concurrent.SynchronousQueue<Runnable>(),
+            new ThreadFactory() {
+                private final AtomicInteger count = new AtomicInteger(1);
+
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "ems-worker-" + count.getAndIncrement());
+                }
+            },
+            new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+
     private final String nameService;
     private final Object service;
-    private Class<? extends Object> classOfservice;
+    private final Class<? extends Object> classOfservice;
     private Method methods[];
     private String method_names[];
     private int method_count = 0;
-    private String otpNodeName;
+    private final String otpNodeName;
     private OtpNode myNode = null;
     private OtpMbox myMbox = null;
 
@@ -111,16 +130,12 @@ public final class EmsConnection implements Runnable {
         OtpErlangTuple otp_request;
         OtpErlangPid dispatcherPid;
         EmsRequest request;
-        ExecutorService pool = Executors.newCachedThreadPool();
         final String msgReiniciarException = "Serviço " + nameService + " será reiniciado devido erro interno: ";
 
         while (true) {
             try {
                 createNode();
                 myMbox = myNode.createMbox(nameService);
-                logger.info("📬 Mailbox: " + nameService + " on node " + myNode.node());
-
-                // Message Loop
                 while (true) {
                     try {
                         myObject = myMbox.receive();
@@ -160,7 +175,7 @@ public final class EmsConnection implements Runnable {
     }
 
     public void start() {
-        new Thread(this).start();
+        new Thread(this, nameService).start();
     }
 
     private Object chamaMetodo(String modulo, String metodo, IEmsRequest request) {
@@ -186,12 +201,12 @@ public final class EmsConnection implements Runnable {
                         + (cause != null ? cause.toString() : e.toString());
                 logger.warning(erro);
                 e.printStackTrace();
-                msg_json = "{\"error\":\"internal_error\", \"message\" : \"" + erro.replace("\"", "\"") + "\"}";
+                msg_json = "{\"error\":\"internal_error\", \"message\" : \"" + erro.replace("\"", "\\\"") + "\"}";
                 return new EmsResponse(500, msg_json);
             } catch (Exception e) {
                 String erro = "Erro ao invocar metodo " + className + "." + metodo + ": " + e.toString();
                 logger.warning(erro);
-                msg_json = "{\"error\":\"internal_error\", \"message\" : \"" + erro.replace("\"", "\"") + "\"}";
+                msg_json = "{\"error\":\"internal_error\", \"message\" : \"" + erro.replace("\"", "\\\"") + "\"}";
                 return new EmsResponse(500, msg_json);
             }
         } else {
@@ -203,9 +218,9 @@ public final class EmsConnection implements Runnable {
     }
 
     private final class Task implements Callable<Boolean> {
-        private OtpErlangPid from;
-        private IEmsRequest request;
-        private EmsConnection connection;
+        private final OtpErlangPid from;
+        private final IEmsRequest request;
+        private final EmsConnection connection;
 
         public Task(final OtpErlangPid from, final IEmsRequest request, EmsConnection connection) {
             super();
